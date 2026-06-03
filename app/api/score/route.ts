@@ -1,88 +1,105 @@
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
-// TODO: in production, fetch real signals from HubSpot + Databricks + Chargebee before calling Claude
-
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { Client } from '@/lib/types'
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
-const SYSTEM_PROMPT = `You are a customer success scoring engine. Given signals about a B2B SaaS client, calculate a health score and classify the account. Return ONLY valid JSON, no markdown, no explanation outside the JSON.
+const today = new Date().toISOString().split('T')[0]
 
-Scoring weights:
-- Platform usage (posts, approved posts, distributed posts in last 30 days): 25%
-- Contract status (non_renewing=high risk, cancel_scheduled=critical, days to renewal): 25%
-- Email recency and volume (days since last contact, email frequency): 20%
-- Call sentiment from Fathom (positive/neutral/negative/churn language): 20%
-- Financial signals (due invoices, ARR size as priority multiplier): 10%
+const SYSTEM_PROMPT = `You are a Customer Success scoring engine. Classify a SaaS client's health into exactly one of four states (in priority order):
 
-Health states:
-- stable: score 70-100, no urgent signals
-- moderate: score 45-69, needs monitoring (ALL onboarding clients are moderate minimum)
-- action_required: score 25-44, contact today
-- churn_risk: score 0-24, save this account urgently
+CHURN_RISK → highest urgency
+ACTION_REQUIRED
+KEEP_AN_EYE
+STABLE → default
 
-Return this exact JSON:
-{
-  "score": number,
-  "healthState": "stable"|"moderate"|"action_required"|"churn_risk",
-  "confidence": number,
-  "whyThisScore": string,
-  "recommendedAction": string,
-  "scoreDrivers": [{ "label": string, "type": "positive"|"neutral"|"negative"|"critical" }]
-}`
+Rules (first match wins):
+
+CHURN_RISK if any:
+- Deal stage is "Communicated Churn (in Winback)"
+- churn_risk flag is true
+- Fathom summaries contain: competitor mentions, budget cuts, ROI doubts, cancellation intent, accumulated tech problems, CSM dissatisfaction
+
+ACTION_REQUIRED if any:
+- Usage health None/zero AND inactive 40+ days
+- Active discontent or platform blocking issue in Fathom
+- In onboarding Implementation stage for 90+ days
+- auto_renewal false AND fewer than 100 days to close date
+- Stage "Up for Renewal" AND last contact 30+ days ago
+- Churn date within next 15 days
+
+KEEP_AN_EYE if any:
+- Usage health Poor OR total active flows ≤ 1
+- Active onboarding deal (not fully onboarded)
+- Service level High AND no contact 45+ days
+- Open HubSpot tasks or unresolved Fathom action items
+- Stage "Renewal in Progress" or "Paused"
+- Budget negotiation, upsell or proposal pending client response
+
+STABLE: default if none of the above apply.
+
+Today: ${today}
+
+Return ONLY valid JSON, no markdown.`
 
 export async function POST(request: NextRequest) {
   try {
-    const { client: clientData }: { client: Client } = await request.json()
+    const { client: clientData, csmName }: { client: Client; csmName?: string } = await request.json()
+    const d = clientData.signals.deal
+    const co = clientData.signals.company
+    const ob = clientData.signals.onboarding
 
-    const signalsSummary = `
-Client: ${clientData.name}
-ARR: DKK ${clientData.arr.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-Is onboarding: ${clientData.isOnboarding ?? false}
-Last contact: ${clientData.lastContactDaysAgo} days ago
+    const userPrompt = `Client data:
+- Name: ${clientData.name}
+- ARR: €${clientData.arr.toLocaleString()}
+- CSM: ${csmName ?? clientData.csm}
+- Contract stage: ${d.stageLabel}
+- Auto renewal: ${d.autoRenewal}
+- Close date: ${d.closeDate ?? 'unknown'}
+- Churn date: ${d.churnDate ?? 'none'}
+- Last contacted: ${d.lastContactDaysAgo} days ago
+- Usage health: ${co.usageHealth ?? 'unknown'}
+- Total active flows: ${co.totalActiveFlows}
+- Service level: ${co.serviceLevel ?? 'unknown'}
+- Churn risk flag: ${co.churnRisk}
+- NPS status: ${co.npsStatus ?? 'unknown'}
+- In active onboarding: ${ob.active} (${ob.daysInOnboarding} days, stage: ${ob.stage ?? 'n/a'})
+- Open HubSpot tasks: ${clientData.signals.openTasks}
 
-HubSpot signals:
-- Open tickets: ${clientData.signals.hubspot.openTickets}
-- Emails last 30 days: ${clientData.signals.hubspot.emails30d}
-- Emails last 90 days: ${clientData.signals.hubspot.emails90d}
-- Last email inbound: ${clientData.signals.hubspot.lastEmailIn}
-- Last email outbound: ${clientData.signals.hubspot.lastEmailOut}
+Recent Fathom call summaries (last 90 days):
+${clientData.signals.fathom.summaries ?? 'No call data available'}
 
-Usage signals (Databricks):
-- Posts last 30 days: ${clientData.signals.usage.posts30d}
-- Approved posts: ${clientData.signals.usage.approved30d}
-- Distributed posts: ${clientData.signals.usage.distributed30d}
-- Rights requests: ${clientData.signals.usage.rightsRequests30d}
-- Last active day: ${clientData.signals.usage.lastActiveDay ?? 'unknown'}
-
-Subscription (Chargebee):
-- Status: ${clientData.signals.chargebee.status}
-- Contract end: ${clientData.signals.chargebee.contractEnd}
-- Cancellation scheduled: ${clientData.signals.chargebee.cancelScheduled}
-- Due invoices: ${clientData.signals.chargebee.dueInvoices}
-- Total dues: DKK ${clientData.signals.chargebee.totalDues}
-
-Call sentiment (Fathom):
-${clientData.signals.fathom.sentiment ?? 'No call sentiment available'}
-`
+Open Fathom action items assigned to CSM:
+${clientData.signals.fathom.openActionItems} open items`
 
     const response = await client.messages.create({
       model: 'claude-sonnet-4-5',
-      max_tokens: 1000,
+      max_tokens: 600,
       system: SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: `Score this client based on the following signals:\n${signalsSummary}` }],
+      messages: [{ role: 'user', content: userPrompt }],
     })
 
     const textBlock = response.content.find(b => b.type === 'text')
-    if (!textBlock || textBlock.type !== 'text') {
-      return NextResponse.json({ error: 'No response from Claude' }, { status: 500 })
+    if (!textBlock || textBlock.type !== 'text') throw new Error('No response')
+
+    const raw = textBlock.text.replace(/```json\n?|```/g, '').trim()
+    const parsed = JSON.parse(raw)
+
+    // Normalize status to our HealthState
+    const statusMap: Record<string, string> = {
+      CHURN_RISK: 'churn_risk',
+      ACTION_REQUIRED: 'action_required',
+      KEEP_AN_EYE: 'keep_an_eye',
+      STABLE: 'stable',
     }
 
-    const parsed = JSON.parse(textBlock.text)
-    return NextResponse.json(parsed)
+    return NextResponse.json({
+      ...parsed,
+      healthState: statusMap[parsed.status] ?? 'stable',
+    })
   } catch (error) {
     console.error('Score API error:', error)
     return NextResponse.json({ error: 'Failed to score client' }, { status: 500 })

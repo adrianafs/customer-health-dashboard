@@ -2,264 +2,346 @@ export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 export const fetchCache = 'force-no-store'
 
-import { NextResponse } from 'next/server'
-import { Client, HealthState } from '@/lib/types'
+import { NextRequest, NextResponse } from 'next/server'
+import { Client, HealthState, CSMName, CSM_LIST, DEAL_STAGE_LABELS } from '@/lib/types'
 
-const HS_BASE = 'https://api.hubapi.com'
+const HS = 'https://api.hubapi.com'
 const TOKEN = process.env.HUBSPOT_TOKEN
+const CONTRACTS_PIPELINE = '874052773'
+const ONBOARDING_PIPELINE = '874052774'
+const ONBOARDING_ACTIVE_STAGES = ['1309169021','1309169022','1309169023','1309169024','1309169025']
 
-const COMPANY_PROPERTIES = [
-  'name',
-  'hubspot_owner_id',
-  'total_contract_value',
-  'agreement_status',
-  'nps_status',
-  'notes_last_contacted',
-  'churn_risk',
-  'subscription_start_date',
-  'churn_date',
-  'flowbox_platform_id',
-  'hs_object_id',
-  'num_associated_contacts',
+const DEAL_PROPS = [
+  'dealname','dealstage','amount','auto_renewal','churn_date',
+  'communicated_churn_date','reason_for_churn','closedate',
+  'notes_last_contacted','hubspot_owner_id','createdate','hs_object_id',
 ].join(',')
 
-function hs(path: string) {
-  return fetch(`${HS_BASE}${path}`, {
-    headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
-    cache: 'no-store',
-  })
+const COMPANY_PROPS = [
+  'name','client_success_service_level','usage_health__startdeliver_',
+  'churn_risk','nps_status','total_active_flows','notes_last_contacted',
+].join(',')
+
+function auth() {
+  return { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' }
 }
 
-async function fetchAllOwners(): Promise<Record<string, string>> {
-  const res = await hs('/crm/v3/owners?limit=100')
-  if (!res.ok) return {}
-  const data = await res.json()
-  const map: Record<string, string> = {}
-  for (const o of data.results ?? []) {
-    map[String(o.id)] = o.firstName ?? o.email ?? 'Unknown'
-  }
-  return map
+async function post(path: string, body: object) {
+  return fetch(`${HS}${path}`, { method: 'POST', headers: auth(), cache: 'no-store', body: JSON.stringify(body) })
 }
 
-async function fetchOpenTicketCounts(companyIds: string[]): Promise<Record<string, number>> {
-  if (companyIds.length === 0) return {}
-  // Batch associations: up to 100 per request
-  const chunks = []
-  for (let i = 0; i < companyIds.length; i += 50) {
-    chunks.push(companyIds.slice(i, i + 50))
-  }
-  const counts: Record<string, number> = {}
-  for (const chunk of chunks) {
-    // Use batch read associations: companies → tickets
-    const res = await fetch(`${HS_BASE}/crm/v4/associations/company/ticket/batch/read`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ inputs: chunk.map(id => ({ id })) }),
-    })
-    if (!res.ok) continue
-    const data = await res.json()
-    for (const r of data.results ?? []) {
-      counts[r.from.id] = (r.to ?? []).length
-    }
-  }
-  return counts
+async function get(path: string) {
+  return fetch(`${HS}${path}`, { headers: auth(), cache: 'no-store' })
 }
 
 function daysAgo(dateStr: string | null | undefined): number {
   if (!dateStr) return 999
-  const ms = Date.now() - new Date(dateStr).getTime()
-  return Math.floor(ms / (1000 * 60 * 60 * 24))
+  return Math.floor((Date.now() - new Date(dateStr).getTime()) / 86400000)
 }
 
-function contractAgeMonths(startStr: string | null | undefined): number {
+function daysUntil(dateStr: string | null | undefined): number {
+  if (!dateStr) return 999
+  return Math.ceil((new Date(dateStr).getTime() - Date.now()) / 86400000)
+}
+
+function contractAge(startStr: string | null | undefined): number {
   if (!startStr) return 0
-  const ms = Date.now() - new Date(startStr).getTime()
-  return Math.floor(ms / (1000 * 60 * 60 * 24 * 30))
+  return Math.floor((Date.now() - new Date(startStr).getTime()) / (86400000 * 30))
 }
 
-function daysToRenewal(churnDateStr: string | null | undefined): number {
-  if (!churnDateStr) return 999
-  // churn_date = end + 1 day, so renewal = churn_date - 1 day
-  const renewal = new Date(churnDateStr)
-  renewal.setDate(renewal.getDate() - 1)
-  return Math.ceil((renewal.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
-}
+function classifyState(
+  dealStage: string,
+  autoRenewal: boolean,
+  closeDate: string | null,
+  churnDate: string | null,
+  lastContactDays: number,
+  usageHealth: string | null,
+  totalFlows: number,
+  serviceLevel: string | null,
+  churnRiskFlag: boolean,
+  inOnboarding: boolean,
+  daysInOnboarding: number,
+  openTasks: number,
+): { state: HealthState; rules: string[] } {
+  const rules: string[] = []
 
-function inferHealthState(p: Record<string, string>, openTickets: number, lastContactDays: number): HealthState {
-  const churnRisk = p.churn_risk === 'true'
-  const status = p.agreement_status ?? ''
-  const nps = p.nps_status ?? ''
-  const dtRenewal = daysToRenewal(p.churn_date)
+  // CHURN RISK
+  if (dealStage === '1309169016') { rules.push('communicated_churn_stage'); return { state: 'churn_risk', rules } }
+  if (churnRiskFlag) { rules.push('churn_risk_flag'); return { state: 'churn_risk', rules } }
 
-  if (churnRisk || status === 'Communicated Churn (in Winback)') return 'churn_risk'
-  if (status === 'Churned') return 'churn_risk'
-  if (nps === 'Onboarding') return 'moderate'
-  if (lastContactDays > 30 || (openTickets > 0 && lastContactDays > 14)) return 'action_required'
-  if (dtRenewal < 45 || lastContactDays > 14) return 'moderate'
-  return 'stable'
-}
-
-function inferScore(state: HealthState, lastContactDays: number, openTickets: number, dtRenewal: number): number {
-  const base: Record<HealthState, [number, number]> = {
-    stable: [75, 95],
-    moderate: [50, 70],
-    action_required: [30, 48],
-    churn_risk: [10, 28],
+  // ACTION REQUIRED
+  if ((usageHealth === 'None' || totalFlows === 0) && lastContactDays > 40) {
+    rules.push('no_usage_40d'); return { state: 'action_required', rules }
   }
-  const [lo, hi] = base[state]
-  // Simple heuristic within the band
-  let score = Math.round((lo + hi) / 2)
-  if (lastContactDays < 7) score = Math.min(hi, score + 5)
-  if (lastContactDays > 20) score = Math.max(lo, score - 5)
-  if (openTickets > 0) score = Math.max(lo, score - 3)
-  if (dtRenewal < 30) score = Math.max(lo, score - 4)
-  return score
+  if (inOnboarding && daysInOnboarding > 90) {
+    rules.push('onboarding_90d'); return { state: 'action_required', rules }
+  }
+  if (!autoRenewal && closeDate && daysUntil(closeDate) < 100) {
+    rules.push('auto_renewal_false_close_100d'); return { state: 'action_required', rules }
+  }
+  if (dealStage === '1309169014' && lastContactDays > 30) {
+    rules.push('up_for_renewal_no_contact_30d'); return { state: 'action_required', rules }
+  }
+  if (churnDate && daysUntil(churnDate) < 15 && daysUntil(churnDate) > 0) {
+    rules.push('churn_date_15d'); return { state: 'action_required', rules }
+  }
+
+  // KEEP AN EYE
+  if (inOnboarding) { rules.push('onboarding_active'); return { state: 'keep_an_eye', rules } }
+  if (usageHealth === 'Poor' || totalFlows <= 1) {
+    rules.push('low_usage'); return { state: 'keep_an_eye', rules }
+  }
+  if (dealStage === '1309169015') { rules.push('renewal_in_progress'); return { state: 'keep_an_eye', rules } }
+  if (dealStage === '1309169017') { rules.push('deal_paused'); return { state: 'keep_an_eye', rules } }
+  if (serviceLevel === 'High' && lastContactDays > 45) {
+    rules.push('high_service_no_contact_45d'); return { state: 'keep_an_eye', rules }
+  }
+  if (openTasks > 0) { rules.push('open_tasks'); return { state: 'keep_an_eye', rules } }
+
+  return { state: 'stable', rules: [] }
 }
 
-function mapToClient(
-  company: Record<string, unknown>,
-  owners: Record<string, string>,
-  openTickets: number,
+function stateScore(state: HealthState, lastContactDays: number, totalFlows: number): number {
+  const base: Record<HealthState, number> = { stable: 82, keep_an_eye: 58, action_required: 36, churn_risk: 14 }
+  let s = base[state]
+  if (lastContactDays < 7) s = Math.min(s + 6, 98)
+  if (lastContactDays > 30) s = Math.max(s - 6, 5)
+  if (totalFlows > 5) s = Math.min(s + 4, 98)
+  return Math.round(s)
+}
+
+function mapDeal(
+  deal: Record<string, unknown>,
+  companyProps: Record<string, string>,
+  onboarding: { active: boolean; daysInOnboarding: number; stage: string | null },
+  openTasks: number,
+  ownerMap: Record<string, CSMName>,
 ): Client {
-  const p = (company.properties as Record<string, string>) ?? {}
-  const id = String(company.id)
-  const lastContactDays = daysAgo(p.notes_last_contacted)
-  const dtRenewal = daysToRenewal(p.churn_date)
-  const ownerName = owners[p.hubspot_owner_id] ?? 'Unknown'
-  // Map owner first name to Adriana/Claudia — extend this as needed
-  const csm: 'Adriana' | 'Claudia' = ownerName.toLowerCase().includes('adriana') ? 'Adriana' : 'Claudia'
-  const state = inferHealthState(p, openTickets, lastContactDays)
-  const score = inferScore(state, lastContactDays, openTickets, dtRenewal)
-  const arr = parseFloat(p.total_contract_value ?? '0') || 0
-  const ageMonths = contractAgeMonths(p.subscription_start_date)
-  const churnDateStr = p.churn_date ?? ''
-  const renewalDate = churnDateStr
-    ? (() => { const d = new Date(churnDateStr); d.setDate(d.getDate() - 1); return d.toISOString().split('T')[0] })()
-    : 'Unknown'
+  const dp = (deal.properties as Record<string, string>) ?? {}
+  const id = String(deal.id)
+  const stage = dp.dealstage ?? ''
+  const autoRenewal = dp.auto_renewal === 'true'
+  const closeDate = dp.closedate?.split('T')[0] ?? null
+  const churnDate = dp.churn_date?.split('T')[0] ?? null
+  const lastContactDays = daysAgo(dp.notes_last_contacted ?? companyProps.notes_last_contacted)
+  const usageHealth = (companyProps.usage_health__startdeliver_ as 'Good'|'Fair'|'Poor'|'None'|null) ?? null
+  const totalFlows = parseInt(companyProps.total_active_flows ?? '0', 10) || 0
+  const serviceLevel = (companyProps.client_success_service_level as 'High'|'Medium'|'Low'|null) ?? null
+  const churnRiskFlag = companyProps.churn_risk === 'true'
+  const ownerId = dp.hubspot_owner_id ?? ''
+  const csm: CSMName = ownerMap[ownerId] ?? 'Claudia'
+  const arr = parseFloat(dp.amount ?? '0') || 0
+
+  const { state, rules } = classifyState(
+    stage, autoRenewal, closeDate, churnDate, lastContactDays,
+    usageHealth, totalFlows, serviceLevel, churnRiskFlag,
+    onboarding.active, onboarding.daysInOnboarding, openTasks,
+  )
+  const score = stateScore(state, lastContactDays, totalFlows)
 
   const drivers = []
-  if (lastContactDays < 7) drivers.push({ label: 'Recent contact', type: 'positive' as const })
-  if (lastContactDays > 20) drivers.push({ label: `No contact in ${lastContactDays}d`, type: lastContactDays > 30 ? 'critical' as const : 'negative' as const })
-  if (openTickets > 0) drivers.push({ label: `${openTickets} open ticket${openTickets > 1 ? 's' : ''}`, type: 'negative' as const })
-  if (p.churn_risk === 'true') drivers.push({ label: 'Flagged as churn risk', type: 'critical' as const })
-  if (dtRenewal < 60) drivers.push({ label: `Renews in ${dtRenewal}d`, type: dtRenewal < 30 ? 'critical' as const : 'negative' as const })
-  if (p.nps_status === 'Onboarding') drivers.push({ label: 'Currently onboarding', type: 'neutral' as const })
-  if (drivers.length === 0) drivers.push({ label: 'No urgent signals', type: 'positive' as const })
+  if (lastContactDays < 10) drivers.push({ label: `Contact ${lastContactDays}d ago`, type: 'positive' as const, direction: 'stable' as const })
+  if (lastContactDays > 30) drivers.push({ label: `No contact ${lastContactDays}d`, type: lastContactDays > 45 ? 'critical' as const : 'negative' as const, direction: 'declining' as const })
+  if (usageHealth) drivers.push({ label: `Usage: ${usageHealth}`, type: usageHealth === 'Good' ? 'positive' as const : usageHealth === 'Fair' ? 'neutral' as const : 'critical' as const, direction: usageHealth === 'Good' ? 'stable' as const : 'declining' as const })
+  if (onboarding.active) drivers.push({ label: `Onboarding (${onboarding.daysInOnboarding}d)`, type: 'neutral' as const, direction: 'stable' as const })
+  if (churnRiskFlag) drivers.push({ label: 'Flagged as churn risk', type: 'critical' as const, direction: 'declining' as const })
+  if (stage === '1309169016') drivers.push({ label: 'Communicated Churn', type: 'critical' as const, direction: 'declining' as const })
+  if (!autoRenewal && daysUntil(closeDate) < 100) drivers.push({ label: `No auto-renewal, closes ${daysUntil(closeDate)}d`, type: 'negative' as const, direction: 'declining' as const })
+  if (openTasks > 0) drivers.push({ label: `${openTasks} open task${openTasks > 1 ? 's' : ''}`, type: 'neutral' as const, direction: 'stable' as const })
+
+  const actionMap: Record<HealthState, string> = {
+    churn_risk: 'Initiate save play immediately. Escalate to management.',
+    action_required: 'Contact today — prepare renewal proposal or usage intervention.',
+    keep_an_eye: 'Schedule check-in this week. Review open items.',
+    stable: 'Maintain cadence. Consider proactive QBR or upsell conversation.',
+  }
+
+  const renewalDays = daysUntil(closeDate)
 
   return {
     id,
-    name: p.name ?? 'Unknown',
+    companyId: String((deal as Record<string, unknown>).companyId ?? ''),
+    name: dp.dealname ?? companyProps.name ?? 'Unknown',
     arr,
     currency: 'EUR',
     csm,
+    csmOwnerId: ownerId,
     healthState: state,
     score,
-    confidence: 70,
-    whyThisScore: `Based on live HubSpot data: last contact ${lastContactDays}d ago, ${openTickets} open ticket(s), contract status: ${p.agreement_status ?? 'unknown'}.`,
-    recommendedAction: state === 'churn_risk' ? 'Initiate save play immediately.' :
-      state === 'action_required' ? 'Contact today — check open tickets and usage.' :
-      state === 'moderate' ? 'Monitor closely and schedule check-in.' :
-      'Maintain current cadence.',
-    scoreDrivers: drivers.slice(0, 4),
-    isOnboarding: p.nps_status === 'Onboarding',
+    confidence: 72,
+    whyThisScore: rules.length
+      ? `Triggered rules: ${rules.join(', ')}. Last contact: ${lastContactDays}d ago.`
+      : `No negative signals. Usage: ${usageHealth ?? 'unknown'}, last contact: ${lastContactDays}d ago.`,
+    recommendedAction: actionMap[state],
+    scoreDrivers: drivers.slice(0, 3),
+    triggeredRules: rules,
     signals: {
-      hubspot: {
-        openTickets,
-        emails30d: 0, // TODO: fetch from engagements API
-        emails90d: 0,
-        lastEmailIn: p.notes_last_contacted ? `${lastContactDays}d ago` : 'Unknown',
-        lastEmailOut: 'Unknown',
+      deal: {
+        stage,
+        stageLabel: DEAL_STAGE_LABELS[stage] ?? stage,
+        autoRenewal,
+        closeDate,
+        churnDate,
+        communicatedChurnDate: dp.communicated_churn_date?.split('T')[0] ?? null,
+        reasonForChurn: dp.reason_for_churn ?? null,
+        lastContactDaysAgo: lastContactDays,
       },
-      usage: {
-        // TODO: connect to core.main.ugc_company_level_usage WHERE ugc_company_id = flowbox_platform_id
-        posts30d: 0,
-        approved30d: 0,
-        distributed30d: 0,
-        rightsRequests30d: 0,
-        lastActiveDay: null,
+      company: {
+        serviceLevel,
+        usageHealth,
+        churnRisk: churnRiskFlag,
+        npsStatus: companyProps.nps_status ?? null,
+        totalActiveFlows: totalFlows,
       },
-      chargebee: {
-        // TODO: connect to core.main.chargebee_subscriptions
-        status: p.agreement_status === 'Active Contract' ? 'active' :
-                p.agreement_status === 'Communicated Churn (in Winback)' ? 'non_renewing' :
-                p.agreement_status === 'Paused' ? 'paused' :
-                p.agreement_status === 'Churned' ? 'cancelled' : 'active',
-        contractEnd: renewalDate,
-        cancelScheduled: p.churn_risk === 'true' || p.agreement_status === 'Communicated Churn (in Winback)',
-        dueInvoices: 0,
-        totalDues: 0,
-      },
-      fathom: { sentiment: null },
+      onboarding,
+      openTasks,
+      fathom: { summaries: null, openActionItems: 0 }, // TODO: Fathom MCP
     },
     contract: {
-      start: p.subscription_start_date?.split('T')[0] ?? 'Unknown',
-      renewal: renewalDate,
-      ageMonths,
+      start: null,
+      renewal: closeDate,
+      ageMonths: contractAge(dp.createdate),
     },
-    renewalUrgent: dtRenewal < 60,
+    renewalUrgent: renewalDays < 60,
     lastContactDaysAgo: lastContactDays,
+    hubspotDealUrl: `https://app.hubspot.com/contacts/deals/${id}`,
   }
 }
 
-export async function GET() {
-  if (!TOKEN) {
-    return NextResponse.json({ error: 'HUBSPOT_TOKEN not configured' }, { status: 500 })
-  }
+export async function GET(req: NextRequest) {
+  if (!TOKEN) return NextResponse.json({ error: 'HUBSPOT_TOKEN not configured' }, { status: 500 })
+
+  const { searchParams } = new URL(req.url)
+  const ownerFilter = searchParams.get('owner') // optional: filter by owner ID
 
   try {
-    // 1. Fetch all customer companies via search API (POST supports filterGroups)
-    const companies: Record<string, unknown>[] = []
+    // 1. Fetch all deals in Contracts Pipeline (exclude Churned stage 1309169018)
+    const deals: Record<string, unknown>[] = []
     let after: string | undefined
+
+    const filters: object[] = [
+      { propertyName: 'pipeline', operator: 'EQ', value: CONTRACTS_PIPELINE },
+      { propertyName: 'dealstage', operator: 'NEQ', value: '1309169018' },
+    ]
+    if (ownerFilter) filters.push({ propertyName: 'hubspot_owner_id', operator: 'EQ', value: ownerFilter })
 
     do {
       const body: Record<string, unknown> = {
         limit: 100,
-        properties: COMPANY_PROPERTIES.split(','),
-        filterGroups: [{
-          filters: [{
-            propertyName: 'lifecyclestage',
-            operator: 'EQ',
-            value: 'customer',
-          }],
-        }],
+        properties: DEAL_PROPS.split(','),
+        filterGroups: [{ filters }],
+        sorts: [{ propertyName: 'amount', direction: 'DESCENDING' }],
       }
       if (after) body.after = after
-
-      const res = await fetch(`${HS_BASE}/crm/v3/objects/companies/search`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
-        cache: 'no-store',
-        body: JSON.stringify(body),
-      })
-
+      const res = await post('/crm/v3/objects/deals/search', body)
       if (!res.ok) {
         const err = await res.text()
-        return NextResponse.json({ error: `HubSpot error: ${err}` }, { status: res.status })
+        return NextResponse.json({ error: `HubSpot deals error: ${err}` }, { status: res.status })
       }
       const data = await res.json()
-      companies.push(...(data.results ?? []))
+      deals.push(...(data.results ?? []))
       after = data.paging?.next?.after
     } while (after)
 
-    // 2. Resolve owners and ticket counts in parallel
-    const companyIds = companies.map(c => String(c.id))
-    const [owners, ticketCounts] = await Promise.all([
-      fetchAllOwners(),
-      fetchOpenTicketCounts(companyIds),
-    ])
+    if (deals.length === 0) return NextResponse.json([])
 
-    // 3. Map to Client shape
-    const clients: Client[] = companies
-      .map(c => mapToClient(c, owners, ticketCounts[String(c.id)] ?? 0))
-      .filter(c => c.arr > 0) // skip companies with no contract value
+    // 2. Get associated companies for all deals (batch)
+    const dealIds = deals.map(d => String(d.id))
+    const assocRes = await post('/crm/v4/associations/deal/company/batch/read', {
+      inputs: dealIds.map(id => ({ id })),
+    })
+    const dealToCompany: Record<string, string> = {}
+    if (assocRes.ok) {
+      const assocData = await assocRes.json()
+      for (const r of assocData.results ?? []) {
+        if (r.to?.[0]?.id) dealToCompany[r.from.id] = r.to[0].id
+      }
+    }
+
+    // 3. Batch read company properties
+    const companyIds = Array.from(new Set(Object.values(dealToCompany)))
+    const companyPropsMap: Record<string, Record<string, string>> = {}
+    if (companyIds.length > 0) {
+      const batchRes = await post('/crm/v3/objects/companies/batch/read', {
+        inputs: companyIds.map(id => ({ id })),
+        properties: COMPANY_PROPS.split(','),
+      })
+      if (batchRes.ok) {
+        const batchData = await batchRes.json()
+        for (const co of batchData.results ?? []) {
+          companyPropsMap[co.id] = co.properties ?? {}
+        }
+      }
+    }
+
+    // 4. Check onboarding pipeline for each company
+    const onboardingMap: Record<string, { active: boolean; daysInOnboarding: number; stage: string | null }> = {}
+    if (companyIds.length > 0) {
+      const obRes = await post('/crm/v3/objects/deals/search', {
+        limit: 200,
+        properties: ['dealstage', 'createdate'],
+        filterGroups: [{
+          filters: [
+            { propertyName: 'pipeline', operator: 'EQ', value: ONBOARDING_PIPELINE },
+            { propertyName: 'dealstage', operator: 'NEQ', value: '1309169026' },
+          ],
+        }],
+      })
+      if (obRes.ok) {
+        const obData = await obRes.json()
+        const obDeals = obData.results ?? []
+        // Get company associations for onboarding deals
+        const obIds = obDeals.map((d: Record<string, unknown>) => String(d.id))
+        if (obIds.length > 0) {
+          const obAssocRes = await post('/crm/v4/associations/deal/company/batch/read', {
+            inputs: obIds.map((id: string) => ({ id })),
+          })
+          if (obAssocRes.ok) {
+            const obAssoc = await obAssocRes.json()
+            for (const r of obAssoc.results ?? []) {
+              const coId = r.to?.[0]?.id
+              if (!coId) continue
+              const obDeal = obDeals.find((d: Record<string, unknown>) => String(d.id) === r.from.id)
+              if (!obDeal) continue
+              const p = (obDeal as Record<string, unknown>).properties as Record<string, string>
+              const daysIn = Math.floor((Date.now() - new Date(p.createdate ?? '').getTime()) / 86400000)
+              onboardingMap[coId] = {
+                active: ONBOARDING_ACTIVE_STAGES.includes(p.dealstage ?? ''),
+                daysInOnboarding: daysIn,
+                stage: DEAL_STAGE_LABELS[p.dealstage ?? ''] ?? p.dealstage ?? null,
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // 5. Build owner map from CSM_LIST
+    const ownerMap: Record<string, CSMName> = {}
+    for (const csm of CSM_LIST) ownerMap[csm.ownerId] = csm.name
+
+    // 6. Map deals to Client objects
+    const clients: Client[] = deals
+      .filter(d => {
+        const dp = (d.properties as Record<string, string>) ?? {}
+        return dp.dealname && (parseFloat(dp.amount ?? '0') > 0 || true) // include all named deals
+      })
+      .map(d => {
+        const companyId = dealToCompany[String(d.id)] ?? ''
+        const companyProps = companyPropsMap[companyId] ?? {}
+        const onboarding = onboardingMap[companyId] ?? { active: false, daysInOnboarding: 0, stage: null }
+        const enrichedDeal = { ...d, companyId }
+        return mapDeal(enrichedDeal as Record<string, unknown>, companyProps, onboarding, 0, ownerMap)
+      })
       .sort((a, b) => {
-        const order: Record<HealthState, number> = { churn_risk: 0, action_required: 1, moderate: 2, stable: 3 }
-        return order[a.healthState] - order[b.healthState]
+        const order: Record<HealthState, number> = { churn_risk: 0, action_required: 1, keep_an_eye: 2, stable: 3 }
+        if (order[a.healthState] !== order[b.healthState]) return order[a.healthState] - order[b.healthState]
+        return b.arr - a.arr // within same state, sort by ARR desc
       })
 
     return NextResponse.json(clients)
   } catch (err) {
-    console.error('HubSpot API error:', err)
-    return NextResponse.json({ error: 'Failed to fetch from HubSpot' }, { status: 500 })
+    console.error('HubSpot route error:', err)
+    return NextResponse.json({ error: String(err) }, { status: 500 })
   }
 }

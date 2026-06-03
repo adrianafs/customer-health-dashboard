@@ -1,58 +1,90 @@
-export type HealthState = 'stable' | 'moderate' | 'action_required' | 'churn_risk'
+export type HealthState = 'stable' | 'keep_an_eye' | 'action_required' | 'churn_risk'
 
 export type SignalDriver = {
   label: string
   type: 'positive' | 'neutral' | 'negative' | 'critical'
+  direction?: 'improving' | 'stable' | 'declining'
 }
 
-export function formatARR(n: number): string {
-  return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+export type CSMName = 'Claudia' | 'Cecile' | 'Sophia' | 'Jerry' | 'Chantal' | 'Frida' | 'Oktawia' | 'Jana' | 'David'
+
+export const CSM_LIST: { name: CSMName; ownerId: string }[] = [
+  { name: 'Claudia', ownerId: '64994666' },
+  { name: 'Cecile', ownerId: '69434237' },
+  { name: 'Sophia', ownerId: '75827652' },
+  { name: 'Jerry', ownerId: '90050587' },
+  { name: 'Chantal', ownerId: '46571229' },
+  { name: 'Frida', ownerId: '46571222' },
+  { name: 'Oktawia', ownerId: '7359612' },
+  { name: 'Jana', ownerId: '78103049' },
+  { name: 'David', ownerId: '81605073' },
+]
+
+export const DEAL_STAGE_LABELS: Record<string, string> = {
+  '1309169012': 'Contract not started',
+  '1309169013': 'Active Contract',
+  '1309169014': 'Up for Renewal',
+  '1309169015': 'Renewal in Progress',
+  '1309169016': 'Communicated Churn (in Winback)',
+  '1309169017': 'Paused',
+  '1309169018': 'Churned',
+  '1309169019': 'Closed Won (Renewed)',
 }
 
 export type Client = {
-  id: string
+  id: string          // deal ID
+  companyId: string
   name: string
   arr: number
   currency: string
-  csm: 'Adriana' | 'Claudia'
+  csm: CSMName
+  csmOwnerId: string
   healthState: HealthState
   score: number
   confidence: number
   whyThisScore: string
   recommendedAction: string
   scoreDrivers: SignalDriver[]
-  isOnboarding?: boolean
+  triggeredRules: string[]
   signals: {
-    hubspot: {
-      openTickets: number
-      emails30d: number
-      emails90d: number
-      lastEmailIn: string
-      lastEmailOut: string
+    deal: {
+      stage: string
+      stageLabel: string
+      autoRenewal: boolean
+      closeDate: string | null
+      churnDate: string | null
+      communicatedChurnDate: string | null
+      reasonForChurn: string | null
+      lastContactDaysAgo: number
     }
-    usage: {
-      posts30d: number
-      approved30d: number
-      distributed30d: number
-      rightsRequests30d: number
-      lastActiveDay: string | null
+    company: {
+      serviceLevel: 'High' | 'Medium' | 'Low' | null
+      usageHealth: 'Good' | 'Fair' | 'Poor' | 'None' | null
+      churnRisk: boolean
+      npsStatus: string | null
+      totalActiveFlows: number
     }
-    chargebee: {
-      status: 'active' | 'non_renewing' | 'in_trial' | 'paused' | 'cancelled'
-      contractEnd: string
-      cancelScheduled: boolean
-      dueInvoices: number
-      totalDues: number
+    onboarding: {
+      active: boolean
+      daysInOnboarding: number
+      stage: string | null
     }
+    openTasks: number
     fathom: {
-      sentiment: string | null
+      summaries: string | null
+      openActionItems: number
     }
   }
   contract: {
-    start: string
-    renewal: string
+    start: string | null
+    renewal: string | null
     ageMonths: number
   }
   renewalUrgent: boolean
   lastContactDaysAgo: number
+  hubspotDealUrl: string
+}
+
+export function formatARR(n: number): string {
+  return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')
 }
