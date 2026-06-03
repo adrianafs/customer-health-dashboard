@@ -1,4 +1,5 @@
 export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
 
 // TODO: in production, fetch real signals from HubSpot + Databricks + Chargebee before calling Claude
 

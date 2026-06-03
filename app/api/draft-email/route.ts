@@ -1,4 +1,5 @@
 export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
 
 // TODO: in production, enrich with full HubSpot email history before drafting
 

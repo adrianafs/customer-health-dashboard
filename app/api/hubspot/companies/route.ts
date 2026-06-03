@@ -26,7 +26,7 @@ const COMPANY_PROPERTIES = [
 function hs(path: string) {
   return fetch(`${HS_BASE}${path}`, {
     headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
-    next: { revalidate: 300 }, // cache 5 min
+    cache: 'no-store',
   })
 }
 
