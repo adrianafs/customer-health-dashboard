@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useCallback } from 'react'
 import { Client, HealthState } from '@/lib/types'
 import { mockClients } from '@/lib/mockData'
 import ClientCard from '@/components/ClientCard'
@@ -15,10 +15,33 @@ const COLUMNS: { state: HealthState; label: string; subtitle: string; color: str
 
 export default function Dashboard() {
   const [clients, setClients] = useState<Client[]>(mockClients)
+  const [loading, setLoading] = useState(false)
+  const [dataSource, setDataSource] = useState<'mock' | 'hubspot'>('mock')
   const [selectedClient, setSelectedClient] = useState<Client | null>(null)
   const [csmFilter, setCsmFilter] = useState<'All' | 'Adriana' | 'Claudia'>('All')
   const [searchQuery, setSearchQuery] = useState('')
-  const [refreshKey, setRefreshKey] = useState(0)
+
+  const loadHubSpot = useCallback(async () => {
+    setLoading(true)
+    try {
+      const res = await fetch('/api/hubspot/companies')
+      if (res.ok) {
+        const data = await res.json()
+        if (Array.isArray(data) && data.length > 0) {
+          setClients(data)
+          setDataSource('hubspot')
+        }
+      }
+    } catch {
+      // silently fall back to mock
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    loadHubSpot()
+  }, [loadHubSpot])
 
   const filtered = useMemo(() => {
     return clients.filter(c => {
@@ -26,11 +49,15 @@ export default function Dashboard() {
       const matchesSearch = c.name.toLowerCase().includes(searchQuery.toLowerCase())
       return matchesCSM && matchesSearch
     })
-  }, [clients, csmFilter, searchQuery, refreshKey]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [clients, csmFilter, searchQuery])
 
   function handleRescore(updated: Client) {
     setClients(prev => prev.map(c => c.id === updated.id ? updated : c))
     setSelectedClient(updated)
+  }
+
+  function handleRefresh() {
+    loadHubSpot()
   }
 
   const stateCounts = useMemo(() => {
@@ -57,18 +84,21 @@ export default function Dashboard() {
         </div>
 
         <div className="flex items-center gap-3">
-          {/* Live dot */}
+          {/* Source badge + live dot */}
           <div className="flex items-center gap-1.5">
-            <div className="w-2 h-2 rounded-full animate-pulse-live" style={{ backgroundColor: '#22c55e' }} />
-            <span className="text-[10px] text-gray-500 uppercase tracking-wider">Live</span>
+            <div className="w-2 h-2 rounded-full animate-pulse-live" style={{ backgroundColor: dataSource === 'hubspot' ? '#22c55e' : '#f59e0b' }} />
+            <span className="text-[10px] text-gray-500 uppercase tracking-wider">
+              {dataSource === 'hubspot' ? 'HubSpot Live' : 'Mock Data'}
+            </span>
           </div>
           {/* Refresh */}
           <button
-            onClick={() => setRefreshKey(k => k + 1)}
-            className="text-[11px] px-2.5 py-1.5 rounded-lg transition-all hover:brightness-110"
+            onClick={handleRefresh}
+            disabled={loading}
+            className="text-[11px] px-2.5 py-1.5 rounded-lg transition-all hover:brightness-110 disabled:opacity-50"
             style={{ backgroundColor: '#1a1a24', border: '1px solid rgba(255,255,255,0.09)', color: '#6b7280' }}
           >
-            ↻ Refresh
+            {loading ? '⟳ Loading…' : '↻ Refresh'}
           </button>
         </div>
       </header>
