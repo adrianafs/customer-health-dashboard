@@ -18,6 +18,7 @@ const DEFAULT_CSM = CSM_LIST[0] // Claudia
 export default function Dashboard() {
   const [clients, setClients] = useState<Client[]>(mockClients)
   const [loading, setLoading] = useState(false)
+  const [apiError, setApiError] = useState<string | null>(null)
   const [dataSource, setDataSource] = useState<'mock' | 'hubspot'>('mock')
   const [selectedClient, setSelectedClient] = useState<Client | null>(null)
   const [activeCsmId, setActiveCsmId] = useState<string>(DEFAULT_CSM.ownerId)
@@ -25,18 +26,24 @@ export default function Dashboard() {
 
   const loadData = useCallback(async (ownerId: string) => {
     setLoading(true)
+    setApiError(null)
     try {
       const res = await fetch(`/api/hubspot/companies?owner=${ownerId}`)
-      if (res.ok) {
-        const data = await res.json()
-        if (Array.isArray(data) && data.length > 0) {
-          setClients(data)
-          setDataSource('hubspot')
-          return
-        }
+      const data = await res.json()
+      if (!res.ok) {
+        setApiError(`API ${res.status}: ${data?.error ?? 'unknown error'}`)
+      } else if (Array.isArray(data) && data.length > 0) {
+        setClients(data)
+        setDataSource('hubspot')
+        setLoading(false)
+        return
+      } else {
+        setApiError(`HubSpot returned 0 deals for owner ${ownerId}`)
       }
-    } catch { /* fall through to mock */ }
-    // fallback: filter mock by csm name
+    } catch (e) {
+      setApiError(`Network error: ${String(e)}`)
+    }
+    // fallback to mock
     const csmEntry = CSM_LIST.find(c => c.ownerId === ownerId)
     setClients(csmEntry ? mockClients.filter(c => c.csm === csmEntry.name) : mockClients)
     setDataSource('mock')
@@ -100,6 +107,15 @@ export default function Dashboard() {
           </button>
         </div>
       </header>
+
+      {/* Error banner */}
+      {apiError && (
+        <div className="shrink-0 px-6 py-2 text-[11px] flex items-center gap-2"
+          style={{ backgroundColor: 'rgba(226,75,74,0.1)', borderBottom: '1px solid rgba(226,75,74,0.2)', color: '#fca5a5' }}>
+          <span>⚠ HubSpot error (showing mock data):</span>
+          <span className="font-mono truncate">{apiError}</span>
+        </div>
+      )}
 
       {/* Stats bar */}
       <div className="shrink-0 flex" style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
