@@ -207,13 +207,31 @@ export async function GET() {
   }
 
   try {
-    // 1. Fetch all customer companies (paginated)
+    // 1. Fetch all customer companies via search API (POST supports filterGroups)
     const companies: Record<string, unknown>[] = []
     let after: string | undefined
 
     do {
-      const url = `/crm/v3/objects/companies?limit=100&properties=${COMPANY_PROPERTIES}&filterGroups=[{"filters":[{"propertyName":"lifecyclestage","operator":"EQ","value":"customer"}]}]${after ? `&after=${after}` : ''}`
-      const res = await hs(url)
+      const body: Record<string, unknown> = {
+        limit: 100,
+        properties: COMPANY_PROPERTIES.split(','),
+        filterGroups: [{
+          filters: [{
+            propertyName: 'lifecyclestage',
+            operator: 'EQ',
+            value: 'customer',
+          }],
+        }],
+      }
+      if (after) body.after = after
+
+      const res = await fetch(`${HS_BASE}/crm/v3/objects/companies/search`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+        cache: 'no-store',
+        body: JSON.stringify(body),
+      })
+
       if (!res.ok) {
         const err = await res.text()
         return NextResponse.json({ error: `HubSpot error: ${err}` }, { status: res.status })
