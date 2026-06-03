@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 // TODO: in production, fetch real signals from HubSpot + Databricks + Chargebee before calling Claude
 
 import { NextRequest, NextResponse } from 'next/server'

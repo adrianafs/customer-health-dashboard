@@ -1,3 +1,7 @@
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
+export const fetchCache = 'force-no-store'
+
 import { NextResponse } from 'next/server'
 import { Client, HealthState } from '@/lib/types'
 

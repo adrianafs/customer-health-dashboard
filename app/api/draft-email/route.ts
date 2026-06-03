@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 // TODO: in production, enrich with full HubSpot email history before drafting
 
 import { NextRequest, NextResponse } from 'next/server'
