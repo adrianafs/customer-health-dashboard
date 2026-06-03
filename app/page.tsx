@@ -41,6 +41,8 @@ export default function Dashboard() {
 
   useEffect(() => {
     loadHubSpot()
+    const interval = setInterval(loadHubSpot, 5 * 60 * 1000) // auto-refresh every 5 min
+    return () => clearInterval(interval)
   }, [loadHubSpot])
 
   const filtered = useMemo(() => {
