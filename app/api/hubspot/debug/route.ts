@@ -3,23 +3,43 @@ export const runtime = 'nodejs'
 
 import { NextResponse } from 'next/server'
 
-export async function GET() {
-  const TOKEN = process.env.HUBSPOT_TOKEN
+const HS = 'https://api.hubapi.com'
+const TOKEN = process.env.HUBSPOT_TOKEN
 
+function auth() {
+  return { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' }
+}
+
+export async function GET() {
   if (!TOKEN) return NextResponse.json({ error: 'HUBSPOT_TOKEN not set' })
 
-  // Test: search for 2 customers and return raw data
-  const res = await fetch('https://api.hubapi.com/crm/v3/objects/companies/search', {
+  // 1. Get deal pipelines to find the right pipeline IDs
+  const pipelinesRes = await fetch(`${HS}/crm/v3/pipelines/deals`, { headers: auth(), cache: 'no-store' })
+  const pipelines = pipelinesRes.ok ? await pipelinesRes.json() : { error: await pipelinesRes.text() }
+
+  // 2. Fetch any 3 deals with no filter to confirm deals API works
+  const anyDealsRes = await fetch(`${HS}/crm/v3/objects/deals?limit=3&properties=dealname,dealstage,pipeline,hubspot_owner_id,amount`, {
+    headers: auth(), cache: 'no-store'
+  })
+  const anyDeals = anyDealsRes.ok ? await anyDealsRes.json() : { error: await anyDealsRes.text() }
+
+  // 3. Search deals by pipeline 874052773 (no owner filter) to check if pipeline ID is correct
+  const searchRes = await fetch(`${HS}/crm/v3/objects/deals/search`, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+    headers: auth(),
     cache: 'no-store',
     body: JSON.stringify({
-      limit: 2,
-      properties: ['name', 'lifecyclestage', 'total_contract_value', 'hubspot_owner_id', 'nps_status'],
-      filterGroups: [{ filters: [{ propertyName: 'lifecyclestage', operator: 'EQ', value: 'customer' }] }],
+      limit: 5,
+      properties: ['dealname', 'dealstage', 'pipeline', 'hubspot_owner_id', 'amount'],
+      filterGroups: [{ filters: [{ propertyName: 'pipeline', operator: 'EQ', value: '874052773' }] }],
     }),
   })
+  const pipelineDeals = searchRes.ok ? await searchRes.json() : { error: await searchRes.text() }
 
-  const text = await res.text()
-  return NextResponse.json({ status: res.status, body: JSON.parse(text) })
+  return NextResponse.json({
+    pipelines: pipelines?.results?.map((p: Record<string, unknown>) => ({ id: p.id, label: p.label })) ?? pipelines,
+    anyDeals: anyDeals?.results?.map((d: Record<string, unknown>) => ({ id: d.id, props: d.properties })) ?? anyDeals,
+    pipelineDeals: pipelineDeals?.results?.map((d: Record<string, unknown>) => ({ id: d.id, props: d.properties })) ?? pipelineDeals,
+    totalInPipeline: pipelineDeals?.total ?? 0,
+  })
 }
