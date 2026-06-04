@@ -83,6 +83,7 @@ export type Client = {
     start: string | null
     renewal: string | null
     ageMonths: number
+    noticePeriodMonths: string | null
   }
   renewalUrgent: boolean
   lastContactDaysAgo: number
