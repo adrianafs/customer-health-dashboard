@@ -423,17 +423,13 @@ export async function GET(req: NextRequest) {
       const churnDate = deal?.churn_date?.split('T')[0] ?? null
 
       // notes_last_contacted is the only reliable "human contacted the client" field.
-      // notes_last_updated / hs_notes_last_activity update automatically on any
-      // record change and would make lastDays appear falsely low.
-      // Per spec §3.1 and §12: prefer deal value, fall back to company.
-      const lastContactedRaw =
-        deal?.notes_last_contacted ||
-        cp.notes_last_contacted ||
-        null
+      // Take the MOST RECENT value between deal and company — activity can be
+      // logged on either record depending on how the CSM works in HubSpot.
+      const dealContactMs    = deal?.notes_last_contacted ? new Date(deal.notes_last_contacted).getTime() : NaN
+      const companyContactMs = cp.notes_last_contacted    ? new Date(cp.notes_last_contacted).getTime()  : NaN
 
-      const lastContactedMs = lastContactedRaw
-        ? new Date(lastContactedRaw).getTime()
-        : NaN
+      const candidates = [dealContactMs, companyContactMs].filter(t => !isNaN(t))
+      const lastContactedMs = candidates.length > 0 ? Math.max(...candidates) : NaN
 
       const lastDays = !isNaN(lastContactedMs)
         ? Math.max(0, Math.floor((Date.now() - lastContactedMs) / 86400000))
