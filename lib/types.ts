@@ -8,9 +8,6 @@ export type SignalDriver = {
 
 export type CSMName = string
 
-export const CSM_LIST: { name: CSMName; ownerId: string }[] = []
-export const CSM_BY_OWNER_ID: Record<string, string> = {}
-
 export const DEAL_STAGE_LABELS: Record<string, string> = {
   '1309169012': 'Contract not started',
   '1309169013': 'Active Contract',
