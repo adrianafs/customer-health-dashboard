@@ -109,9 +109,11 @@ export async function GET(req: NextRequest) {
     const companies = await searchAll('/crm/v3/objects/companies/search', {
       limit: 100,
       properties: [
-        'name','hubspot_owner_id','client_success_service_level',
-        'usage_health__startdeliver_','churn_risk','nps_status',
-        'total_active_flows','notes_last_contacted','total_contract_value',
+        'name','hubspot_owner_id','ownername','owneremail',
+        'client_success_service_level','usage_health__startdeliver_',
+        'churn_risk','nps_status','total_active_flows',
+        'notes_last_contacted','total_contract_value',
+        'churn_date','subscription_start_date','agreement_status',
       ],
       filterGroups: [{ filters: [{ propertyName: 'lifecyclestage', operator: 'EQ', value: 'customer' }] }],
     })
@@ -186,26 +188,7 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // 5. Build owner map — fetch all HubSpot owners (owners uses offset pagination)
-    const ownerMap: Record<string, string> = {}
-    await sleep(300)
-    let ownerOffset = 0
-    let ownerDone = false
-    while (!ownerDone) {
-      const ownerRes = await hsGet(`/crm/v3/owners?limit=200&offset=${ownerOffset}&includeDeactivated=true`)
-      if (!ownerRes.ok) break
-      const ownerData = await ownerRes.json()
-      const results = ownerData.results ?? []
-      for (const o of results) {
-        const first = (o.firstName ?? '').trim()
-        const last  = (o.lastName  ?? '').trim()
-        const email = (o.email ?? '').split('@')[0].replace(/\./g, ' ')
-        const name  = first || last || email || String(o.id)
-        ownerMap[String(o.id)] = name
-      }
-      if (results.length < 200) ownerDone = true
-      else ownerOffset += 200
-    }
+    // 5. No owner API needed — ownername/owneremail are properties on the company object itself
 
     // 6. Map companies → Client objects
     const clients: Client[] = companies.map(co => {
@@ -223,9 +206,11 @@ export async function GET(req: NextRequest) {
       const deal = contractDeals[0] ?? null
       const dealId = dealIds.find(id => dealPropsMap[id] === deal) ?? coId
 
-      // Use deal owner if present, else company owner
-      const ownerId = deal?.hubspot_owner_id ?? cp.hubspot_owner_id ?? ''
-      const csm: CSMName = ownerMap[ownerId] ?? ownerId
+      // ownername is a built-in HubSpot rollup property — always populated, no API call needed
+      const ownerId = cp.hubspot_owner_id ?? ''
+      const rawName = (cp.ownername ?? '').trim()
+      // Use first name only for display (e.g. "Claudia Núñez" → "Claudia")
+      const csm: CSMName = rawName.split(' ')[0] || ownerId
 
       const stage = deal?.dealstage ?? ''
       const autoRenewal = deal?.auto_renewal === 'true'
@@ -310,13 +295,20 @@ export async function GET(req: NextRequest) {
     })
 
     // Build CSM filter list — only people with 2+ clients, sorted by count
+    // Use the csm name already resolved from ownername
     const ownerCount: Record<string, number> = {}
-    for (const c of clients) if (c.csmOwnerId) ownerCount[c.csmOwnerId] = (ownerCount[c.csmOwnerId] ?? 0) + 1
+    const ownerNames: Record<string, string> = {}
+    for (const c of clients) {
+      if (c.csmOwnerId) {
+        ownerCount[c.csmOwnerId] = (ownerCount[c.csmOwnerId] ?? 0) + 1
+        ownerNames[c.csmOwnerId] = c.csm
+      }
+    }
 
     const csmOwnerIds = Object.entries(ownerCount)
       .filter(([, count]) => count >= 2)
       .sort((a, b) => b[1] - a[1])
-      .map(([ownerId]) => ({ name: ownerMap[ownerId] ?? ownerId, ownerId }))
+      .map(([ownerId]) => ({ name: ownerNames[ownerId] ?? ownerId, ownerId }))
 
     return NextResponse.json({ clients, csmOwnerIds })
   } catch (err) {
