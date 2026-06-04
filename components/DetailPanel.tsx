@@ -188,10 +188,21 @@ export default function DetailPanel({ client, onClose, onRescore }: Props) {
   async function handleSendEmail() {
     setSending(true)
     try {
-      const res = await fetch('/api/send-email', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ subject: editedSubject, body: editedBody, clientName: client.name, csmName: client.csm }) })
+      const res = await fetch('/api/save-to-hubspot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          subject: editedSubject,
+          body: editedBody,
+          clientName: client.name,
+          csmName: client.csm,
+          companyId: client.companyId,
+          dealId: client.id,
+        }),
+      })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
-      setSentTo(data.sentTo)
+      setSentTo(data.hubspotUrl)
     } catch (e) { alert(String(e)) }
     finally { setSending(false) }
   }
@@ -382,9 +393,13 @@ export default function DetailPanel({ client, onClose, onRescore }: Props) {
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M20 7L9 16l-5-5" stroke="var(--s500)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
                 </div>
                 <div>
-                  <div style={{ fontSize: 18, fontWeight: 800, letterSpacing: '-.02em', marginBottom: 5 }}>Draft sent to your inbox</div>
-                  <div style={{ fontSize: 13, color: 'var(--n500)', lineHeight: 1.6 }}>Sent to <strong>{sentTo}</strong>.<br/>Review, then copy-paste to send to {client.name}.</div>
+                  <div style={{ fontSize: 18, fontWeight: 800, letterSpacing: '-.02em', marginBottom: 5 }}>Saved to HubSpot ✓</div>
+                  <div style={{ fontSize: 13, color: 'var(--n500)', lineHeight: 1.6 }}>The draft is saved as a note on <strong>{client.name}</strong> in HubSpot.<br/>Open it, copy subject + body, and send the email from there.</div>
                 </div>
+                <a href={sentTo} target="_blank" rel="noopener noreferrer"
+                  style={{ padding: '10px 20px', borderRadius: 8, background: 'var(--v500)', color: '#fff', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
+                  Open in HubSpot ↗
+                </a>
                 <button onClick={() => { setEmailModal(null); setSentTo(null) }}
                   style={{ marginTop: 8, padding: '10px 24px', borderRadius: 8, background: 'var(--v500)', color: '#fff', border: 'none', fontSize: 13, fontWeight: 700, cursor: 'pointer', boxShadow: 'var(--sv)' }}>Done</button>
               </div>
@@ -415,7 +430,7 @@ export default function DetailPanel({ client, onClose, onRescore }: Props) {
                       style={{ padding: '9px 18px', borderRadius: 8, border: '1px solid var(--n200)', background: 'var(--n0)', fontSize: 13, fontWeight: 600, cursor: 'pointer', color: 'var(--n900)', fontFamily: 'var(--font)' }}>Cancel</button>
                     <button onClick={handleSendEmail} disabled={sending}
                       style={{ padding: '9px 18px', borderRadius: 8, background: 'var(--v500)', color: '#fff', border: 'none', fontSize: 13, fontWeight: 700, cursor: 'pointer', boxShadow: 'var(--sv)', opacity: sending ? .6 : 1, display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'var(--font)' }}>
-                      {sending ? <span className="animate-spin-cls">↻</span> : '✉'} {sending ? 'Sending…' : 'Send to my inbox'}
+                      {sending ? <span className="animate-spin-cls">↻</span> : '📌'} {sending ? 'Saving…' : 'Save to HubSpot'}
                     </button>
                   </div>
                 </div>
