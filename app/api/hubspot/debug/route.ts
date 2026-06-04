@@ -8,22 +8,24 @@ function auth() { return { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'ap
 export async function GET() {
   if (!TOKEN) return NextResponse.json({ error: 'HUBSPOT_TOKEN not set' })
 
-  // Try all pagination approaches
-  const r1 = await fetch(`${HS}/crm/v3/owners?limit=100`, { headers: auth(), cache: 'no-store' })
-  const d1 = r1.ok ? await r1.json() : { error: await r1.text() }
+  // Fetch 3 customer companies with all relevant owner fields
+  const res = await fetch(`${HS}/crm/v3/objects/companies/search`, {
+    method: 'POST',
+    headers: auth(),
+    cache: 'no-store',
+    body: JSON.stringify({
+      limit: 3,
+      properties: ['name', 'hubspot_owner_id', 'ownername', 'owneremail', 'total_contract_value'],
+      filterGroups: [{ filters: [{ propertyName: 'lifecyclestage', operator: 'EQ', value: 'customer' }] }],
+    }),
+  })
+  const data = res.ok ? await res.json() : { error: await res.text() }
 
   return NextResponse.json({
-    count: d1.results?.length,
-    pagingKeys: Object.keys(d1.paging ?? {}),
-    pagingAfter: d1.paging?.next?.after,
-    // All raw owner objects (first 20)
-    owners: d1.results?.slice(0, 20).map((o: Record<string, unknown>) => ({
-      id: o.id,
-      userId: o.userId,
-      email: o.email,
-      firstName: o.firstName,
-      lastName: o.lastName,
-      archived: o.archived,
+    total: data.total,
+    sample: data.results?.map((c: Record<string, unknown>) => ({
+      id: c.id,
+      props: c.properties,
     })),
   })
 }
