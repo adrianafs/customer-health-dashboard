@@ -36,9 +36,13 @@ async function runQuery(statement: string): Promise<unknown[][] | null> {
     if (!res.ok) { console.error('Databricks error:', res.status, await res.text()); return null }
     const data = await res.json()
     if (data.status?.state !== 'SUCCEEDED') { console.error('Query failed:', data.status); return null }
-    return (data.result?.data_array ?? []).map((row: { values: { string_value?: string }[] }) =>
-      row.values?.map((v: { string_value?: string }) => v?.string_value ?? null) ?? row
-    )
+    // Databricks REST API returns plain arrays: [["val1", "val2"]]
+    // The MCP uses {values: [{string_value: "..."}]} format — handle both
+    return (data.result?.data_array ?? []).map((row: unknown) => {
+      if (Array.isArray(row)) return row
+      const r = row as { values?: { string_value?: string }[] }
+      return r.values?.map((v) => v?.string_value ?? null) ?? row
+    })
   } catch (err) {
     console.error('Databricks error:', err)
     return null
@@ -61,7 +65,14 @@ export async function getUsageStats(
     runQuery(`
       SELECT
         MAX(date_day) AS last_active,
-        SUM(CASE WHEN distributed_post_to_a_flow > 0 THEN 1 ELSE 0 END) AS active_days_30,
+        SUM(CASE WHEN (
+          distributed_post_to_a_flow > 0
+          OR approved_posts > 0
+          OR rights_request_sent_by_comment > 0
+          OR rights_request_sent_by_dm > 0
+          OR added_tag_to_a_post > 0
+          OR created_publish_post > 0
+        ) THEN 1 ELSE 0 END) AS active_days_30,
         SUM(distributed_post_to_a_flow) AS flows_30d
       FROM core.main.ugc_company_level_usage
       WHERE ugc_company_id = ${id}

@@ -244,7 +244,7 @@ export default function DetailPanel({ client, onClose, onRescore }: Props) {
                   { k: 'NPS status', v: co.npsStatus ?? '—' },
                 ]},
                 { title: 'Platform usage', src: 'DATABRICKS', rows: [
-                  { k: 'Active days (30d)',       v: !client.flowboxPlatformId ? 'No platform ID' : usage ? (usage.activeDays30 > 0 ? `${usage.activeDays30} days` : 'None') : '…', cls: usage ? (usage.activeDays30 === 0 ? 'bd' : usage.activeDays30 < 5 ? 'wn' : 'ok') : undefined },
+                  { k: 'Activity days (30d)',     v: !client.flowboxPlatformId ? 'No platform ID' : usage ? (usage.activeDays30 > 0 ? `${usage.activeDays30} days` : 'None') : '…', cls: usage ? (usage.activeDays30 === 0 ? 'bd' : usage.activeDays30 < 5 ? 'wn' : 'ok') : undefined },
                   { k: 'Flows distributed (30d)', v: !client.flowboxPlatformId ? '—' : usage ? usage.flows30d : '…', cls: usage ? (usage.flows30d === 0 ? 'bd' : usage.flows30d < 10 ? 'wn' : 'ok') : undefined },
                   { k: 'Conversions (30d)',        v: !client.flowboxPlatformId ? '—' : usage ? usage.conversions30d : '…', cls: usage ? (usage.conversions30d === 0 ? 'bd' : usage.conversions30d < 5 ? 'wn' : 'ok') : undefined },
                   { k: 'Orders (30d)',             v: !client.flowboxPlatformId ? '—' : usage ? usage.orders30d : '…', cls: usage ? (usage.orders30d === 0 ? 'bd' : usage.orders30d < 3 ? 'wn' : 'ok') : undefined },
