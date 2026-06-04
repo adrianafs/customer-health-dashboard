@@ -1,8 +1,8 @@
 {
   "crons": [
     {
-      "path": "/api/slack/morning-digest",
-      "schedule": "30 7 * * 1-5"
+      "path": "/api/slack/morning-digest?csm=Jean%20Bouaziz",
+      "schedule": "30 6 * * 1-5"
     }
   ]
 }
