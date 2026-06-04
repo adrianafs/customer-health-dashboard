@@ -370,6 +370,29 @@ export default function DetailPanel({ client, onClose, onRescore }: Props) {
                         ))}
                       </div>
                     )}
+                    {/* Churn risk signals */}
+                    {engagements.churnSignals?.some(s => s.detected) && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--d500)', letterSpacing: '.07em', textTransform: 'uppercase' }}>⚠ Risk signals detected</div>
+                        {engagements.churnSignals.filter(s => s.detected).map(s => {
+                          const SIGNAL_LABELS: Record<string, string> = {
+                            economic:    '💸 Budget / ROI concerns',
+                            resources:   '⏱ No time / no owner',
+                            stakeholder: '👤 Stakeholder change',
+                            product:     '🔧 Product dissatisfaction',
+                            competitor:  '⚔️ Competitor mentioned',
+                            strategy:    '↩ Strategy shift (away from UGC)',
+                            content:     '📉 Not enough UGC content',
+                          }
+                          return (
+                            <div key={s.key} style={{ fontSize: 10.5, color: 'var(--n800)', display: 'flex', flexDirection: 'column', gap: 1, background: 'var(--d50)', borderRadius: 6, padding: '4px 8px' }}>
+                              <span style={{ fontWeight: 700, color: 'var(--d600)' }}>{SIGNAL_LABELS[s.key] ?? s.key}</span>
+                              {s.evidence && <span style={{ color: 'var(--n600)', fontStyle: 'italic' }}>&ldquo;{s.evidence}&rdquo;</span>}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
                     {/* Activity type breakdown */}
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                       {(['EMAIL', 'MEETING', 'CALL', 'NOTE'] as const).map(type => {

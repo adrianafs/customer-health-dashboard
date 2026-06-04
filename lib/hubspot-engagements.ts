@@ -22,6 +22,21 @@ export interface HubSpotEngagement {
   direction?: 'INBOUND' | 'OUTBOUND'
 }
 
+export type ChurnSignalKey =
+  | 'economic'        // budget cuts, too expensive, no clear ROI, "nice to have"
+  | 'resources'       // no time, no one managing the platform
+  | 'stakeholder'     // champion leaving, unclear replacement, new boss doesn't know Flowbox
+  | 'product'         // not what they expected, technical issues, integration problems
+  | 'competitor'      // explicitly mentions a competitor
+  | 'strategy'        // pivoting away from UGC / influencer marketing
+  | 'content'         // not enough UGC content being collected, disappointed with supply
+
+export interface ChurnSignal {
+  key: ChurnSignalKey
+  detected: boolean
+  evidence: string | null   // short quote or reason from the activity
+}
+
 export interface EngagementResult {
   engagements: HubSpotEngagement[]
   sentiment: string | null
@@ -29,6 +44,7 @@ export interface EngagementResult {
   lastActivityDate: string | null
   activityCount: number
   openActionItems: string[]
+  churnSignals: ChurnSignal[]
 }
 
 // ─── Fetch activity IDs for a company via associations v4 ─────────────────────
@@ -148,12 +164,16 @@ export async function fetchEngagements(companyId: string): Promise<HubSpotEngage
 export async function analyseEngagements(
   engagements: HubSpotEngagement[],
   companyName: string,
-): Promise<{ sentiment: string; sentimentType: 'positive' | 'negative' | 'neutral' | 'churn'; openActionItems: string[] }> {
+): Promise<{ sentiment: string; sentimentType: 'positive' | 'negative' | 'neutral' | 'churn'; openActionItems: string[]; churnSignals: ChurnSignal[] }> {
+  const emptySignals: ChurnSignal[] = (
+    ['economic', 'resources', 'stakeholder', 'product', 'competitor', 'strategy', 'content'] as ChurnSignalKey[]
+  ).map(key => ({ key, detected: false, evidence: null }))
+
   if (engagements.length === 0) {
-    return { sentiment: 'No recent activity found', sentimentType: 'neutral', openActionItems: [] }
+    return { sentiment: 'No recent activity found', sentimentType: 'neutral', openActionItems: [], churnSignals: emptySignals }
   }
 
-  const lines = engagements.slice(0, 12).map(e => {
+  const lines = engagements.slice(0, 15).map(e => {
     const date  = e.timestamp.split('T')[0]
     const label = `[${e.type}${e.direction ? ` ${e.direction}` : ''} — ${date}]`
     const text  = [e.subject, e.body].filter(Boolean).join(' | ').slice(0, 500)
@@ -164,20 +184,38 @@ export async function analyseEngagements(
 
   const response = await anthropic.messages.create({
     model: 'claude-sonnet-4-5',
-    max_tokens: 300,
-    system: `You are a Customer Success analyst. You receive recent CRM activity (emails, calls, meetings, notes) for a customer. Content may be in any language — always respond in English.
+    max_tokens: 600,
+    system: `You are a Customer Success analyst for Flowbox, a UGC and influencer marketing SaaS. You receive recent CRM activity (emails, calls, meetings, notes) for a customer. Content may be in any language — always respond in English.
 
-Return ONLY valid JSON:
+Return ONLY valid JSON with this exact structure:
 {
-  "sentiment": "<one sentence, max 20 words, most important customer health signal>",
+  "sentiment": "<one sentence, max 20 words, most important health signal>",
   "sentimentType": "positive" | "negative" | "neutral" | "churn",
-  "openActionItems": ["<action 1>", "<action 2>"]
+  "openActionItems": ["<action 1>"],
+  "churnSignals": {
+    "economic":    { "detected": true|false, "evidence": "<short quote or null>" },
+    "resources":   { "detected": true|false, "evidence": "<short quote or null>" },
+    "stakeholder": { "detected": true|false, "evidence": "<short quote or null>" },
+    "product":     { "detected": true|false, "evidence": "<short quote or null>" },
+    "competitor":  { "detected": true|false, "evidence": "<short quote or null>" },
+    "strategy":    { "detected": true|false, "evidence": "<short quote or null>" },
+    "content":     { "detected": true|false, "evidence": "<short quote or null>" }
+  }
 }
 
+Churn signal definitions — only mark detected:true if there is clear evidence:
+- economic: mentions budget cuts, Flowbox is too expensive, unclear ROI, treating it as a "nice to have"
+- resources: no time to use the platform, no one managing it, team too small, person responsible left
+- stakeholder: champion/end-user leaving the company, unclear replacement, new manager doesn't know Flowbox, no one left responsible
+- product: not what they expected, many technical issues, integration problems, stuck in onboarding
+- competitor: explicitly names a competitor (Yotpo, Join, Bazaarvoice, Stackla, etc.)
+- strategy: pivoting away from UGC or influencer marketing, shifting to macro-influencers or paid media
+- content: disappointed with the amount of UGC content collected, not enough content to moderate, creators not delivering
+
 sentimentType:
-- "churn": cancellation intent, competitor evaluation, strong dissatisfaction, ROI doubts
+- "churn": cancellation intent, strong dissatisfaction, competitor evaluation, ROI doubts
 - "negative": complaints, frustration, unresolved issues, low engagement
-- "positive": satisfaction, growth, active usage, renewal intent
+- "positive": satisfaction, growth signals, active usage, renewal intent
 - "neutral": routine check-ins, no strong signals
 
 openActionItems: CSM promises or follow-ups with no evidence of resolution. Max 3, empty array if none.`,
@@ -190,13 +228,23 @@ openActionItems: CSM promises or follow-ups with no evidence of resolution. Max 
   try {
     const text   = response.content.find(b => b.type === 'text')?.text ?? ''
     const parsed = JSON.parse(text.replace(/```json\n?|```/g, '').trim())
+
+    const churnSignals: ChurnSignal[] = (
+      ['economic', 'resources', 'stakeholder', 'product', 'competitor', 'strategy', 'content'] as ChurnSignalKey[]
+    ).map(key => ({
+      key,
+      detected: parsed.churnSignals?.[key]?.detected === true,
+      evidence: parsed.churnSignals?.[key]?.evidence ?? null,
+    }))
+
     return {
       sentiment:       parsed.sentiment       ?? 'Unable to analyse',
       sentimentType:   parsed.sentimentType   ?? 'neutral',
       openActionItems: Array.isArray(parsed.openActionItems) ? parsed.openActionItems.slice(0, 3) : [],
+      churnSignals,
     }
   } catch {
-    return { sentiment: 'Unable to analyse activity', sentimentType: 'neutral', openActionItems: [] }
+    return { sentiment: 'Unable to analyse activity', sentimentType: 'neutral', openActionItems: [], churnSignals: emptySignals }
   }
 }
 
@@ -214,7 +262,7 @@ export async function getEngagementDataForCompany(
     }
 
     const lastActivityDate = engagements[0]?.timestamp?.split('T')[0] ?? null
-    const { sentiment, sentimentType, openActionItems } = await analyseEngagements(engagements, companyName)
+    const { sentiment, sentimentType, openActionItems, churnSignals } = await analyseEngagements(engagements, companyName)
 
     return {
       engagements: engagements.slice(0, 10),
@@ -223,10 +271,12 @@ export async function getEngagementDataForCompany(
       lastActivityDate,
       activityCount: engagements.length,
       openActionItems,
+      churnSignals,
     }
   } catch (err) {
     console.error('HubSpot engagements error:', err)
-    return { engagements: [], sentiment: null, sentimentType: null, lastActivityDate: null, activityCount: 0, openActionItems: [] }
+    const emptySignals = (['economic','resources','stakeholder','product','competitor','strategy','content'] as ChurnSignalKey[]).map(key => ({ key, detected: false, evidence: null }))
+    return { engagements: [], sentiment: null, sentimentType: null, lastActivityDate: null, activityCount: 0, openActionItems: [], churnSignals: emptySignals }
   }
 }
 
