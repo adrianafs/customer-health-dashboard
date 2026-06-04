@@ -1,28 +1,35 @@
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
+
 import { NextResponse } from 'next/server'
+
 const HS = 'https://api.hubapi.com'
 const TOKEN = process.env.HUBSPOT_TOKEN
+const CONTRACTS_PIPELINE = '58017946'
+
 function auth() { return { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' } }
 
 export async function GET() {
   if (!TOKEN) return NextResponse.json({ error: 'HUBSPOT_TOKEN not set' })
 
-  // Get all unique owner IDs from the first 50 customers
-  const coRes = await fetch(`${HS}/crm/v3/objects/companies/search`, {
+  // Get unique hubspot_owner_id values from Contracts pipeline deals
+  const res = await fetch(`${HS}/crm/v3/objects/deals/search`, {
     method: 'POST', headers: auth(), cache: 'no-store',
     body: JSON.stringify({
-      limit: 50,
-      properties: ['name', 'hubspot_owner_id'],
-      filterGroups: [{ filters: [{ propertyName: 'lifecyclestage', operator: 'EQ', value: 'customer' }] }],
+      limit: 100,
+      properties: ['hubspot_owner_id', 'dealname'],
+      filterGroups: [{ filters: [{ propertyName: 'pipeline', operator: 'EQ', value: CONTRACTS_PIPELINE }] }],
     }),
   })
-  const coData = coRes.ok ? await coRes.json() : {}
+  const data = res.ok ? await res.json() : {}
+
   const uniqueIds = Array.from(new Set(
-    (coData.results ?? []).map((c: Record<string, unknown>) => (c.properties as Record<string, string>)?.hubspot_owner_id).filter(Boolean)
+    (data.results ?? [])
+      .map((d: Record<string, unknown>) => (d.properties as Record<string, string>)?.hubspot_owner_id)
+      .filter(Boolean)
   )) as string[]
 
-  // Fetch each owner individually
+  // Fetch each owner individually to get their name
   const owners = await Promise.all(
     uniqueIds.map(async id => {
       try {
@@ -36,5 +43,9 @@ export async function GET() {
     })
   )
 
-  return NextResponse.json({ uniqueOwnerIds: uniqueIds.length, owners })
+  return NextResponse.json({
+    source: `Deal owners from Contracts pipeline (${CONTRACTS_PIPELINE})`,
+    uniqueOwnerIds: uniqueIds.length,
+    owners,
+  })
 }
