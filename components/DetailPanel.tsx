@@ -221,11 +221,13 @@ export default function DetailPanel({ client, onClose, onRescore }: Props) {
                   { k: 'Last contact', v: `${d.lastContactDaysAgo}d ago`, cls: d.lastContactDaysAgo > 30 ? 'bd' : d.lastContactDaysAgo > 14 ? 'wn' : 'ok' },
                 ]},
                 { title: 'Company', src: 'HUBSPOT', rows: [
-                  { k: 'Platform activity (30d)', v: !client.flowboxPlatformId ? 'No platform ID' : usage ? (usage.activeDays30 > 0 ? `${usage.activeDays30} active days` : 'No activity') : '…', cls: usage ? (usage.activeDays30 === 0 ? 'bd' : usage.activeDays30 < 5 ? 'wn' : 'ok') : undefined },
-                  { k: 'Flows distributed (30d)', v: !client.flowboxPlatformId ? '—' : usage ? usage.flows30d : '…', cls: usage ? (usage.flows30d === 0 ? 'bd' : usage.flows30d < 10 ? 'wn' : 'ok') : undefined },
-                  { k: 'Last platform activity', v: !client.flowboxPlatformId ? '—' : usage?.lastActiveDate ?? '…', cls: usage ? (usage.platformDays > 60 ? 'bd' : usage.platformDays > 30 ? 'wn' : 'ok') : undefined },
                   { k: 'Service level', v: co.serviceLevel ?? '—' },
                   { k: 'NPS status', v: co.npsStatus ?? '—' },
+                ]},
+                { title: 'Platform usage', src: 'DATABRICKS', rows: [
+                  { k: 'Activity (30d)', v: !client.flowboxPlatformId ? 'No platform ID' : usage ? (usage.activeDays30 > 0 ? `${usage.activeDays30} active days` : 'No activity') : '…', cls: usage ? (usage.activeDays30 === 0 ? 'bd' : usage.activeDays30 < 5 ? 'wn' : 'ok') : undefined },
+                  { k: 'Flows distributed (30d)', v: !client.flowboxPlatformId ? '—' : usage ? usage.flows30d : '…', cls: usage ? (usage.flows30d === 0 ? 'bd' : usage.flows30d < 10 ? 'wn' : 'ok') : undefined },
+                  { k: 'Last active', v: !client.flowboxPlatformId ? '—' : usage?.lastActiveDate ?? '…', cls: usage ? (usage.platformDays > 60 ? 'bd' : usage.platformDays > 30 ? 'wn' : 'ok') : undefined },
                 ]},
                 ...(ob.active ? [{ title: 'Onboarding', src: 'HUBSPOT', rows: [
                   { k: 'Days in OB', v: ob.daysInOnboarding, cls: ob.daysInOnboarding > 90 ? 'bd' : undefined },
@@ -236,7 +238,7 @@ export default function DetailPanel({ client, onClose, onRescore }: Props) {
                 <div key={sc.title} style={{ background: 'var(--n50)', border: '1px solid var(--n100)', borderRadius: 12, padding: 12 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
                     <span style={{ fontSize: 12, fontWeight: 600 }}>{sc.title}</span>
-                    <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--n400)', letterSpacing: '.07em' }}>{sc.src}</span>
+                    <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.07em', color: sc.src === 'DATABRICKS' ? 'var(--v500)' : 'var(--n400)' }}>{sc.src}</span>
                   </div>
                   {sc.rows?.map((r, i) => <SRow key={i} k={r.k} v={r.v as string} cls={r.cls} />)}
                 </div>
