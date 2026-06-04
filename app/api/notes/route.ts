@@ -7,9 +7,11 @@ export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
 import { NextRequest, NextResponse } from 'next/server'
+import Anthropic from '@anthropic-ai/sdk'
 
 const HS = 'https://api.hubapi.com'
 const TOKEN = process.env.HUBSPOT_TOKEN
+const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
 // HubSpot-defined association type IDs for the v3 notes object
 const NOTE_TO_COMPANY = 190
@@ -138,6 +140,30 @@ export async function GET(req: NextRequest) {
     .filter((n: any) => n.body)
     .sort((a: any, b: any) => b.timestamp - a.timestamp)
     .slice(0, 10)
+
+  // 3. Summarise each note to a single concise line with Claude.
+  //    Falls back to the cleaned/truncated body if no key or the call fails.
+  if (process.env.ANTHROPIC_API_KEY && notes.length > 0) {
+    try {
+      const input = notes.map((n: any, i: number) => `[${i}] ${n.body}`).join('\n\n')
+      const resp = await anthropic.messages.create({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 600,
+        messages: [{
+          role: 'user',
+          content: `Summarise each CRM note below into ONE short, factual sentence (max ~18 words). Keep names, dates, numbers, and action items. Drop boilerplate and formatting.\n\nReturn ONLY a JSON array like [{"i":0,"summary":"..."}] — one entry per note, same index.\n\n${input}`,
+        }],
+      })
+      const text = resp.content.find(b => b.type === 'text')?.text ?? ''
+      const json = text.slice(text.indexOf('['), text.lastIndexOf(']') + 1)
+      const summaries: { i: number; summary: string }[] = JSON.parse(json)
+      for (const s of summaries) {
+        if (notes[s.i] && s.summary?.trim()) notes[s.i].body = s.summary.trim()
+      }
+    } catch (e) {
+      console.error('[notes] summary failed, using cleaned text:', e)
+    }
+  }
 
   return NextResponse.json({ notes })
 }
