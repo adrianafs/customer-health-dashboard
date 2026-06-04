@@ -215,12 +215,11 @@ export default function DetailPanel({ client, onClose, onRescore }: Props) {
                   { k: 'Service level', v: co.serviceLevel ?? '—' },
                   { k: 'NPS status', v: co.npsStatus ?? '—' },
                 ]},
-                { title: 'Onboarding', src: 'HUBSPOT', rows: [
-                  { k: 'Active', v: ob.active ? 'Yes' : 'No' },
-                  { k: 'Days in OB', v: ob.active ? ob.daysInOnboarding : '—', cls: ob.daysInOnboarding > 90 ? 'bd' : undefined },
+                ...(ob.active ? [{ title: 'Onboarding', src: 'HUBSPOT', rows: [
+                  { k: 'Days in OB', v: ob.daysInOnboarding, cls: ob.daysInOnboarding > 90 ? 'bd' : undefined },
                   { k: 'Stage', v: ob.stage ?? '—' },
                   { k: 'Open tasks', v: client.signals.openTasks, cls: client.signals.openTasks > 0 ? 'wn' : undefined },
-                ]},
+                ]}] : []),
               ].map(sc => (
                 <div key={sc.title} style={{ background: 'var(--n50)', border: '1px solid var(--n100)', borderRadius: 12, padding: 12 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
@@ -355,11 +354,12 @@ export default function DetailPanel({ client, onClose, onRescore }: Props) {
           {/* Contract */}
           <div style={{ padding: '18px 20px', borderBottom: '1px solid var(--n100)' }}>
             <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--n500)', letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: 12 }}>Contract</div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 8 }}>
               {([
                 { l: 'Start', v: client.contract.start ?? '—', danger: false },
                 { l: 'End', v: client.contract.renewal ?? '—', danger: daysToRenewal !== null && daysToRenewal < 60 },
                 { l: 'Auto-renewal', v: d.autoRenewal ? 'Yes ✓' : 'No', danger: false, ok: d.autoRenewal },
+                { l: 'Notice period', v: client.contract.noticePeriodMonths ? `${client.contract.noticePeriodMonths}mo` : '—', danger: false },
               ] as { l: string; v: string; danger: boolean; ok?: boolean }[]).map(c => (
                 <div key={c.l} style={{ background: 'var(--n50)', border: '1px solid var(--n100)', borderRadius: 12, padding: '10px 12px' }}>
                   <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--n500)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 3 }}>{c.l}</div>

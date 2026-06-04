@@ -266,7 +266,7 @@ export async function GET(req: NextRequest) {
         'auto_renewal', 'subscription_end_date', 'pause_end_date',
         'churn_date', 'communicated_churn_date', 'reason_for_churn', 'closedate',
         'hubspot_owner_id', 'notes_last_contacted', 'createdate',
-        // Flowbox Product / brand — try all likely internal names
+        'subscription_start_date__renewal_', 'notice_period___in_months__',
         'flowbox_product', 'product', 'hs_product_type', 'product_type',
         'flowbox_product_type', 'brand', 'business_unit',
       ],
@@ -424,10 +424,13 @@ export async function GET(req: NextRequest) {
         cp.total_contract_value || cp.annualrevenue || '0'
       ) || 0
 
-      const contractStart = cp.subscription_start_date
+      const contractStart = deal['subscription_start_date__renewal_']?.split('T')[0]
+        ?? cp.subscription_start_date
         ?? cp['subscription_start_date__first_contract_']
         ?? deal.createdate?.split('T')[0]
         ?? null
+
+      const noticePeriodMonths = deal['notice_period___in_months__'] ?? null
 
       const { state, rules } = classify(
         stage, autoRenewal, subscriptionEndDate, pauseEndDate, churnDate,
@@ -509,6 +512,7 @@ export async function GET(req: NextRequest) {
           start: contractStart,
           renewal: subscriptionEndDate,
           ageMonths: ageMonths(contractStart ?? deal.createdate),
+          noticePeriodMonths,
         },
         renewalUrgent: daysUntil(subscriptionEndDate) > 0 && daysUntil(subscriptionEndDate) < 60,
         lastContactDaysAgo: lastDays,
