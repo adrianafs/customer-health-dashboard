@@ -407,9 +407,9 @@ export async function GET(req: NextRequest) {
         cp.total_contract_value || cp.annualrevenue || '0'
       ) || 0
 
-      const contractStart = deal.createdate?.split('T')[0]
-        ?? cp.subscription_start_date
+      const contractStart = cp.subscription_start_date
         ?? cp['subscription_start_date__first_contract_']
+        ?? deal.createdate?.split('T')[0]
         ?? null
 
       const { state, rules } = classify(

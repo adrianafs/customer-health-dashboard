@@ -206,7 +206,6 @@ export default function DetailPanel({ client, onClose, onRescore }: Props) {
               {[
                 { title: 'Deal', src: 'HUBSPOT', rows: [
                   { k: 'Stage', v: d.stageLabel, cls: d.stage === '1309169016' ? 'bd' : undefined },
-                  { k: 'Auto renewal', v: d.autoRenewal ? 'Yes ✓' : 'No', cls: d.autoRenewal ? 'ok' : 'bd' },
                   { k: 'Sub. end date', v: d.closeDate ?? '—', cls: daysToRenewal !== null && daysToRenewal < 60 ? 'bd' : undefined },
                   { k: 'Last contact', v: `${d.lastContactDaysAgo}d ago`, cls: d.lastContactDaysAgo > 30 ? 'bd' : d.lastContactDaysAgo > 14 ? 'wn' : 'ok' },
                 ]},
