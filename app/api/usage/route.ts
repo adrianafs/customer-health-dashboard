@@ -18,7 +18,10 @@ export async function GET(req: NextRequest) {
   const brand      = (searchParams.get('brand') ?? null) as 'flowbox' | 'dream' | 'both' | null
   const isDebug    = searchParams.get('debug') === '1'
 
-  if (!platformId) return NextResponse.json({ error: 'platformId is required' }, { status: 400 })
+  // dream-only clients have no platformId — require either platformId or brand=dream/both
+  if (!platformId && brand !== 'dream' && brand !== 'both') {
+    return NextResponse.json({ error: 'platformId is required' }, { status: 400 })
+  }
   if (!process.env.DATABRICKS_HOST) return NextResponse.json({ error: 'DATABRICKS_HOST not configured' }, { status: 500 })
 
   if (isDebug) {
