@@ -366,15 +366,15 @@ export async function GET(req: NextRequest) {
       const dealId   = bestDeal.id
 
       // ── CSM resolution ────────────────────────────────────────────────────
-      // 1. deal_closed_owner on COMPANY ("Deal closed owner" CSM field)
-      // 2. hubspot_owner_id on DEAL (deal assignee)
-      const csmOwnerId =
-        String(cp.deal_closed_owner  ?? '').trim() ||
-        String(deal.hubspot_owner_id ?? '').trim() ||
-        ''
+      // hubspot_owner_id on the deal is always a numeric owner ID → use for
+      // filtering and ownerMap lookup.
+      // deal_closed_owner on the company is an enumeration that may return a
+      // label string rather than an ID, so we only use it as a display-name
+      // fallback when the ownerMap lookup fails.
+      const csmOwnerId = String(deal.hubspot_owner_id ?? '').trim()
 
       const csm: CSMName = csmOwnerId
-        ? (ownerMap[csmOwnerId] ?? `Unknown (${csmOwnerId})`)
+        ? (ownerMap[csmOwnerId] ?? (String(cp.deal_closed_owner ?? '').trim() || `Unknown (${csmOwnerId})`))
         : 'Unassigned'
 
       // ── Date fields ───────────────────────────────────────────────────────
