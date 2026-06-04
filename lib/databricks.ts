@@ -131,3 +131,34 @@ export async function getUsageStats(
     cbCancelScheduled,
   }
 }
+
+// ─── Debug: return raw query results ─────────────────────────────────────────
+export async function debugQueries(ugcCompanyId: string, hubspotCompanyId: string) {
+  const id = parseInt(ugcCompanyId, 10)
+  const host = process.env.DATABRICKS_HOST
+  const token = process.env.DATABRICKS_TOKEN
+  const wh = process.env.DATABRICKS_WAREHOUSE_ID
+
+  if (!host || !token || !wh) return { error: 'Databricks env vars not set', host: !!host, token: !!token, wh: !!wh }
+
+  const testQuery = async (label: string, sql: string) => {
+    try {
+      const res = await fetch(`${host}/api/2.0/sql/statements`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ warehouse_id: wh, statement: sql, wait_timeout: '30s', on_wait_timeout: 'CANCEL' }),
+        cache: 'no-store',
+      })
+      const body = await res.json()
+      return { label, status: res.status, state: body.status?.state, error: body.status?.error, rows: body.result?.data_array?.slice(0, 3) }
+    } catch (e) { return { label, error: String(e) } }
+  }
+
+  const results = await Promise.all([
+    testQuery('usage', `SELECT MAX(date_day), COUNT(*) FROM core.main.ugc_company_level_usage WHERE ugc_company_id = ${id} AND date_day >= DATEADD(DAY, -30, CURRENT_DATE)`),
+    testQuery('kpis',  `SELECT SUM(conversions), SUM(total_orders) FROM core.main.ugc_company_level_kpis WHERE ugc_company_id = ${id} AND date_day >= DATEADD(DAY, -30, CURRENT_DATE)`),
+    testQuery('chargebee', `SELECT cs.status, cs.current_term_end FROM core.main.chargebee_subscriptions cs JOIN core.main.chargebee_customers cc ON cs.chargebee_customer_id = cc.chargebee_customer_id WHERE cc.hubspot_company_id = '${hubspotCompanyId}' LIMIT 1`),
+  ])
+
+  return { ugcCompanyId, hubspotCompanyId, results }
+}
