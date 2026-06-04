@@ -238,10 +238,8 @@ export async function GET(req: NextRequest) {
         'churn_risk',
         'nps_status',
         'hs_csm_sentiment',
-        // Contact recency on company level
+        // Contact recency — only notes_last_contacted is a real human-contact date
         'notes_last_contacted',
-        'notes_last_updated',
-        'hs_notes_last_activity',
         // ARR / contract value — confirmed from hubspot.json
         'total_contract_value',
         'annualrevenue',
@@ -317,11 +315,8 @@ export async function GET(req: NextRequest) {
           // 'deal_closed_owner' = confirmed custom field "Deal closed owner (HubSpot)"
           'hubspot_owner_id',
           'deal_closed_owner',
-          // Contact recency — exact field names confirmed from hubspot.json
+          // Contact recency — only notes_last_contacted is a real human-contact date
           'notes_last_contacted',
-          'notes_last_updated',
-          'hs_notes_last_activity',
-          'hs_sales_email_last_replied',
           'createdate',
         ],
       })
@@ -374,7 +369,7 @@ export async function GET(req: NextRequest) {
 
     // ── 5. Owner name resolution ──────────────────────────────────────────────
     // Using hardcoded OWNER_NAMES map — no API call needed.
-    function ownerName(id: string | null | undefined): string {
+    const ownerName = (id: string | null | undefined): string => {
       if (!id) return 'Unassigned'
       const clean = String(id).trim().replace(/\.0$/, '') // strip .0 if number came as float
       return OWNER_NAMES[clean] ?? `Unknown (${clean})`
@@ -427,25 +422,21 @@ export async function GET(req: NextRequest) {
       const closeDate = deal?.closedate?.split('T')[0] ?? null
       const churnDate = deal?.churn_date?.split('T')[0] ?? null
 
-      // Pick the most recent contact date across all available fields.
-      // Field names confirmed from hubspot.json schema.
-      const contactDateCandidates = [
-        deal?.notes_last_contacted,
-        deal?.notes_last_updated,
-        deal?.hs_notes_last_activity,
-        deal?.hs_sales_email_last_replied,
-        cp.notes_last_contacted,
-        cp.notes_last_updated,
-        cp.hs_notes_last_activity,
-      ].filter(Boolean) as string[]
+      // notes_last_contacted is the only reliable "human contacted the client" field.
+      // notes_last_updated / hs_notes_last_activity update automatically on any
+      // record change and would make lastDays appear falsely low.
+      // Per spec §3.1 and §12: prefer deal value, fall back to company.
+      const lastContactedRaw =
+        deal?.notes_last_contacted ||
+        cp.notes_last_contacted ||
+        null
 
-      const mostRecentContact = contactDateCandidates
-        .map(d => new Date(d).getTime())
-        .filter(t => !isNaN(t))
-        .sort((a, b) => b - a)[0]
+      const lastContactedMs = lastContactedRaw
+        ? new Date(lastContactedRaw).getTime()
+        : NaN
 
-      const lastDays = mostRecentContact
-        ? Math.max(0, Math.floor((Date.now() - mostRecentContact) / 86400000))
+      const lastDays = !isNaN(lastContactedMs)
+        ? Math.max(0, Math.floor((Date.now() - lastContactedMs) / 86400000))
         : 999
 
       // Exact field names confirmed from hubspot.json
