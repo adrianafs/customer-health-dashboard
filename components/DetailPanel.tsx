@@ -283,6 +283,21 @@ export default function DetailPanel({ client, onClose, onRescore }: Props) {
               <span>{client.csm}</span><span style={{ color: 'var(--n300)' }}>·</span>
               <span style={{ fontFamily: 'var(--mono)' }}>€{formatARR(client.arr)}/yr</span>
             </div>
+
+            {/* Contract summary row */}
+            <div style={{ marginTop: 12, display: 'flex', flexWrap: 'nowrap', gap: 6, overflowX: 'auto' }}>
+              {([
+                { l: 'Start', v: client.contract.start ?? '—', danger: false },
+                { l: 'End', v: client.contract.renewal ?? '—', danger: daysToRenewal !== null && daysToRenewal > 0 && daysToRenewal < 60 },
+                { l: 'Auto-renewal', v: d.autoRenewal ? 'Yes ✓' : 'No', danger: false, ok: d.autoRenewal },
+                { l: 'Notice', v: client.contract.noticePeriodMonths ? `${client.contract.noticePeriodMonths}mo` : '—', danger: false },
+              ] as { l: string; v: string; danger: boolean; ok?: boolean }[]).map(c => (
+                <div key={c.l} style={{ background: 'var(--n50)', border: '1px solid var(--n100)', borderRadius: 8, padding: '6px 10px', flexShrink: 0 }}>
+                  <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--n400)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 2, whiteSpace: 'nowrap' }}>{c.l}</div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: c.danger ? 'var(--d500)' : c.ok === false ? 'var(--w500)' : c.ok ? 'var(--s500)' : 'var(--n900)', whiteSpace: 'nowrap' }}>{c.v}</div>
+                </div>
+              ))}
+            </div>
           </div>
 
           {/* Score */}
@@ -327,8 +342,7 @@ export default function DetailPanel({ client, onClose, onRescore }: Props) {
               {[
                 { title: 'Deal', src: 'HUBSPOT', rows: [
                   { k: 'Stage', v: d.stageLabel, cls: d.stage === '1309169016' ? 'bd' : undefined },
-                  { k: 'Auto renewal', v: d.autoRenewal ? 'Yes ✓' : 'No', cls: d.autoRenewal ? 'ok' : 'bd' },
-                  { k: 'Close date', v: d.closeDate ?? '—', cls: daysToRenewal !== null && daysToRenewal > 0 && daysToRenewal < 60 ? 'bd' : undefined },
+                  { k: 'Sub. end date', v: d.closeDate ?? '—', cls: daysToRenewal !== null && daysToRenewal > 0 && daysToRenewal < 60 ? 'bd' : undefined },
                   { k: 'Last contact', v: d.lastContactDaysAgo > 900 ? 'Never' : `${d.lastContactDaysAgo}d ago`, cls: d.lastContactDaysAgo > 30 ? 'bd' : d.lastContactDaysAgo > 14 ? 'wn' : 'ok' },
                 ]},
                 { title: 'Company', src: 'HUBSPOT', rows: [
@@ -402,23 +416,6 @@ export default function DetailPanel({ client, onClose, onRescore }: Props) {
                   <span style={{ fontSize: 11.5, color: 'var(--n400)', fontStyle: 'italic' }}>{engagements ? 'No activity found in the last 6 months' : 'Activity data unavailable'}</span>
                 )}
               </div>
-            </div>
-          </div>
-
-          {/* Contract */}
-          <div style={{ padding: '18px 20px', borderBottom: '1px solid var(--n100)' }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--n500)', letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: 12 }}>Contract</div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8 }}>
-              {[
-                { l: 'Start', v: client.contract.start ?? '—' },
-                { l: 'Renewal', v: client.contract.renewal ?? '—', danger: daysToRenewal !== null && daysToRenewal > 0 && daysToRenewal < 60 },
-                { l: 'Age', v: `${client.contract.ageMonths}mo` },
-              ].map(c => (
-                <div key={c.l} style={{ background: 'var(--n50)', border: '1px solid var(--n100)', borderRadius: 12, padding: '10px 12px' }}>
-                  <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--n500)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 3 }}>{c.l}</div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: c.danger ? 'var(--d500)' : 'var(--n900)' }}>{c.v}</div>
-                </div>
-              ))}
             </div>
           </div>
 
