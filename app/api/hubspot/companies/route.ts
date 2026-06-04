@@ -194,22 +194,11 @@ export async function GET(req: NextRequest) {
     if (ownersRes.ok) {
       const ownersData = await ownersRes.json()
       for (const o of ownersData.results ?? []) {
-        const firstName = (o.firstName ?? '').toLowerCase()
-        const lastName = (o.lastName ?? '').toLowerCase()
-        const fullName = `${o.firstName ?? ''} ${o.lastName ?? ''}`.trim()
-        realOwnerNames[String(o.id)] = fullName
-        // Match to CSM_LIST by first name or last name
-        const match = CSM_LIST.find(c => {
-          const csmLower = c.name.toLowerCase()
-          return firstName.startsWith(csmLower) || csmLower.startsWith(firstName) ||
-                 lastName.startsWith(csmLower) || csmLower.startsWith(lastName)
-        })
+        const firstName = (o.firstName ?? '').trim().toLowerCase()
+        // Exact first name match only — avoids false positives
+        const match = CSM_LIST.find(c => c.name.toLowerCase() === firstName)
         if (match) ownerMap[String(o.id)] = match.name
       }
-    }
-    // Fallback: use hardcoded IDs for any unmatched
-    for (const csm of CSM_LIST) {
-      if (!Object.values(ownerMap).includes(csm.name)) ownerMap[csm.ownerId] = csm.name
     }
 
     // 6. Map companies → Client objects
