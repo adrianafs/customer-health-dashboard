@@ -15,10 +15,10 @@ export interface UsageStats {
   collectedPosts30d:  number
   // Influencer Marketing — Dreaminfluence
   imCompanyId:        number | null
-  activeDreamteams:   number
-  totalDreamteams:    number
-  activeInfluencers:  number
-  lastCampaignDate:   string | null
+  totalTeams:         number
+  totalInfluencers:   number
+  activeCampaigns:    number
+  lastActivity:       string | null  // last influencer joined_at (Amplitude needed for brand login)
   // Chargebee billing (approximate — data being reworked)
   cbStatus:           string | null
   cbTermEnd:          string | null
@@ -148,15 +148,18 @@ export async function getUsageStats(
   if (needsIM && imCompanyId) {
     imRows = await runQuery(`
       SELECT
-        COUNT(DISTINCT dt.dream_team)                                                           AS total_dreamteams,
-        SUM(CASE WHEN dt.archived = false AND dt.inactive = false THEN 1 ELSE 0 END)           AS active_dreamteams,
+        COUNT(DISTINCT dt.dream_team)                                                   AS total_teams,
+        COUNT(DISTINCT jta.influencer_id)                                               AS total_influencers,
         COUNT(DISTINCT CASE WHEN da.archived = false
           AND da.start_date <= CURRENT_DATE
           AND (da.end_date IS NULL OR da.end_date >= CURRENT_DATE)
-          THEN da.assignment END)                                                              AS active_influencers,
-        MAX(da.start_date)                                                                      AS last_campaign_date
+          THEN da.assignment END)                                                        AS active_campaigns,
+        MAX(jta.joined_at)                                                              AS last_activity
       FROM core.main.dreamteams dt
-      LEFT JOIN core.main.dreamteamassignments da ON da.dream_team = dt.dream_team
+      LEFT JOIN core.main.dreamteamassignments da
+        ON da.dream_team = dt.dream_team AND da.im_company_id = dt.im_company_id
+      LEFT JOIN core.main.joinedteamassignments jta
+        ON jta.dream_team = dt.dream_team AND jta.im_company_id = dt.im_company_id
       WHERE dt.im_company_id = ${imCompanyId}
     `)
   }
@@ -184,10 +187,10 @@ export async function getUsageStats(
 
   // Parse IM stats
   const im = imRows?.[0]
-  const totalDreamteams   = parseInt(String(im?.[0] ?? '0'), 10) || 0
-  const activeDreamteams  = parseInt(String(im?.[1] ?? '0'), 10) || 0
-  const activeInfluencers = parseInt(String(im?.[2] ?? '0'), 10) || 0
-  const lastCampaignDate  = im?.[3] ? String(im[3]).split('T')[0] : null
+  const totalTeams       = parseInt(String(im?.[0] ?? '0'), 10) || 0
+  const totalInfluencers = parseInt(String(im?.[1] ?? '0'), 10) || 0
+  const activeCampaigns  = parseInt(String(im?.[2] ?? '0'), 10) || 0
+  const lastActivity     = im?.[3] ? String(im[3]).split('T')[0] : null
 
   return {
     lastActiveDate: lastActive,
@@ -199,10 +202,10 @@ export async function getUsageStats(
     engagements30d,
     collectedPosts30d,
     imCompanyId,
-    activeDreamteams,
-    totalDreamteams,
-    activeInfluencers,
-    lastCampaignDate,
+    totalTeams,
+    totalInfluencers,
+    activeCampaigns,
+    lastActivity,
     cbStatus,
     cbTermEnd,
     cbCancelScheduled,

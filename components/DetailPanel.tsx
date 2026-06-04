@@ -259,10 +259,10 @@ export default function DetailPanel({ client, onClose, onRescore }: Props) {
                 // ── Dreaminfluence IM section (dream or both)
                 ...((client.brand === 'dream' || client.brand === 'both') ? [{
                   title: 'Influencer Marketing', src: 'DATABRICKS' as const, rows: [
-                    { k: 'Active dreamteams',    v: usage ? usage.activeDreamteams : '…', cls: usage ? (usage.activeDreamteams === 0 ? 'bd' : 'ok') : undefined },
-                    { k: 'Total dreamteams',     v: usage ? usage.totalDreamteams  : '…' },
-                    { k: 'Active influencers',   v: usage ? usage.activeInfluencers : '…', cls: usage ? (usage.activeInfluencers === 0 ? 'bd' : 'ok') : undefined },
-                    { k: 'Last campaign',        v: usage?.lastCampaignDate ?? (usage ? 'None' : '…'), cls: usage && !usage.lastCampaignDate ? 'bd' : undefined },
+                    { k: 'Total teams',          v: usage ? usage.totalTeams        : '…', cls: usage ? (usage.totalTeams === 0 ? 'bd' : 'ok') : undefined },
+                    { k: 'Total influencers',    v: usage ? usage.totalInfluencers   : '…', cls: usage ? (usage.totalInfluencers === 0 ? 'bd' : 'ok') : undefined },
+                    { k: 'Active campaigns',     v: usage ? usage.activeCampaigns    : '…', cls: usage ? (usage.activeCampaigns === 0 ? 'wn' : 'ok') : undefined },
+                    { k: 'Last activity',        v: usage?.lastActivity ?? (usage ? 'None' : '…'), cls: usage && !usage.lastActivity ? 'bd' : undefined },
                   ]
                 }] : []),
                 ...(usage?.cbStatus ? [{ title: 'Billing', src: 'DATABRICKS', rows: [
