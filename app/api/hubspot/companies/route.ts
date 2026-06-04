@@ -186,23 +186,26 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // 5. Build owner map — paginate all HubSpot owners → ownerId → display name
+    // 5. Build owner map — fetch all HubSpot owners (owners uses offset pagination)
     const ownerMap: Record<string, string> = {}
     await sleep(300)
-    let ownerAfter = ''
-    do {
-      const ownerRes = await hsGet(`/crm/v3/owners?limit=100${ownerAfter ? `&after=${ownerAfter}` : ''}`)
+    let ownerOffset = 0
+    let ownerDone = false
+    while (!ownerDone) {
+      const ownerRes = await hsGet(`/crm/v3/owners?limit=200&offset=${ownerOffset}&includeDeactivated=true`)
       if (!ownerRes.ok) break
       const ownerData = await ownerRes.json()
-      for (const o of ownerData.results ?? []) {
+      const results = ownerData.results ?? []
+      for (const o of results) {
         const first = (o.firstName ?? '').trim()
-        const last = (o.lastName ?? '').trim()
-        const email = (o.email ?? '').split('@')[0]
-        const name = first || last || email || String(o.id)
+        const last  = (o.lastName  ?? '').trim()
+        const email = (o.email ?? '').split('@')[0].replace(/\./g, ' ')
+        const name  = first || last || email || String(o.id)
         ownerMap[String(o.id)] = name
       }
-      ownerAfter = ownerData.paging?.next?.after ?? ''
-    } while (ownerAfter)
+      if (results.length < 200) ownerDone = true
+      else ownerOffset += 200
+    }
 
     // 6. Map companies → Client objects
     const clients: Client[] = companies.map(co => {
@@ -306,15 +309,14 @@ export async function GET(req: NextRequest) {
       return b.arr - a.arr
     })
 
-    // Build real CSM list from owners found in data
-    const csmOwnerIds: { name: CSMName; ownerId: string }[] = []
-    const seen = new Set<string>()
-    for (const c of clients) {
-      if (c.csmOwnerId && !seen.has(c.csmOwnerId)) {
-        seen.add(c.csmOwnerId)
-        csmOwnerIds.push({ name: c.csm, ownerId: c.csmOwnerId })
-      }
-    }
+    // Build CSM filter list — only people with 2+ clients, sorted by count
+    const ownerCount: Record<string, number> = {}
+    for (const c of clients) if (c.csmOwnerId) ownerCount[c.csmOwnerId] = (ownerCount[c.csmOwnerId] ?? 0) + 1
+
+    const csmOwnerIds = Object.entries(ownerCount)
+      .filter(([, count]) => count >= 2)
+      .sort((a, b) => b[1] - a[1])
+      .map(([ownerId]) => ({ name: ownerMap[ownerId] ?? ownerId, ownerId }))
 
     return NextResponse.json({ clients, csmOwnerIds })
   } catch (err) {
