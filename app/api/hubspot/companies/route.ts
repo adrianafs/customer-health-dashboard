@@ -207,7 +207,8 @@ export async function GET(req: NextRequest) {
       const deal = contractDeals[0] ?? null
       const dealId = dealIds.find(id => dealPropsMap[id] === deal) ?? coId
 
-      const ownerId = cp.hubspot_owner_id ?? ''
+      // CSM is the Deal owner (Contracts Pipeline), not the Company owner
+      const ownerId = deal?.hubspot_owner_id ?? cp.hubspot_owner_id ?? ''
       const csm: CSMName = ownerMap[ownerId] ?? ownerId
 
       const stage = deal?.dealstage ?? ''
