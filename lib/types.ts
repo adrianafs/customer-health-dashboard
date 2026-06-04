@@ -38,6 +38,10 @@ export type Client = {
   currency: string
   csm: CSMName
   csmOwnerId: string
+  // Brand: which Flowbox product this deal is for
+  // 'flowbox' = Visual UGC, 'dream' = Influencer Marketing, 'both' = Full Suite
+  // null = field not found in HubSpot yet
+  brand: 'flowbox' | 'dream' | 'both' | null
   healthState: HealthState
   score: number
   confidence: number

@@ -17,8 +17,21 @@ function csmGradient(name: string) {
   return 'linear-gradient(135deg,#6A00FF,#AF79FE)'
 }
 
+const BRAND_LABEL: Record<string, string> = {
+  flowbox: 'Flowbox',
+  dream:   'Dream',
+  both:    'Full Suite',
+}
+
+const BRAND_STYLE: Record<string, { bg: string; color: string; border: string }> = {
+  flowbox: { bg: '#F3EBFF', color: '#6A00FF', border: '#E4D1FF' },
+  dream:   { bg: '#E4F7EE', color: '#00A378', border: '#B8EDDA' },
+  both:    { bg: '#FFF8E6', color: '#B45309', border: '#FDE68A' },
+}
+
 export default function ClientCard({ client, onClick, selected }: { client: Client; onClick: () => void; selected?: boolean }) {
   const col = STATE_COLORS[client.healthState]
+  const brand = client.brand ?? null
 
   return (
     <div
@@ -39,32 +52,35 @@ export default function ClientCard({ client, onClick, selected }: { client: Clie
       onMouseEnter={e => { if (!selected) { (e.currentTarget as HTMLElement).style.boxShadow = 'var(--sm)'; (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)'; (e.currentTarget as HTMLElement).style.borderColor = 'var(--n300)' } }}
       onMouseLeave={e => { if (!selected) { (e.currentTarget as HTMLElement).style.boxShadow = 'var(--ss)'; (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.borderColor = 'var(--n200)' } }}
     >
-      {/* Onboarding tag */}
-      {client.signals.onboarding.active && (
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 600, color: 'var(--v600)', background: 'var(--v50)', border: '1px solid var(--v100)', borderRadius: 999, padding: '2px 8px', marginBottom: 7 }}>
-          ◉ Onboarding
-        </div>
-      )}
-
-      {/* Child brands */}
-      {client.childCompanies && client.childCompanies.length > 0 && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 7 }}>
-          {client.childCompanies.slice(0, 3).map((brand, i) => (
-            <span key={i} style={{ fontSize: 9, fontWeight: 600, color: 'var(--n500)', background: 'var(--n100)', borderRadius: 999, padding: '2px 7px', letterSpacing: '.01em' }}>
-              {brand}
-            </span>
-          ))}
-          {client.childCompanies.length > 3 && (
-            <span style={{ fontSize: 9, fontWeight: 600, color: 'var(--n400)', background: 'var(--n100)', borderRadius: 999, padding: '2px 7px' }}>
-              +{client.childCompanies.length - 3}
-            </span>
+      {/* Top tags: Onboarding + Brand */}
+      {(client.signals.onboarding.active || brand) && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 7, flexWrap: 'wrap' }}>
+          {client.signals.onboarding.active && (
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 600, color: 'var(--v600)', background: 'var(--v50)', border: '1px solid var(--v100)', borderRadius: 999, padding: '2px 8px' }}>
+              ◉ Onboarding
+            </div>
+          )}
+          {brand && BRAND_STYLE[brand] && (
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              fontSize: 10,
+              fontWeight: 700,
+              background: BRAND_STYLE[brand].bg,
+              color: BRAND_STYLE[brand].color,
+              border: `1px solid ${BRAND_STYLE[brand].border}`,
+              borderRadius: 999,
+              padding: '2px 8px',
+            }}>
+              {BRAND_LABEL[brand]}
+            </div>
           )}
         </div>
       )}
 
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 10 }}>
-        <div>
+        <div style={{ minWidth: 0 }}>
           <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: '-.02em', lineHeight: 1.2 }}>{client.name}</div>
           <div style={{ fontSize: 11, color: 'var(--n500)', fontFamily: 'var(--mono)', marginTop: 2, letterSpacing: '-.01em' }}>€{formatARR(client.arr)}</div>
         </div>

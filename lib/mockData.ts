@@ -4,7 +4,7 @@ import { Client } from './types'
 export const mockClients: Client[] = [
   {
     id: 'deal-001', companyId: 'co-001',
-    name: 'Bestseller', arr: 28000, currency: 'EUR', csm: 'Claudia', csmOwnerId: '64994666',
+    name: 'Bestseller', arr: 28000, currency: 'EUR', csm: 'Claudia', csmOwnerId: '64994666', brand: null,
     healthState: 'stable', score: 88, confidence: 85,
     whyThisScore: 'Strong usage health (Good), recent contact 5 days ago, Active Contract stage.',
     recommendedAction: 'Maintain current cadence. Consider proposing Q3 QBR.',
@@ -26,7 +26,7 @@ export const mockClients: Client[] = [
   },
   {
     id: 'deal-002', companyId: 'co-002',
-    name: 'Vitakraft', arr: 19500, currency: 'EUR', csm: 'Claudia', csmOwnerId: '64994666',
+    name: 'Vitakraft', arr: 19500, currency: 'EUR', csm: 'Claudia', csmOwnerId: '64994666', brand: null,
     healthState: 'stable', score: 80, confidence: 82,
     whyThisScore: 'Fair usage, no negative signals, last contact 11 days ago.',
     recommendedAction: 'Share Q2 benchmark report before month end.',
@@ -48,7 +48,7 @@ export const mockClients: Client[] = [
   },
   {
     id: 'deal-003', companyId: 'co-003',
-    name: 'Ønskeskyen', arr: 12000, currency: 'EUR', csm: 'Claudia', csmOwnerId: '64994666',
+    name: 'Ønskeskyen', arr: 12000, currency: 'EUR', csm: 'Claudia', csmOwnerId: '64994666', brand: null,
     healthState: 'keep_an_eye', score: 62, confidence: 75,
     whyThisScore: 'Client is in active onboarding (Implementation stage, 24 days). Usage not yet established.',
     recommendedAction: 'Complete week 4 onboarding checklist. Schedule first content strategy session.',
@@ -70,7 +70,7 @@ export const mockClients: Client[] = [
   },
   {
     id: 'deal-004', companyId: 'co-004',
-    name: 'Nordisk Film', arr: 21000, currency: 'EUR', csm: 'Claudia', csmOwnerId: '64994666',
+    name: 'Nordisk Film', arr: 21000, currency: 'EUR', csm: 'Claudia', csmOwnerId: '64994666', brand: null,
     healthState: 'keep_an_eye', score: 55, confidence: 70,
     whyThisScore: 'Renewal in Progress stage. ARR is significant — needs active monitoring.',
     recommendedAction: 'Push for signed renewal this week. Prepare ROI summary.',
@@ -92,7 +92,7 @@ export const mockClients: Client[] = [
   },
   {
     id: 'deal-005', companyId: 'co-005',
-    name: 'Elgiganten', arr: 24000, currency: 'EUR', csm: 'Claudia', csmOwnerId: '64994666',
+    name: 'Elgiganten', arr: 24000, currency: 'EUR', csm: 'Claudia', csmOwnerId: '64994666', brand: null,
     healthState: 'action_required', score: 38, confidence: 82,
     whyThisScore: 'No contact in 36 days and deal stage is Up for Renewal. Auto renewal is OFF — risk of losing this contract.',
     recommendedAction: 'Contact Elgiganten today. Prepare renewal proposal with competitive pricing.',
@@ -114,7 +114,7 @@ export const mockClients: Client[] = [
   },
   {
     id: 'deal-006', companyId: 'co-006',
-    name: 'Tonsser', arr: 9500, currency: 'EUR', csm: 'Claudia', csmOwnerId: '64994666',
+    name: 'Tonsser', arr: 9500, currency: 'EUR', csm: 'Claudia', csmOwnerId: '64994666', brand: null,
     healthState: 'churn_risk', score: 14, confidence: 92,
     whyThisScore: 'Deal stage is Communicated Churn (in Winback). Client actively considering cancellation.',
     recommendedAction: 'Initiate save play immediately. Escalate to management for executive outreach.',

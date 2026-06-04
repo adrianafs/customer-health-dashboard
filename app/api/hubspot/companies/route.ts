@@ -266,6 +266,9 @@ export async function GET(req: NextRequest) {
         'auto_renewal', 'subscription_end_date', 'pause_end_date',
         'churn_date', 'communicated_churn_date', 'reason_for_churn', 'closedate',
         'hubspot_owner_id', 'notes_last_contacted', 'createdate',
+        // Flowbox Product / brand — try all likely internal names
+        'flowbox_product', 'product', 'hs_product_type', 'product_type',
+        'flowbox_product_type', 'brand', 'business_unit',
       ],
       filterGroups: [{
         filters: [{ propertyName: 'pipeline', operator: 'EQ', value: CONTRACTS_PIPELINE }],
@@ -402,6 +405,20 @@ export async function GET(req: NextRequest) {
       const churnFlag    = cp.churn_risk === 'true'
       const ob           = obCoMap[coId] ?? { active: false, days: 0, stage: null }
 
+      // ── Brand detection ───────────────────────────────────────────────────
+      // Try all candidate field names for "Flowbox Product"
+      const rawProduct = (
+        deal.flowbox_product || deal.product || deal.hs_product_type ||
+        deal.product_type || deal.flowbox_product_type || deal.brand ||
+        deal.business_unit || ''
+      ).toLowerCase()
+
+      const brand: 'flowbox' | 'dream' | 'both' | null =
+        rawProduct.includes('influencer') || rawProduct.includes('dream') ? 'dream'
+        : rawProduct.includes('visual') || rawProduct.includes('ugc') || rawProduct.includes('flowbox') ? 'flowbox'
+        : rawProduct.includes('full') || rawProduct.includes('suite') || rawProduct.includes('both') ? 'both'
+        : null
+
       const arr = parseFloat(
         deal.hs_arr || deal.hs_acv || deal.amount ||
         cp.total_contract_value || cp.annualrevenue || '0'
@@ -456,6 +473,7 @@ export async function GET(req: NextRequest) {
         currency: 'EUR',
         csm,
         csmOwnerId,
+        brand,
         healthState: state,
         score,
         confidence: 72,
