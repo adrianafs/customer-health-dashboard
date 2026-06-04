@@ -22,7 +22,7 @@ export const mockClients: Client[] = [
     },
     contract: { start: '2024-09-01', renewal: '2026-09-01', ageMonths: 21, noticePeriodMonths: null },
     renewalUrgent: false, lastContactDaysAgo: 5,
-    hubspotDealUrl: 'https://app.hubspot.com/contacts/deals/deal-001', flowboxPlatformId: null,
+    hubspotDealUrl: 'https://app.hubspot.com/contacts/deals/deal-001', flowboxPlatformId: null, communicatedChurn: false, winbackStatus: null,
   },
   {
     id: 'deal-002', companyId: 'co-002',
@@ -44,7 +44,7 @@ export const mockClients: Client[] = [
     },
     contract: { start: '2024-11-01', renewal: '2026-11-01', ageMonths: 19, noticePeriodMonths: null },
     renewalUrgent: false, lastContactDaysAgo: 11,
-    hubspotDealUrl: 'https://app.hubspot.com/contacts/deals/deal-002', flowboxPlatformId: null,
+    hubspotDealUrl: 'https://app.hubspot.com/contacts/deals/deal-002', flowboxPlatformId: null, communicatedChurn: false, winbackStatus: null,
   },
   {
     id: 'deal-003', companyId: 'co-003',
@@ -66,7 +66,7 @@ export const mockClients: Client[] = [
     },
     contract: { start: '2025-06-01', renewal: '2027-06-01', ageMonths: 1, noticePeriodMonths: null },
     renewalUrgent: false, lastContactDaysAgo: 2,
-    hubspotDealUrl: 'https://app.hubspot.com/contacts/deals/deal-003', flowboxPlatformId: null,
+    hubspotDealUrl: 'https://app.hubspot.com/contacts/deals/deal-003', flowboxPlatformId: null, communicatedChurn: false, winbackStatus: null,
   },
   {
     id: 'deal-004', companyId: 'co-004',
@@ -88,7 +88,7 @@ export const mockClients: Client[] = [
     },
     contract: { start: '2024-07-15', renewal: '2026-07-15', ageMonths: 23, noticePeriodMonths: null },
     renewalUrgent: true, lastContactDaysAgo: 9,
-    hubspotDealUrl: 'https://app.hubspot.com/contacts/deals/deal-004', flowboxPlatformId: null,
+    hubspotDealUrl: 'https://app.hubspot.com/contacts/deals/deal-004', flowboxPlatformId: null, communicatedChurn: false, winbackStatus: null,
   },
   {
     id: 'deal-005', companyId: 'co-005',
@@ -110,7 +110,7 @@ export const mockClients: Client[] = [
     },
     contract: { start: '2024-08-01', renewal: '2026-08-01', ageMonths: 22, noticePeriodMonths: null },
     renewalUrgent: true, lastContactDaysAgo: 36,
-    hubspotDealUrl: 'https://app.hubspot.com/contacts/deals/deal-005', flowboxPlatformId: null,
+    hubspotDealUrl: 'https://app.hubspot.com/contacts/deals/deal-005', flowboxPlatformId: null, communicatedChurn: false, winbackStatus: null,
   },
   {
     id: 'deal-006', companyId: 'co-006',
@@ -132,6 +132,6 @@ export const mockClients: Client[] = [
     },
     contract: { start: '2024-07-01', renewal: '2026-07-01', ageMonths: 23, noticePeriodMonths: null },
     renewalUrgent: true, lastContactDaysAgo: 42,
-    hubspotDealUrl: 'https://app.hubspot.com/contacts/deals/deal-006', flowboxPlatformId: null,
+    hubspotDealUrl: 'https://app.hubspot.com/contacts/deals/deal-006', flowboxPlatformId: null, communicatedChurn: false, winbackStatus: null,
   },
 ]
