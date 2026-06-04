@@ -306,7 +306,7 @@ export default function DetailPanel({ client, onClose, onRescore }: Props) {
                     {/* Stats */}
                     <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
                       <span style={{ fontSize: 11, color: 'var(--n500)' }}>
-                        <strong style={{ color: 'var(--n800)' }}>{engagements.activityCount}</strong> activities in 90d
+                        <strong style={{ color: 'var(--n800)' }}>{engagements.activityCount}</strong> activities in 6mo
                       </span>
                       {engagements.lastActivityDate && (
                         <span style={{ fontSize: 11, color: 'var(--n500)' }}>

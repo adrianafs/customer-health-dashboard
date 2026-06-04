@@ -90,7 +90,7 @@ async function batchReadActivities(
 export async function fetchEngagements(companyId: string): Promise<HubSpotEngagement[]> {
   if (!TOKEN) return []
 
-  const cutoff = Date.now() - 90 * 24 * 60 * 60 * 1000
+  const cutoff = Date.now() - 180 * 24 * 60 * 60 * 1000
   const engagements: HubSpotEngagement[] = []
 
   const types = ['notes', 'emails', 'meetings', 'calls'] as const
@@ -103,7 +103,8 @@ export async function fetchEngagements(companyId: string): Promise<HubSpotEngage
 
     for (const obj of objects) {
       const ts = obj.hs_timestamp ? new Date(obj.hs_timestamp).getTime() : 0
-      if (ts < cutoff) continue
+      // Skip future-dated records and records older than 6 months
+      if (ts > Date.now() || ts < cutoff) continue
 
       let subject: string | undefined
       let body: string | undefined
@@ -182,7 +183,7 @@ sentimentType:
 openActionItems: CSM promises or follow-ups with no evidence of resolution. Max 3, empty array if none.`,
     messages: [{
       role: 'user',
-      content: `Company: ${companyName}\n\nRecent activity (newest first):\n\n${lines}`,
+      content: `Company: ${companyName}\n\nRecent activity from the last 6 months (newest first):\n\n${lines}`,
     }],
   })
 
