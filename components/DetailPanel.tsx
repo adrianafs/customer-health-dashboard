@@ -70,8 +70,11 @@ function NotesSection({ client }: { client: Client }) {
 
   return (
     <div style={{ padding: '18px 20px', borderBottom: '1px solid var(--n100)' }}>
-      <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--n500)', letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: 12 }}>
-        Notes
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12 }}>
+        <span style={{ width: 6, height: 6, borderRadius: 999, background: 'var(--v500)', flexShrink: 0 }} />
+        <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--v600)', letterSpacing: '.08em', textTransform: 'uppercase' }}>
+          Team notes
+        </span>
       </div>
 
       {/* Input */}
@@ -122,8 +125,9 @@ function NotesSection({ client }: { client: Client }) {
             const author = n.body.match(/^\[(.*?) via CS Dashboard\]/)?.[1] ?? null
             return (
               <div key={n.id} style={{
-                background: 'var(--n50)', border: '1px solid var(--n100)',
-                borderRadius: 8, padding: '10px 12px',
+                background: 'linear-gradient(135deg,rgba(106,0,255,.05),rgba(106,0,255,.02))',
+                border: '1px solid var(--v100)',
+                borderRadius: 12, padding: '10px 12px',
               }}>
                 <div style={{ fontSize: 12, color: 'var(--n800)', lineHeight: 1.6, marginBottom: 6 }}>
                   {body}
