@@ -5,32 +5,34 @@ import { NextResponse } from 'next/server'
 
 const HS = 'https://api.hubapi.com'
 const TOKEN = process.env.HUBSPOT_TOKEN
-
-function auth() {
-  return { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' }
-}
+function auth() { return { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' } }
 
 export async function GET() {
   if (!TOKEN) return NextResponse.json({ error: 'HUBSPOT_TOKEN not set' })
 
-  // Get stages for the Contracts pipeline
+  // Stages of the contracts pipeline
   const stagesRes = await fetch(`${HS}/crm/v3/pipelines/deals/58017946/stages`, { headers: auth(), cache: 'no-store' })
   const stages = stagesRes.ok ? await stagesRes.json() : { error: await stagesRes.text() }
 
-  // Get 5 deals from the contracts pipeline with their stages
+  // All deals in contracts pipeline — NO owner filter — show real owner IDs
   const searchRes = await fetch(`${HS}/crm/v3/objects/deals/search`, {
     method: 'POST', headers: auth(), cache: 'no-store',
     body: JSON.stringify({
-      limit: 5,
-      properties: ['dealname', 'dealstage', 'pipeline', 'hubspot_owner_id', 'amount'],
+      limit: 10,
+      properties: ['dealname', 'dealstage', 'hubspot_owner_id', 'amount'],
       filterGroups: [{ filters: [{ propertyName: 'pipeline', operator: 'EQ', value: '58017946' }] }],
     }),
   })
   const deals = searchRes.ok ? await searchRes.json() : { error: await searchRes.text() }
 
+  // All HubSpot owners so we can match IDs to names
+  const ownersRes = await fetch(`${HS}/crm/v3/owners?limit=100`, { headers: auth(), cache: 'no-store' })
+  const owners = ownersRes.ok ? await ownersRes.json() : { error: await ownersRes.text() }
+
   return NextResponse.json({
-    contractsStages: stages?.results?.map((s: Record<string, unknown>) => ({ id: s.id, label: s.label })) ?? stages,
+    totalDealsInPipeline: deals?.total ?? 0,
+    stages: stages?.results?.map((s: Record<string, unknown>) => ({ id: s.id, label: s.label })) ?? stages,
     sampleDeals: deals?.results?.map((d: Record<string, unknown>) => ({ id: d.id, props: d.properties })) ?? deals,
-    total: deals?.total ?? 0,
+    owners: owners?.results?.map((o: Record<string, unknown>) => ({ id: o.id, name: `${o.firstName} ${o.lastName}`, email: o.email })) ?? owners,
   })
 }

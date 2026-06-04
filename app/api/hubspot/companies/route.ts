@@ -219,11 +219,11 @@ export async function GET(req: NextRequest) {
     const deals: Record<string, unknown>[] = []
     let after: string | undefined
 
+    // Fetch all active deals in the pipeline — filter by owner in-memory
+    // (avoids mismatch if HubSpot owner IDs differ from hardcoded spec values)
     const filters: object[] = [
       { propertyName: 'pipeline', operator: 'EQ', value: CONTRACTS_PIPELINE },
-      { propertyName: 'dealstage', operator: 'NEQ', value: '1309169018' },
     ]
-    if (ownerFilter) filters.push({ propertyName: 'hubspot_owner_id', operator: 'EQ', value: ownerFilter })
 
     do {
       const body: Record<string, unknown> = {
@@ -245,8 +245,15 @@ export async function GET(req: NextRequest) {
 
     if (deals.length === 0) return NextResponse.json([])
 
+    // 1b. Filter by owner in-memory if requested
+    const filteredDeals = ownerFilter
+      ? deals.filter(d => (d.properties as Record<string, string>)?.hubspot_owner_id === ownerFilter)
+      : deals
+
+    const dealsToProcess = filteredDeals.length > 0 ? filteredDeals : deals
+
     // 2. Get associated companies for all deals (batch)
-    const dealIds = deals.map(d => String(d.id))
+    const dealIds = dealsToProcess.map(d => String(d.id))
     const assocRes = await post('/crm/v4/associations/deal/company/batch/read', {
       inputs: dealIds.map(id => ({ id })),
     })
@@ -321,7 +328,7 @@ export async function GET(req: NextRequest) {
     for (const csm of CSM_LIST) ownerMap[csm.ownerId] = csm.name
 
     // 6. Map deals to Client objects
-    const clients: Client[] = deals
+    const clients: Client[] = dealsToProcess
       .filter(d => {
         const dp = (d.properties as Record<string, string>) ?? {}
         return dp.dealname && (parseFloat(dp.amount ?? '0') > 0 || true) // include all named deals

@@ -21,14 +21,15 @@ export default function Dashboard() {
   const [apiError, setApiError] = useState<string | null>(null)
   const [dataSource, setDataSource] = useState<'mock' | 'hubspot'>('mock')
   const [selectedClient, setSelectedClient] = useState<Client | null>(null)
-  const [activeCsmId, setActiveCsmId] = useState<string>(DEFAULT_CSM.ownerId)
+  const [activeCsmId, setActiveCsmId] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
 
   const loadData = useCallback(async (ownerId: string) => {
     setLoading(true)
     setApiError(null)
     try {
-      const res = await fetch(`/api/hubspot/companies?owner=${ownerId}`)
+      const url = ownerId === 'all' ? '/api/hubspot/companies' : `/api/hubspot/companies?owner=${ownerId}`
+      const res = await fetch(url)
       const data = await res.json()
       if (!res.ok) {
         setApiError(`API ${res.status}: ${data?.error ?? 'unknown error'}`)
@@ -89,7 +90,7 @@ export default function Dashboard() {
             style={{ background: 'linear-gradient(135deg, #7c3aed, #6d28d9)', boxShadow: '0 0 12px rgba(124,58,237,0.4)' }}>F</div>
           <div>
             <h1 className="text-sm font-bold text-white leading-none">Customer Health Dashboard</h1>
-            <p className="text-[10px] text-gray-500 mt-0.5">Flowbox Customer Success · {activeCsm.name}</p>
+            <p className="text-[10px] text-gray-500 mt-0.5">Flowbox Customer Success · {activeCsmId === 'all' ? 'All CSMs' : activeCsm.name}</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -135,6 +136,16 @@ export default function Dashboard() {
       <div className="shrink-0 px-6 py-2.5 flex items-center gap-2 flex-wrap"
         style={{ borderBottom: '1px solid rgba(255,255,255,0.07)', backgroundColor: '#13131a' }}>
         <span className="text-xs text-gray-500">CSM:</span>
+        {/* All tab */}
+        <button onClick={() => handleCsmChange('all')}
+          className="text-xs px-2.5 py-1 rounded-lg transition-all"
+          style={{
+            backgroundColor: activeCsmId === 'all' ? 'rgba(124,58,237,0.2)' : 'rgba(255,255,255,0.04)',
+            border: activeCsmId === 'all' ? '1px solid rgba(124,58,237,0.4)' : '1px solid rgba(255,255,255,0.07)',
+            color: activeCsmId === 'all' ? '#c084fc' : '#6b7280',
+          }}>
+          All
+        </button>
         {CSM_LIST.map(csm => (
           <button key={csm.ownerId} onClick={() => handleCsmChange(csm.ownerId)}
             className="text-xs px-2.5 py-1 rounded-lg transition-all"
