@@ -226,22 +226,24 @@ export async function GET(req: NextRequest) {
 
     const coIds = companies.map(c => String(c.id))
 
-    // ── 2. Company → Deal associations ───────────────────────────────────────
-    await sleep(400)
-    const assocRes = await hsPost('/crm/v4/associations/company/deal/batch/read', {
-      inputs: coIds.map(id => ({ id })),
-    })
-
+    // ── 2. Company → Deal associations (chunked, limit 100 per request) ─────
     const coDealIds: Record<string, string[]> = {}
-    if (assocRes.ok) {
-      const assocData = await assocRes.json()
-      for (const r of assocData.results ?? []) {
-        const fromId = String(r.from?.id ?? '')
-        // HubSpot v4 associations API uses `toObjectId`, not `id`
-        const toIds = (r.to ?? []).map((t: Record<string, unknown>) =>
-          String(t.toObjectId ?? t.id ?? '')
-        ).filter(Boolean)
-        if (fromId && toIds.length > 0) coDealIds[fromId] = toIds
+    for (let i = 0; i < coIds.length; i += 100) {
+      const chunk = coIds.slice(i, i + 100)
+      await sleep(300)
+      const assocRes = await hsPost('/crm/v4/associations/company/deal/batch/read', {
+        inputs: chunk.map(id => ({ id })),
+      })
+      if (assocRes.ok) {
+        const assocData = await assocRes.json()
+        for (const r of assocData.results ?? []) {
+          const fromId = String(r.from?.id ?? '')
+          // HubSpot v4 associations API uses `toObjectId`, not `id`
+          const toIds = (r.to ?? []).map((t: Record<string, unknown>) =>
+            String(t.toObjectId ?? t.id ?? '')
+          ).filter(Boolean)
+          if (fromId && toIds.length > 0) coDealIds[fromId] = toIds
+        }
       }
     }
 
@@ -249,46 +251,33 @@ export async function GET(req: NextRequest) {
     const allDealIds = Array.from(new Set(Object.values(coDealIds).flat()))
     const dealPropsMap: Record<string, Record<string, string>> = {}
 
-    if (allDealIds.length > 0) {
-      await sleep(400)
-      const dealsRes = await hsPost('/crm/v3/objects/deals/batch/read', {
-        inputs: allDealIds.map(id => ({ id })),
-        properties: [
-          'dealname',
-          'dealstage',
-          'pipeline',
-          'amount',
-          'hs_acv',
-          'hs_arr',
-          'auto_renewal',
-          // subscription_end_date = contract end date (replaces closedate for renewal rules)
-          'subscription_end_date',
-          // pause_end_date = when a Paused deal resumes
-          'pause_end_date',
-          'churn_date',
-          'communicated_churn_date',
-          'reason_for_churn',
-          // closedate kept as fallback when subscription_end_date is empty
-          'closedate',
-          // Deal owner = CSM (primary source)
-          'hubspot_owner_id',
-          'deal_closed_owner',
-          // Contact recency — prefer deal value, fall back to company
-          'notes_last_contacted',
-          'notes_last_updated',
-          'hs_notes_last_activity',
-          'hs_sales_email_last_replied',
-          'createdate',
-        ],
-      })
+    // HubSpot batch read limit = 100 IDs per request — chunk accordingly
+    const DEAL_PROPS = [
+      'dealname', 'dealstage', 'pipeline', 'amount', 'hs_acv', 'hs_arr',
+      'auto_renewal', 'subscription_end_date', 'pause_end_date',
+      'churn_date', 'communicated_churn_date', 'reason_for_churn', 'closedate',
+      'hubspot_owner_id', 'deal_closed_owner',
+      'notes_last_contacted', 'notes_last_updated', 'hs_notes_last_activity',
+      'hs_sales_email_last_replied', 'createdate',
+    ]
 
+    // Only fetch deals from the Contracts pipeline to reduce volume
+    // We do this by first filtering deal IDs to only those associated with our companies,
+    // then chunking into batches of 100
+    for (let i = 0; i < allDealIds.length; i += 100) {
+      const chunk = allDealIds.slice(i, i + 100)
+      await sleep(300)
+      const dealsRes = await hsPost('/crm/v3/objects/deals/batch/read', {
+        inputs: chunk.map(id => ({ id })),
+        properties: DEAL_PROPS,
+      })
       if (dealsRes.ok) {
         const dealsData = await dealsRes.json()
         for (const d of dealsData.results ?? []) {
           dealPropsMap[String(d.id)] = d.properties ?? {}
         }
       } else {
-        console.error('Deal batch read failed:', await dealsRes.text())
+        console.error(`Deal batch read chunk ${i}–${i + 100} failed:`, await dealsRes.text())
       }
     }
 
@@ -307,23 +296,26 @@ export async function GET(req: NextRequest) {
 
     const obCoMap: Record<string, { active: boolean; days: number; stage: string | null }> = {}
     if (obDeals.length > 0) {
-      await sleep(400)
-      const obAssoc = await hsPost('/crm/v4/associations/deal/company/batch/read', {
-        inputs: obDeals.map(d => ({ id: String(d.id) })),
-      })
-      if (obAssoc.ok) {
-        const obData = await obAssoc.json()
-        for (const r of obData.results ?? []) {
-          const toObj = r.to?.[0] as Record<string, unknown> | undefined
-          const coId = String(toObj?.toObjectId ?? toObj?.id ?? '')
-          if (!coId) continue
-          const dealId = String(r.from?.id ?? '')
-          const obDeal = obDeals.find(d => String(d.id) === dealId)
-          const dp = (obDeal?.properties as Record<string, string>) ?? {}
-          obCoMap[coId] = {
-            active: ONBOARDING_ACTIVE_STAGES.has(dp.dealstage ?? ''),
-            days: Math.max(0, Math.floor((Date.now() - new Date(dp.createdate || Date.now()).getTime()) / 86400000)),
-            stage: DEAL_STAGE_LABELS[dp.dealstage ?? ''] ?? dp.dealstage ?? null,
+      for (let i = 0; i < obDeals.length; i += 100) {
+        const chunk = obDeals.slice(i, i + 100)
+        await sleep(300)
+        const obAssoc = await hsPost('/crm/v4/associations/deal/company/batch/read', {
+          inputs: chunk.map(d => ({ id: String(d.id) })),
+        })
+        if (obAssoc.ok) {
+          const obData = await obAssoc.json()
+          for (const r of obData.results ?? []) {
+            const toObj = r.to?.[0] as Record<string, unknown> | undefined
+            const coId = String(toObj?.toObjectId ?? toObj?.id ?? '')
+            if (!coId) continue
+            const dealId = String(r.from?.id ?? '')
+            const obDeal = obDeals.find(d => String(d.id) === dealId)
+            const dp = (obDeal?.properties as Record<string, string>) ?? {}
+            obCoMap[coId] = {
+              active: ONBOARDING_ACTIVE_STAGES.has(dp.dealstage ?? ''),
+              days: Math.max(0, Math.floor((Date.now() - new Date(dp.createdate || Date.now()).getTime()) / 86400000)),
+              stage: DEAL_STAGE_LABELS[dp.dealstage ?? ''] ?? dp.dealstage ?? null,
+            }
           }
         }
       }
