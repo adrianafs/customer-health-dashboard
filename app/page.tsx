@@ -207,6 +207,7 @@ export default function Dashboard() {
   const [selectedClient, setSelectedClient] = useState<Client | null>(null)
   const [aiOpen, setAiOpen] = useState(true)
   const [lastSync, setLastSync] = useState<string | null>(null)
+  const [churnColOpen, setChurnColOpen] = useState(true)
 
   const loadData = useCallback(async () => {
     setLoading(true)
@@ -405,16 +406,30 @@ export default function Dashboard() {
           </div>
 
           {/* Board */}
-          <div style={{ flex: 1, overflowY: 'auto', padding: '18px 24px 32px', display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 14, alignItems: 'start' }}>
+          <div style={{ flex: 1, overflowY: 'auto', padding: '18px 24px 32px', display: 'flex', gap: 14, alignItems: 'start' }}>
+
+            {/* Regular columns */}
             {COLUMNS.map(col => {
-              const colClients = clients.filter(c => c.healthState === col.state)
+              const colClients = clients.filter(c =>
+                c.healthState === col.state &&
+                (col.state !== 'churn_risk' || !c.communicatedChurn)
+              )
+              const colARR = col.state === 'churn_risk'
+                ? colClients.reduce((s, c) => s + c.arr, 0)
+                : null
+
               return (
-                <div key={col.state}>
+                <div key={col.state} style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 10 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
                       <div style={{ width: 8, height: 8, borderRadius: '50%', background: STATE_COLORS[col.state], flexShrink: 0 }} />
                       <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.01em' }}>{STATE_LABELS[col.state]}</span>
                       <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--n500)', background: 'var(--n100)', borderRadius: 999, padding: '1px 7px' }}>{colClients.length}</span>
+                      {colARR !== null && colARR > 0 && (
+                        <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--d500)', background: 'var(--d50)', border: '1px solid var(--d200)', borderRadius: 999, padding: '1px 7px', fontFamily: 'var(--mono)' }}>
+                          €{formatARR(colARR)}
+                        </span>
+                      )}
                     </div>
                     <span style={{ fontSize: 10, color: 'var(--n400)', fontWeight: 500 }}>{col.subtitle}</span>
                   </div>
@@ -431,6 +446,53 @@ export default function Dashboard() {
                 </div>
               )
             })}
+
+            {/* Communicated Churn column — collapsible */}
+            {(() => {
+              const churnClients = clients.filter(c => c.communicatedChurn)
+              const churnARR = churnClients.reduce((s, c) => s + c.arr, 0)
+              return (
+                <div style={{ width: churnColOpen ? 220 : 40, flexShrink: 0, transition: 'width .25s cubic-bezier(.4,0,.2,1)', overflow: 'hidden' }}>
+                  {/* Header */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, paddingBottom: 10, minWidth: 220 }}>
+                    <button
+                      onClick={() => setChurnColOpen(v => !v)}
+                      style={{ width: 22, height: 22, borderRadius: 6, border: '1px solid var(--n200)', background: 'var(--n50)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: 'var(--n500)' }}
+                    >
+                      <svg width="10" height="10" viewBox="0 0 10 10" fill="none" style={{ transform: churnColOpen ? 'rotate(0deg)' : 'rotate(180deg)', transition: 'transform .25s' }}>
+                        <path d="M2 3.5l3 3 3-3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </button>
+                    {churnColOpen && (
+                      <>
+                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--n400)', flexShrink: 0 }} />
+                        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--n500)', letterSpacing: '.01em', whiteSpace: 'nowrap' }}>Communicated Churn</span>
+                        <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--n400)', background: 'var(--n100)', borderRadius: 999, padding: '1px 7px' }}>{churnClients.length}</span>
+                        {churnARR > 0 && (
+                          <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--n500)', background: 'var(--n100)', border: '1px solid var(--n200)', borderRadius: 999, padding: '1px 7px', fontFamily: 'var(--mono)' }}>
+                            €{formatARR(churnARR)}
+                          </span>
+                        )}
+                      </>
+                    )}
+                  </div>
+
+                  {/* Cards */}
+                  {churnColOpen && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {churnClients.length === 0
+                        ? <div style={{ padding: '28px 16px', borderRadius: 12, border: '1.5px dashed var(--n200)', fontSize: 12, color: 'var(--n400)', textAlign: 'center' }}>No accounts</div>
+                        : churnClients.map((c, i) => (
+                          <div key={c.id} style={{ animationDelay: `${i * 35}ms`, opacity: 0.85 }}>
+                            <ClientCard client={c} onClick={() => setSelectedClient(c)} selected={selectedClient?.id === c.id} grayscale />
+                          </div>
+                        ))
+                      }
+                    </div>
+                  )}
+                </div>
+              )
+            })()}
           </div>
         </div>
 

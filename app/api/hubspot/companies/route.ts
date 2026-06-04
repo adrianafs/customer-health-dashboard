@@ -184,11 +184,11 @@ function classify(
 ): { state: HealthState; rules: string[] } {
 
   // ── CHURN RISK ──────────────────────────────────────────────────────────────
-  // If "Working on Anti-churn?" = No, churn is confirmed/resolved — move to stable
-  if (churnFlag && workingOnAntiChurn)              return { state: 'stable',     rules: ['anti_churn_resolved'] }
-  if (stage === '1309169016' && workingOnAntiChurn) return { state: 'stable',     rules: ['anti_churn_resolved'] }
-  if (churnFlag)              return { state: 'churn_risk', rules: ['churn_risk_flag'] }
+  // Communicated churn always stays in churn_risk (shown in separate column)
   if (stage === '1309169016') return { state: 'churn_risk', rules: ['communicated_churn_stage'] }
+  // churn_risk flag: if anti-churn resolved (No) → stable
+  if (churnFlag && workingOnAntiChurn) return { state: 'stable', rules: ['anti_churn_resolved'] }
+  if (churnFlag)              return { state: 'churn_risk', rules: ['churn_risk_flag'] }
 
   // ── ACTION REQUIRED ─────────────────────────────────────────────────────────
   if (inOB && obDays > 90 && stage === '1309169022')
@@ -550,6 +550,10 @@ export async function GET(req: NextRequest) {
         hubspotDealUrl: `https://app.hubspot.com/contacts/${PORTAL_ID}/deal/${dealId}`,
         flowboxPlatformId: cp.flowbox_platform_id ?? null,
         ...(childCompanies.length > 0 ? { childCompanies } : {}),
+        communicatedChurn: stage === '1309169016',
+        winbackStatus: stage === '1309169016'
+          ? (deal.likelihood_of_winback === 'No' ? 'lost_case' : 'in_winback')
+          : null,
       } as Client]
     })
 
