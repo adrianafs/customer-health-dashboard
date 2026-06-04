@@ -438,6 +438,21 @@ export async function GET(req: NextRequest) {
         cp.total_contract_value || cp.annualrevenue || '0'
       ) || 0
 
+      // ── Confidence: how much real signal backs this score ───────────────────
+      // Derived from data completeness, not a fixed number. More populated
+      // signals (and an explicit churn flag) = higher confidence.
+      const signalChecks = [
+        lastDays !== 999,                         // we know last contact
+        !!subscriptionEndDate,                    // contract/renewal date known
+        !!serviceLevel,                           // CS service level set
+        !!cp.nps_status,                          // NPS captured
+        !!stage,                                  // deal stage present
+        arr > 0,                                  // ARR known
+        churnFlag || stage === '1309169016',      // explicit churn signal
+      ]
+      const presentSignals = signalChecks.filter(Boolean).length
+      const confidence = Math.round(45 + (presentSignals / signalChecks.length) * 50) // 45–95%
+
       const contractStart = deal['subscription_start_date__renewal_']?.split('T')[0]
         ?? cp.subscription_start_date
         ?? cp['subscription_start_date__first_contract_']
@@ -493,7 +508,7 @@ export async function GET(req: NextRequest) {
         brand,
         healthState: state,
         score,
-        confidence: 72,
+        confidence,
         whyThisScore: (() => {
           const contactStr = lastDays === 999 ? 'no recent contact on record' : `last contact ${lastDays}d ago`
           const ruleDescriptions: Record<string, string> = {
