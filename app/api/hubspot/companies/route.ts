@@ -165,8 +165,10 @@ export async function GET(req: NextRequest) {
       properties: [
         'name',
         'domain',
-        // NOTE: hubspot_owner_id on the COMPANY is the sales owner, NOT the CSM.
-        // We do NOT use it for CSM assignment — that comes from the deal owner below.
+        // deal_closed_owner = "Deal closed owner (HubSpot)" — referencedObjectType: OWNER
+        // This is the authoritative CSM field on the company record.
+        // Returns a numeric owner ID string e.g. "64994666"
+        'deal_closed_owner',
         // Usage health — exact field name confirmed from hubspot.json
         'usage_health__startdeliver_',
         // Service level — exact field name confirmed from hubspot.json
@@ -312,24 +314,30 @@ export async function GET(req: NextRequest) {
     }
 
     // ── 5. Build owner map ────────────────────────────────────────────────────
-    // FIX: Don't include deactivated owners — they pollute the CSM filter list.
-    // FIX: Ensure keys are always strings so lookup never fails.
+    // HubSpot owner IDs are integers in the owners API but come back as
+    // numeric strings ("64994666") from deal/company property fields.
+    // We store BOTH forms as keys so lookup never fails regardless of type.
     const ownerMap: Record<string, string> = {}
     let ownerOffset = 0
     let ownerDone = false
 
     while (!ownerDone) {
       await sleep(200)
-      // FIX: removed includeDeactivated=true — only active CSMs in filter bar
       const ownerRes = await hsGet(`/crm/v3/owners?limit=200&offset=${ownerOffset}`)
       if (!ownerRes.ok) break
       const ownerData = await ownerRes.json()
       const results = ownerData.results ?? []
 
       for (const o of results) {
-        // FIX: always String(id) as key to guarantee type consistency
-        const key = String(o.id)
-        ownerMap[key] = ownerDisplayName(o as Record<string, unknown>)
+        const name = ownerDisplayName(o as Record<string, unknown>)
+        // Store under both string form ("64994666") and any other representation
+        // HubSpot owner IDs can come back as number or string depending on context
+        const idStr = String(o.id)
+        ownerMap[idStr] = name
+        // Also store under userId if present and different (some APIs use userId)
+        if (o.userId && String(o.userId) !== idStr) {
+          ownerMap[String(o.userId)] = name
+        }
       }
 
       if (results.length < 200) ownerDone = true
@@ -367,17 +375,23 @@ export async function GET(req: NextRequest) {
       const dealId = bestDeal?.id ?? null
 
       // ── CSM resolution ────────────────────────────────────────────────────
-      // Source of truth: the deal's hubspot_owner_id (the person assigned to the
-      // contract deal — this is the CSM). We never fall back to company owner
-      // (hubspot_owner_id on the company) because that is the sales owner.
+      // Priority order:
+      //   1. deal_closed_owner on the COMPANY — "Deal closed owner (HubSpot)"
+      //      This is the field explicitly set by your team to track the CSM.
+      //      referencedObjectType: OWNER → returns a numeric owner ID string.
+      //   2. hubspot_owner_id on the DEAL — the deal assignee, usually also the CSM.
+      //   3. "Unassigned" — never fall back to company owner (that's sales).
       //
-      // deal_closed_owner is a custom enumeration field your portal uses for
-      // the HubSpot-side deal closer — we use it as a secondary signal only
-      // if the deal's hubspot_owner_id is empty.
-      const dealOwnerId = String(deal?.hubspot_owner_id ?? '').trim()
-      const ownerId = dealOwnerId  // never falls back to company owner
-      const csm: CSMName = dealOwnerId
-        ? (ownerMap[dealOwnerId] || dealOwnerId)
+      // The ownerMap keys are stored as strings ("64994666") — HubSpot returns
+      // owner ID fields as numeric strings, so the lookup always matches.
+      const csmOwnerId =
+        String(cp.deal_closed_owner ?? '').trim() ||   // company field: Deal closed owner (CSM)
+        String(deal?.hubspot_owner_id ?? '').trim() || // deal field: deal assignee
+        ''
+
+      const ownerId = csmOwnerId
+      const csm: CSMName = csmOwnerId
+        ? (ownerMap[csmOwnerId] ?? `Unknown (${csmOwnerId})`)
         : 'Unassigned'
 
       const stage = deal?.dealstage ?? ''
