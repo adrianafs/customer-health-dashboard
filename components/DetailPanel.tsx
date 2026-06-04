@@ -177,6 +177,21 @@ export default function DetailPanel({ client, onClose, onRescore }: Props) {
                 ))}
               </div>
             )}
+
+            {/* Contract summary row */}
+            <div style={{ marginTop: 12, display: 'flex', flexWrap: 'nowrap', gap: 6, overflowX: 'auto' }}>
+              {([
+                { l: 'Start', v: client.contract.start ?? '—', danger: false },
+                { l: 'End', v: client.contract.renewal ?? '—', danger: daysToRenewal !== null && daysToRenewal < 60 },
+                { l: 'Auto-renewal', v: d.autoRenewal ? 'Yes ✓' : 'No', danger: false, ok: d.autoRenewal },
+                { l: 'Notice', v: client.contract.noticePeriodMonths ? `${client.contract.noticePeriodMonths}mo` : '—', danger: false },
+              ] as { l: string; v: string; danger: boolean; ok?: boolean }[]).map(c => (
+                <div key={c.l} style={{ background: 'var(--n50)', border: '1px solid var(--n100)', borderRadius: 8, padding: '6px 10px', flexShrink: 0 }}>
+                  <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--n400)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 2, whiteSpace: 'nowrap' }}>{c.l}</div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: c.danger ? 'var(--d500)' : c.ok === false ? 'var(--w500)' : c.ok ? 'var(--s500)' : 'var(--n900)', whiteSpace: 'nowrap' }}>{c.v}</div>
+                </div>
+              ))}
+            </div>
           </div>
 
           {/* Score */}
@@ -379,23 +394,6 @@ export default function DetailPanel({ client, onClose, onRescore }: Props) {
           </div>
 
           {/* Contract */}
-          <div style={{ padding: '18px 20px', borderBottom: '1px solid var(--n100)' }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--n500)', letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: 12 }}>Contract</div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 8 }}>
-              {([
-                { l: 'Start', v: client.contract.start ?? '—', danger: false },
-                { l: 'End', v: client.contract.renewal ?? '—', danger: daysToRenewal !== null && daysToRenewal < 60 },
-                { l: 'Auto-renewal', v: d.autoRenewal ? 'Yes ✓' : 'No', danger: false, ok: d.autoRenewal },
-                { l: 'Notice period', v: client.contract.noticePeriodMonths ? `${client.contract.noticePeriodMonths}mo` : '—', danger: false },
-              ] as { l: string; v: string; danger: boolean; ok?: boolean }[]).map(c => (
-                <div key={c.l} style={{ background: 'var(--n50)', border: '1px solid var(--n100)', borderRadius: 12, padding: '10px 12px' }}>
-                  <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--n500)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 3 }}>{c.l}</div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: c.danger ? 'var(--d500)' : c.ok === false ? 'var(--w500)' : c.ok ? 'var(--s500)' : 'var(--n900)' }}>{c.v}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-
           {/* Actions */}
           <div style={{ padding: '18px 20px 28px' }}>
             <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--n500)', letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: 12 }}>Actions</div>

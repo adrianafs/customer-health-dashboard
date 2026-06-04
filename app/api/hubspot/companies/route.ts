@@ -180,9 +180,13 @@ function classify(
   churnFlag: boolean,
   inOB: boolean,
   obDays: number,
+  workingOnAntiChurn: boolean,
 ): { state: HealthState; rules: string[] } {
 
   // ── CHURN RISK ──────────────────────────────────────────────────────────────
+  // If "Working on Anti-churn?" = No, the situation is resolved — treat as stable
+  if (churnFlag && !workingOnAntiChurn)    return { state: 'stable',     rules: ['anti_churn_resolved'] }
+  if (stage === '1309169016' && !workingOnAntiChurn) return { state: 'stable', rules: ['anti_churn_resolved'] }
   if (churnFlag)              return { state: 'churn_risk', rules: ['churn_risk_flag'] }
   if (stage === '1309169016') return { state: 'churn_risk', rules: ['communicated_churn_stage'] }
 
@@ -267,6 +271,7 @@ export async function GET(req: NextRequest) {
         'dealname', 'dealstage', 'pipeline', 'amount', 'hs_acv', 'hs_arr',
         'auto_renewal', 'subscription_end_date', 'pause_end_date',
         'churn_date', 'communicated_churn_date', 'reason_for_churn', 'closedate',
+        'likelihood_of_winback',
         'hubspot_owner_id', 'notes_last_contacted', 'createdate',
         'subscription_start_date__renewal_', 'notice_period___in_months__',
         'flowbox_product', 'product', 'hs_product_type', 'product_type',
@@ -403,9 +408,10 @@ export async function GET(req: NextRequest) {
         ? Math.max(0, Math.floor((Date.now() - lastContactedMs) / 86400000))
         : 999
 
-      const serviceLevel = cp.client_success_service_level as 'High' | 'Medium' | 'Low' | null ?? null
-      const churnFlag    = cp.churn_risk === 'true'
-      const ob           = obCoMap[coId] ?? { active: false, days: 0, stage: null }
+      const serviceLevel        = cp.client_success_service_level as 'High' | 'Medium' | 'Low' | null ?? null
+      const churnFlag           = cp.churn_risk === 'true'
+      const workingOnAntiChurn  = deal.likelihood_of_winback === 'Yes'
+      const ob                  = obCoMap[coId] ?? { active: false, days: 0, stage: null }
 
       // ── Brand detection ───────────────────────────────────────────────────
       // Try all candidate field names for "Flowbox Product"
@@ -436,7 +442,7 @@ export async function GET(req: NextRequest) {
 
       const { state, rules } = classify(
         stage, autoRenewal, subscriptionEndDate, pauseEndDate, churnDate,
-        lastDays, serviceLevel, churnFlag, ob.active, ob.days,
+        lastDays, serviceLevel, churnFlag, ob.active, ob.days, workingOnAntiChurn,
       )
       const score = toScore(state, lastDays)
 
@@ -482,9 +488,26 @@ export async function GET(req: NextRequest) {
         healthState: state,
         score,
         confidence: 72,
-        whyThisScore: rules.length
-          ? `Triggered: ${rules.join(', ')}. Last contact: ${lastDays === 999 ? 'never' : `${lastDays}d ago`}.`
-          : `No negative signals. Last contact: ${lastDays === 999 ? 'unknown' : `${lastDays}d ago`}.`,
+        whyThisScore: (() => {
+          const contactStr = lastDays === 999 ? 'no recent contact on record' : `last contact ${lastDays}d ago`
+          const ruleDescriptions: Record<string, string> = {
+            churn_risk_flag:                  'flagged as churn risk in HubSpot',
+            communicated_churn_stage:         'client has communicated intent to churn',
+            anti_churn_resolved:              'anti-churn process marked as resolved — no further action needed',
+            onboarding_implementation_90d:    'stuck in Implementation for over 90 days',
+            auto_renewal_false_sub_end_100d:  `no auto-renewal and subscription ends in ${daysUntil(subscriptionEndDate)}d`,
+            up_for_renewal_no_contact_30d:    `deal is up for renewal with no contact in ${lastDays}d`,
+            renewal_in_progress_sub_end_45d:  `renewal in progress but subscription ends in ${daysUntil(subscriptionEndDate)}d`,
+            onboarding_active:                'currently in onboarding',
+            high_service_no_contact_45d:      `High service level client with no contact in ${lastDays}d`,
+            up_for_renewal_no_contact_45d:    `up for renewal with no contact in ${lastDays}d`,
+            renewal_in_progress:              'renewal negotiation in progress',
+            paused_end_30d:                   `contract is paused and resumes in ${daysUntil(pauseEndDate)}d`,
+          }
+          if (!rules.length) return `No negative signals detected. ${contactStr.charAt(0).toUpperCase() + contactStr.slice(1)}.`
+          const descriptions = rules.map(r => ruleDescriptions[r] ?? r).join('; ')
+          return `${descriptions.charAt(0).toUpperCase() + descriptions.slice(1)}. ${contactStr.charAt(0).toUpperCase() + contactStr.slice(1)}.`
+        })(),
         recommendedAction: actionMap[state],
         scoreDrivers: drivers.slice(0, 3),
         triggeredRules: rules,
