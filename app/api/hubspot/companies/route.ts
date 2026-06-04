@@ -293,7 +293,7 @@ export async function GET(req: NextRequest) {
     }
 
     // ── 3. Batch-read all deals ───────────────────────────────────────────────
-    const allDealIds = [...new Set(Object.values(coDealIds).flat())]
+    const allDealIds = Array.from(new Set(Object.values(coDealIds).flat()))
     const dealPropsMap: Record<string, Record<string, string>> = {}
 
     if (allDealIds.length > 0) {
