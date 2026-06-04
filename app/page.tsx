@@ -184,7 +184,8 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(false)
   const [apiError, setApiError] = useState<string | null>(null)
   const [dataSource, setDataSource] = useState<'mock' | 'hubspot'>('mock')
-  const [allClients, setAllClients] = useState<Client[]>(mockClients)
+  const [allClients, setAllClients] = useState<Client[]>([])
+  const [initializing, setInitializing] = useState(true)
   const [csmList, setCsmList] = useState<{ name: CSMName; ownerId: string }[]>([])
   const [activeCsmId, setActiveCsmId] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
@@ -205,12 +206,14 @@ export default function Dashboard() {
         setDataSource('hubspot')
         setLastSync(new Date().toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit' }))
         setLoading(false)
+        setInitializing(false)
         return
       } else { setApiError('0 customers returned') }
     } catch (e) { setApiError(String(e)) }
     setAllClients(mockClients)
     setDataSource('mock')
     setLoading(false)
+    setInitializing(false)
   }, [])
 
   useEffect(() => {
