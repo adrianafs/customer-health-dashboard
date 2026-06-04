@@ -221,9 +221,9 @@ export default function DetailPanel({ client, onClose, onRescore }: Props) {
                   { k: 'Last contact', v: `${d.lastContactDaysAgo}d ago`, cls: d.lastContactDaysAgo > 30 ? 'bd' : d.lastContactDaysAgo > 14 ? 'wn' : 'ok' },
                 ]},
                 { title: 'Company', src: 'HUBSPOT', rows: [
-                  { k: 'Platform activity (30d)', v: usage ? (usage.activeDays30 > 0 ? `${usage.activeDays30} active days` : 'No activity') : '…', cls: usage ? (usage.activeDays30 === 0 ? 'bd' : usage.activeDays30 < 5 ? 'wn' : 'ok') : undefined },
-                  { k: 'Flows distributed (30d)', v: usage ? usage.flows30d : '…', cls: usage ? (usage.flows30d === 0 ? 'bd' : usage.flows30d < 10 ? 'wn' : 'ok') : undefined },
-                  { k: 'Last platform activity', v: usage?.lastActiveDate ?? '—', cls: usage ? (usage.platformDays > 60 ? 'bd' : usage.platformDays > 30 ? 'wn' : 'ok') : undefined },
+                  { k: 'Platform activity (30d)', v: !client.flowboxPlatformId ? 'No platform ID' : usage ? (usage.activeDays30 > 0 ? `${usage.activeDays30} active days` : 'No activity') : '…', cls: usage ? (usage.activeDays30 === 0 ? 'bd' : usage.activeDays30 < 5 ? 'wn' : 'ok') : undefined },
+                  { k: 'Flows distributed (30d)', v: !client.flowboxPlatformId ? '—' : usage ? usage.flows30d : '…', cls: usage ? (usage.flows30d === 0 ? 'bd' : usage.flows30d < 10 ? 'wn' : 'ok') : undefined },
+                  { k: 'Last platform activity', v: !client.flowboxPlatformId ? '—' : usage?.lastActiveDate ?? '…', cls: usage ? (usage.platformDays > 60 ? 'bd' : usage.platformDays > 30 ? 'wn' : 'ok') : undefined },
                   { k: 'Service level', v: co.serviceLevel ?? '—' },
                   { k: 'NPS status', v: co.npsStatus ?? '—' },
                 ]},
