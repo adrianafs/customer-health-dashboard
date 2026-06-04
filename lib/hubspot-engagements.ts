@@ -7,6 +7,8 @@ function auth() {
   return { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' }
 }
 
+const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type EngagementType = 'EMAIL' | 'CALL' | 'MEETING' | 'NOTE'
@@ -14,7 +16,7 @@ export type EngagementType = 'EMAIL' | 'CALL' | 'MEETING' | 'NOTE'
 export interface HubSpotEngagement {
   id: string
   type: EngagementType
-  timestamp: string   // ISO date
+  timestamp: string
   subject?: string
   body?: string
   direction?: 'INBOUND' | 'OUTBOUND'
@@ -29,80 +31,118 @@ export interface EngagementResult {
   openActionItems: string[]
 }
 
-// ─── Fetch engagements for a company (last 90 days) ──────────────────────────
+// ─── Fetch activity IDs for a company via associations v4 ─────────────────────
+
+async function getActivityIds(companyId: string, type: string): Promise<string[]> {
+  const res = await fetch(`${HS}/crm/v4/associations/company/${type}/batch/read`, {
+    method: 'POST',
+    headers: auth(),
+    cache: 'no-store',
+    body: JSON.stringify({ inputs: [{ id: companyId }] }),
+  })
+  if (!res.ok) return []
+  const data = await res.json()
+  return (data.results?.[0]?.to ?? [])
+    .map((t: Record<string, unknown>) => String(t.toObjectId ?? t.id ?? ''))
+    .filter(Boolean)
+}
+
+// ─── Batch read activity objects ──────────────────────────────────────────────
+
+const PROPS: Record<string, string[]> = {
+  notes:    ['hs_note_body', 'hs_timestamp'],
+  emails:   ['hs_email_subject', 'hs_email_text', 'hs_email_direction', 'hs_timestamp'],
+  meetings: ['hs_meeting_title', 'hs_meeting_body', 'hs_timestamp'],
+  calls:    ['hs_call_title', 'hs_call_body', 'hs_timestamp'],
+}
+
+async function batchReadActivities(
+  type: string,
+  ids: string[],
+): Promise<Record<string, string>[]> {
+  if (ids.length === 0) return []
+  const results: Record<string, string>[] = []
+
+  for (let i = 0; i < ids.length; i += 100) {
+    const chunk = ids.slice(i, i + 100)
+    await sleep(200)
+    const res = await fetch(`${HS}/crm/v3/objects/${type}/batch/read`, {
+      method: 'POST',
+      headers: auth(),
+      cache: 'no-store',
+      body: JSON.stringify({
+        inputs: chunk.map(id => ({ id })),
+        properties: PROPS[type] ?? [],
+      }),
+    })
+    if (!res.ok) continue
+    const data = await res.json()
+    for (const obj of data.results ?? []) {
+      results.push({ id: String(obj.id), ...obj.properties })
+    }
+  }
+
+  return results
+}
+
+// ─── Fetch all engagements for a company (last 90 days) ───────────────────────
 
 export async function fetchEngagements(companyId: string): Promise<HubSpotEngagement[]> {
   if (!TOKEN) return []
 
   const cutoff = Date.now() - 90 * 24 * 60 * 60 * 1000
   const engagements: HubSpotEngagement[] = []
-  let offset: number | undefined
 
-  do {
-    const url = `${HS}/engagements/v1/engagements/associated/COMPANY/${companyId}/paged?limit=100${offset ? `&offset=${offset}` : ''}`
-    const res = await fetch(url, { headers: auth(), cache: 'no-store' })
-    if (!res.ok) {
-      console.error('Engagements API error:', res.status, await res.text())
-      break
-    }
-    const data = await res.json()
-    const results = data.results ?? []
+  const types = ['notes', 'emails', 'meetings', 'calls'] as const
 
-    for (const item of results) {
-      const eng = item.engagement ?? {}
-      const meta = item.metadata ?? {}
-      const ts = eng.timestamp ?? eng.createdAt ?? 0
+  for (const type of types) {
+    const ids = await getActivityIds(companyId, type)
+    if (ids.length === 0) continue
 
-      // Stop if older than 90 days
-      if (ts < cutoff) {
-        return engagements
-      }
+    const objects = await batchReadActivities(type, ids)
 
-      const type: EngagementType = eng.type
-      if (!['EMAIL', 'CALL', 'MEETING', 'NOTE'].includes(type)) continue
+    for (const obj of objects) {
+      const ts = obj.hs_timestamp ? new Date(obj.hs_timestamp).getTime() : 0
+      if (ts < cutoff) continue
 
-      // Extract meaningful text based on type
       let subject: string | undefined
       let body: string | undefined
       let direction: 'INBOUND' | 'OUTBOUND' | undefined
 
-      if (type === 'EMAIL') {
-        subject = meta.subject ?? undefined
-        // Use plain text if available, strip HTML otherwise
-        body = meta.text
-          ?? (meta.html ? stripHtml(meta.html) : undefined)
-          ?? undefined
-        direction = meta.direction ?? undefined
-      } else if (type === 'NOTE') {
-        body = meta.body ?? undefined
-      } else if (type === 'MEETING') {
-        subject = meta.title ?? undefined
-        body = meta.body ?? undefined
-      } else if (type === 'CALL') {
-        body = meta.body ?? undefined
-        direction = meta.disposition === 'INBOUND' ? 'INBOUND' : 'OUTBOUND'
+      if (type === 'notes') {
+        body = obj.hs_note_body ? stripHtml(obj.hs_note_body) : undefined
+      } else if (type === 'emails') {
+        subject = obj.hs_email_subject || undefined
+        body    = obj.hs_email_text    || undefined
+        direction = (obj.hs_email_direction === 'INCOMING_EMAIL' || obj.hs_email_direction === 'FORWARDED_EMAIL')
+          ? 'INBOUND' : 'OUTBOUND'
+      } else if (type === 'meetings') {
+        subject = obj.hs_meeting_title || undefined
+        body    = obj.hs_meeting_body  || undefined
+      } else if (type === 'calls') {
+        subject = obj.hs_call_title || undefined
+        body    = obj.hs_call_body  || undefined
       }
 
-      // Skip empty engagements
       if (!subject && !body) continue
 
       engagements.push({
-        id: String(eng.id),
-        type,
-        timestamp: new Date(ts).toISOString(),
+        id: obj.id,
+        type: ({ notes: 'NOTE', emails: 'EMAIL', meetings: 'MEETING', calls: 'CALL' } as const)[type],
+        timestamp: obj.hs_timestamp ?? new Date(ts).toISOString(),
         subject,
-        body: body ? truncate(body, 800) : undefined,
+        body: body ? truncate(body, 600) : undefined,
         direction,
       })
     }
+  }
 
-    offset = data.hasMore ? data.offset : undefined
-  } while (offset && engagements.length < 200)
-
+  // Sort newest first
+  engagements.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
   return engagements
 }
 
-// ─── Analyse with Claude ──────────────────────────────────────────────────────
+// ─── Claude sentiment analysis ────────────────────────────────────────────────
 
 export async function analyseEngagements(
   engagements: HubSpotEngagement[],
@@ -112,10 +152,10 @@ export async function analyseEngagements(
     return { sentiment: 'No recent activity found', sentimentType: 'neutral', openActionItems: [] }
   }
 
-  const lines = engagements.slice(0, 10).map(e => {
-    const date = e.timestamp.split('T')[0]
+  const lines = engagements.slice(0, 12).map(e => {
+    const date  = e.timestamp.split('T')[0]
     const label = `[${e.type}${e.direction ? ` ${e.direction}` : ''} — ${date}]`
-    const text = [e.subject, e.body].filter(Boolean).join(' | ').slice(0, 500)
+    const text  = [e.subject, e.body].filter(Boolean).join(' | ').slice(0, 500)
     return `${label} ${text}`
   }).join('\n\n')
 
@@ -124,22 +164,22 @@ export async function analyseEngagements(
   const response = await anthropic.messages.create({
     model: 'claude-sonnet-4-5',
     max_tokens: 300,
-    system: `You are a Customer Success analyst. You will receive recent CRM activity (emails, calls, meetings, notes) for a customer account. Content may be in any language — always respond in English.
+    system: `You are a Customer Success analyst. You receive recent CRM activity (emails, calls, meetings, notes) for a customer. Content may be in any language — always respond in English.
 
-Analyse the activity and return ONLY valid JSON with this structure:
+Return ONLY valid JSON:
 {
-  "sentiment": "<one concise sentence, max 20 words, capturing the most important customer health signal>",
+  "sentiment": "<one sentence, max 20 words, most important customer health signal>",
   "sentimentType": "positive" | "negative" | "neutral" | "churn",
-  "openActionItems": ["<action item 1>", "<action item 2>"]
+  "openActionItems": ["<action 1>", "<action 2>"]
 }
 
-sentimentType rules:
-- "churn": cancellation intent, competitor evaluation, strong dissatisfaction, ROI concerns
-- "negative": complaints, frustration, unresolved issues, no engagement
-- "positive": satisfaction, growth signals, active usage, renewal intent
+sentimentType:
+- "churn": cancellation intent, competitor evaluation, strong dissatisfaction, ROI doubts
+- "negative": complaints, frustration, unresolved issues, low engagement
+- "positive": satisfaction, growth, active usage, renewal intent
 - "neutral": routine check-ins, no strong signals
 
-openActionItems: CSM promises or follow-ups mentioned that show no evidence of resolution (max 3).`,
+openActionItems: CSM promises or follow-ups with no evidence of resolution. Max 3, empty array if none.`,
     messages: [{
       role: 'user',
       content: `Company: ${companyName}\n\nRecent activity (newest first):\n\n${lines}`,
@@ -147,11 +187,11 @@ openActionItems: CSM promises or follow-ups mentioned that show no evidence of r
   })
 
   try {
-    const text = response.content.find(b => b.type === 'text')?.text ?? ''
+    const text   = response.content.find(b => b.type === 'text')?.text ?? ''
     const parsed = JSON.parse(text.replace(/```json\n?|```/g, '').trim())
     return {
-      sentiment: parsed.sentiment ?? 'Unable to analyse',
-      sentimentType: parsed.sentimentType ?? 'neutral',
+      sentiment:       parsed.sentiment       ?? 'Unable to analyse',
+      sentimentType:   parsed.sentimentType   ?? 'neutral',
       openActionItems: Array.isArray(parsed.openActionItems) ? parsed.openActionItems.slice(0, 3) : [],
     }
   } catch {
@@ -159,7 +199,7 @@ openActionItems: CSM promises or follow-ups mentioned that show no evidence of r
   }
 }
 
-// ─── Main export ─────────────────────────────────────────────────────────────
+// ─── Main export ──────────────────────────────────────────────────────────────
 
 export async function getEngagementDataForCompany(
   companyId: string,
@@ -169,18 +209,8 @@ export async function getEngagementDataForCompany(
     const engagements = await fetchEngagements(companyId)
 
     if (engagements.length === 0) {
-      return {
-        engagements: [],
-        sentiment: null,
-        sentimentType: null,
-        lastActivityDate: null,
-        activityCount: 0,
-        openActionItems: [],
-      }
+      return { engagements: [], sentiment: null, sentimentType: null, lastActivityDate: null, activityCount: 0, openActionItems: [] }
     }
-
-    // Sort newest first
-    engagements.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
 
     const lastActivityDate = engagements[0]?.timestamp?.split('T')[0] ?? null
     const { sentiment, sentimentType, openActionItems } = await analyseEngagements(engagements, companyName)
@@ -195,14 +225,7 @@ export async function getEngagementDataForCompany(
     }
   } catch (err) {
     console.error('HubSpot engagements error:', err)
-    return {
-      engagements: [],
-      sentiment: null,
-      sentimentType: null,
-      lastActivityDate: null,
-      activityCount: 0,
-      openActionItems: [],
-    }
+    return { engagements: [], sentiment: null, sentimentType: null, lastActivityDate: null, activityCount: 0, openActionItems: [] }
   }
 }
 
@@ -213,6 +236,7 @@ function stripHtml(html: string): string {
     .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
     .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
     .replace(/<[^>]+>/g, ' ')
+    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&nbsp;/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
 }
