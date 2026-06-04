@@ -258,7 +258,7 @@ export async function getEngagementDataForCompany(
     const engagements = await fetchEngagements(companyId)
 
     if (engagements.length === 0) {
-      return { engagements: [], sentiment: null, sentimentType: null, lastActivityDate: null, activityCount: 0, openActionItems: [] }
+      return { engagements: [], sentiment: null, sentimentType: null, lastActivityDate: null, activityCount: 0, openActionItems: [], churnSignals: (['economic', 'resources', 'stakeholder', 'product', 'competitor', 'strategy', 'content'] as const).map(key => ({ key, detected: false, evidence: null })) }
     }
 
     const lastActivityDate = engagements[0]?.timestamp?.split('T')[0] ?? null
