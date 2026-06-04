@@ -3,65 +3,46 @@
 @tailwind utilities;
 
 :root {
-  --fb-violet-50: #F3EBFF;
-  --fb-violet-100: #E4D1FF;
-  --fb-violet-200: #CDA9FF;
-  --fb-violet-300: #AF79FE;
-  --fb-violet-400: #8A38F5;
-  --fb-violet-500: #6A00FF;
-  --fb-violet-600: #5500CC;
-  --fb-violet-700: #400099;
-  --fb-neutral-0: #FFFFFF;
-  --fb-neutral-50: #F5F5F7;
-  --fb-neutral-100: #ECECF0;
-  --fb-neutral-200: #DFDFE5;
-  --fb-neutral-300: #C5C5D1;
-  --fb-neutral-400: #A6A6B8;
-  --fb-neutral-500: #747490;
-  --fb-neutral-700: #4B4B5D;
-  --fb-neutral-800: #2D2D39;
-  --fb-neutral-900: #121217;
-  --fb-success-50: #E4F7EE;
-  --fb-success-500: #00CC9A;
-  --fb-success-600: #00A378;
-  --fb-warning-500: #F5783D;
-  --fb-danger-500: #F53D52;
-  --shadow-sm: 0 1px 3px rgba(18,18,23,.06);
-  --shadow-md: 0 4px 8px -2px rgba(18,18,23,.08), 0 2px 4px -2px rgba(18,18,23,.04);
-  --shadow-violet: 0 8px 24px -8px rgba(106,0,255,.4);
-  --r-md: 8px;
-  --r-lg: 12px;
-  --r-xl: 16px;
-  --r-pill: 999px;
-  --fg-1: #121217;
-  --fg-2: #747490;
-  --fg-3: #A6A6B8;
-  --border: #DFDFE5;
+  --v50:#F3EBFF;--v100:#E4D1FF;--v200:#CDA9FF;--v300:#AF79FE;--v400:#8A38F5;
+  --v500:#6A00FF;--v600:#5500CC;--v700:#400099;
+  --n0:#FFFFFF;--n50:#F5F5F7;--n100:#ECECF0;--n200:#DFDFE5;--n300:#C5C5D1;
+  --n400:#A6A6B8;--n500:#747490;--n700:#4B4B5D;--n800:#2D2D39;--n900:#121217;
+  --s50:#E4F7EE;--s500:#00CC9A;--s600:#00A378;
+  --w500:#EAB308;
+  --w50:#FEF9C3;
+  --a500:#F5783D;
+  --a50:#FFF4EE;
+  --d500:#F53D52;--d600:#D2203A;
+  --d50:#FFF0F1;
+  --ss:0 1px 3px rgba(18,18,23,.06),0 1px 2px rgba(18,18,23,.04);
+  --sm:0 4px 8px -2px rgba(18,18,23,.08),0 2px 4px -2px rgba(18,18,23,.04);
+  --sv:0 8px 32px -8px rgba(106,0,255,.45);
+  --svl:0 16px 48px -8px rgba(106,0,255,.35);
+  --font:'DM Sans',ui-sans-serif,system-ui,sans-serif;
+  --mono:'DM Mono',ui-monospace,monospace;
 }
 
-* { box-sizing: border-box; margin: 0; padding: 0; }
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{font-family:var(--font);background:var(--n50);color:var(--n900);font-size:13px;line-height:1.5}
 
-body {
-  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
-  background: #F5F5F7;
-  color: var(--fg-1);
-  font-size: 13px;
-  line-height: 1.5;
-  min-height: 100vh;
-}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--n200);border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:var(--n300)}
 
-/* Scrollbar */
-::-webkit-scrollbar { width: 4px; height: 4px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--fb-neutral-200); border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: var(--fb-neutral-300); }
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pIn{from{transform:translateX(100%)}to{transform:none}}
+@keyframes mIn{from{opacity:0;transform:translate(-50%,-47%)}to{opacity:1;transform:translate(-50%,-50%)}}
+@keyframes msgIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@keyframes cardIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes fi{from{opacity:0}to{opacity:1}}
 
-@keyframes pulse-dot { 0%,100% { opacity:1 } 50% { opacity:.3 } }
-@keyframes spin { to { transform: rotate(360deg) } }
-@keyframes slideIn { from { transform: translateX(100%) } to { transform: translateX(0) } }
-@keyframes fadeUp { from { opacity:0; transform:translateY(8px) } to { opacity:1; transform:translateY(0) } }
-
-.animate-pulse-dot { animation: pulse-dot 2s ease-in-out infinite; }
-.animate-spin-custom { animation: spin 1s linear infinite; }
-.animate-slide-in { animation: slideIn .22s cubic-bezier(.22,1,.36,1); }
-.animate-fade-up { animation: fadeUp .18s ease; }
+.animate-spin-cls{animation:spin 1s linear infinite;display:inline-block}
+.animate-pulse-dot{animation:pulse 2.5s ease-in-out infinite}
+.animate-card{animation:cardIn .3s ease both}
+.animate-panel{animation:pIn .24s cubic-bezier(.22,1,.36,1)}
+.animate-modal{animation:mIn .22s cubic-bezier(.22,1,.36,1)}
+.animate-fi{animation:fi .18s ease}
+.animate-msg{animation:msgIn .2s ease}
