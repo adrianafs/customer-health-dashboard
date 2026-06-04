@@ -22,11 +22,21 @@ const COMPANY_PROPS = [
   'churn_risk','nps_status','total_active_flows','notes_last_contacted',
 ].join(',')
 
+const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
+
 function auth() {
   return { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' }
 }
 
-async function post(path: string, body: object) {
+async function post(path: string, body: object, retries = 3): Promise<Response> {
+  for (let i = 0; i < retries; i++) {
+    const res = await fetch(`${HS}${path}`, { method: 'POST', headers: auth(), cache: 'no-store', body: JSON.stringify(body) })
+    if (res.status === 429) {
+      await sleep(1000 * (i + 1)) // 1s, 2s, 3s
+      continue
+    }
+    return res
+  }
   return fetch(`${HS}${path}`, { method: 'POST', headers: auth(), cache: 'no-store', body: JSON.stringify(body) })
 }
 
@@ -266,6 +276,7 @@ export async function GET(req: NextRequest) {
     }
 
     // 3. Batch read company properties
+    await sleep(300)
     const companyIds = Array.from(new Set(Object.values(dealToCompany)))
     const companyPropsMap: Record<string, Record<string, string>> = {}
     if (companyIds.length > 0) {
@@ -282,6 +293,7 @@ export async function GET(req: NextRequest) {
     }
 
     // 4. Check onboarding pipeline for each company
+    await sleep(300) // avoid rate limit between search calls
     const onboardingMap: Record<string, { active: boolean; daysInOnboarding: number; stage: string | null }> = {}
     if (companyIds.length > 0) {
       const obRes = await post('/crm/v3/objects/deals/search', {
