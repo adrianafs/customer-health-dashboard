@@ -75,12 +75,13 @@ async function generateMessage(csmName: string, accounts: any[]): Promise<string
   const totalARR   = accounts.reduce((s: number, a: any) => s + (a.arr ?? 0), 0)
   const atRiskARR  = urgent.reduce((s: number, a: any) => s + (a.arr ?? 0), 0)
 
-  const accountSummary = accounts.map((a: any) => {
+  // Only describe urgent accounts to Claude so it never names keep-an-eye / stable ones
+  const accountSummary = urgent.map((a: any) => {
     const dtr = a.contract?.renewal
       ? Math.ceil((new Date(a.contract.renewal).getTime() - Date.now()) / 86400000)
       : null
     return `- ${a.name} (${STATE_LABEL[a.healthState] ?? a.healthState}, €${(a.arr ?? 0).toLocaleString()}, last contact ${a.lastContactDaysAgo}d ago${dtr && dtr > 0 && dtr < 90 ? `, renewal in ${dtr}d` : ''}): ${a.whyThisScore}`
-  }).join('\n')
+  }).join('\n') || '(no urgent accounts today)'
 
   const prompt = `You are writing a personalised morning Slack message to ${firstName}, a Customer Success Manager at Flowbox.
 
@@ -95,17 +96,17 @@ Their portfolio:
 - Total ARR: €${totalARR.toLocaleString()}
 - At-risk ARR: €${atRiskARR.toLocaleString()}
 
-Account details:
+Urgent accounts (churn risk + action required) — these are the ONLY accounts you may name:
 ${accountSummary}
 
 Write a SHORT (max 3 sentences), warm, direct morning message for ${firstName}.
 
 Rules:
-- If all accounts are stable: congratulate them warmly and mention something specific about their portfolio
+- If there are no urgent accounts: congratulate them warmly that nothing needs urgent attention today
 - If there are urgent accounts: be direct about what needs attention today, mention 1-2 specific client names
 - If there is churn risk: be clear this needs immediate action, name the accounts
+- ONLY mention churn-risk or action-required accounts by name. Never mention keep-an-eye or stable accounts.
 - Always feel personal, never robotic or templated
-- Mention specific client names when relevant
 - Do NOT use bullet points — write in natural conversational sentences
 - Do NOT say "Good morning" — start differently each day
 - Keep it under 60 words
