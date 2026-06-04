@@ -246,6 +246,7 @@ export async function GET(req: NextRequest) {
         'notes_last_contacted', 'hs_last_activity_date',
         'total_contract_value', 'annualrevenue',
         'subscription_start_date', 'subscription_start_date__first_contract_',
+        'hs_parent_company_id',
       ],
       filterGroups: [{
         filters: [{ propertyName: 'lifecyclestage', operator: 'EQ', value: 'customer' }],
@@ -275,8 +276,10 @@ export async function GET(req: NextRequest) {
     }
 
     // ── 3. Associate contract deals → companies (chunked, 100/request) ───────
+    // Build both directions: deal→companies (all) and company→deals
     const contractDealIds = Object.keys(dealPropsMap)
     const coDealIds: Record<string, string[]> = {}
+    const dealCompaniesMap: Record<string, string[]> = {}
     for (let i = 0; i < contractDealIds.length; i += 100) {
       const chunk = contractDealIds.slice(i, i + 100)
       await sleep(300)
@@ -287,10 +290,13 @@ export async function GET(req: NextRequest) {
         const assocData = await assocRes.json()
         for (const r of assocData.results ?? []) {
           const dealId = String(r.from?.id ?? '')
-          const toObj  = r.to?.[0] as Record<string, unknown> | undefined
-          const coId   = String(toObj?.toObjectId ?? toObj?.id ?? '')
-          if (dealId && coId) {
-            coDealIds[coId] = [...(coDealIds[coId] ?? []), dealId]
+          const toList = (r.to ?? []) as Record<string, unknown>[]
+          for (const toObj of toList) {
+            const coId = String(toObj?.toObjectId ?? toObj?.id ?? '')
+            if (dealId && coId) {
+              coDealIds[coId] = [...(coDealIds[coId] ?? []), dealId]
+              dealCompaniesMap[dealId] = [...(dealCompaniesMap[dealId] ?? []), coId]
+            }
           }
         }
       }
@@ -333,27 +339,44 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // ── 5. Build Client objects ───────────────────────────────────────────────
-    const clients: Client[] = companies.flatMap(co => {
-      const cp   = (co.properties as Record<string, string>) ?? {}
-      const coId = String(co.id)
+    // ── 5. Build Client objects — one per deal, using parent company ─────────
+    // Index companies by ID for fast lookup
+    const companyById: Record<string, Record<string, string>> = {}
+    for (const co of companies) {
+      companyById[String(co.id)] = (co.properties as Record<string, string>) ?? {}
+    }
+
+    const clients: Client[] = Object.entries(dealPropsMap).flatMap(([dealId, deal]) => {
+      // Skip excluded stages
+      if (EXCLUDED_STAGES.has(deal.dealstage ?? '')) return []
+
+      // All companies associated to this deal
+      const assocCoIds = dealCompaniesMap[dealId] ?? []
+      if (assocCoIds.length === 0) return []
+
+      // Pick the parent company: prefer the one with no hs_parent_company_id,
+      // then the one whose id appears as hs_parent_company_id on siblings,
+      // then fall back to the first.
+      const childIdSet = new Set(
+        assocCoIds.map(id => companyById[id]?.hs_parent_company_id).filter(Boolean)
+      )
+      const parentCoId =
+        assocCoIds.find(id => childIdSet.has(id)) ??
+        assocCoIds.find(id => !companyById[id]?.hs_parent_company_id) ??
+        assocCoIds[0]
+
+      const cp = companyById[parentCoId]
+      if (!cp) return []
+
+      const coId = parentCoId
       const name = cp.name?.trim() || cp.domain?.trim() || null
       if (!name) return []
 
-      // Best contract deal: highest ARR, excluding churned/not-started stages
-      const dealIds = coDealIds[coId] ?? []
-      const contractDeals = dealIds
-        .map(id => ({ id, props: dealPropsMap[id] }))
-        .filter(d => d.props && !EXCLUDED_STAGES.has(d.props.dealstage ?? ''))
-        .sort((a, b) =>
-          parseFloat(b.props.hs_arr || b.props.hs_acv || b.props.amount || '0') -
-          parseFloat(a.props.hs_arr || a.props.hs_acv || a.props.amount || '0'))
-
-      if (contractDeals.length === 0) return []
-
-      const bestDeal = contractDeals[0]
-      const deal     = bestDeal.props
-      const dealId   = bestDeal.id
+      // Child company names (all siblings excluding the parent)
+      const childCompanies = assocCoIds
+        .filter(id => id !== parentCoId && companyById[id])
+        .map(id => companyById[id].name?.trim() || companyById[id].domain?.trim() || '')
+        .filter(Boolean)
 
       // CSM: deal owner (hubspot_owner_id is always a numeric ID)
       const csmOwnerId = String(deal.hubspot_owner_id ?? '').trim()
@@ -472,6 +495,7 @@ export async function GET(req: NextRequest) {
         renewalUrgent: daysUntil(subscriptionEndDate) > 0 && daysUntil(subscriptionEndDate) < 60,
         lastContactDaysAgo: lastDays,
         hubspotDealUrl: `https://app.hubspot.com/contacts/${PORTAL_ID}/deal/${dealId}`,
+        ...(childCompanies.length > 0 ? { childCompanies } : {}),
       } as Client]
     })
 

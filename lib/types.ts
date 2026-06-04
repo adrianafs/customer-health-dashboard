@@ -82,6 +82,7 @@ export type Client = {
   renewalUrgent: boolean
   lastContactDaysAgo: number
   hubspotDealUrl: string
+  childCompanies?: string[]
 }
 
 export function formatARR(n: number): string {

@@ -46,6 +46,22 @@ export default function ClientCard({ client, onClick, selected }: { client: Clie
         </div>
       )}
 
+      {/* Child brands */}
+      {client.childCompanies && client.childCompanies.length > 0 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 7 }}>
+          {client.childCompanies.slice(0, 3).map((brand, i) => (
+            <span key={i} style={{ fontSize: 9, fontWeight: 600, color: 'var(--n500)', background: 'var(--n100)', borderRadius: 999, padding: '2px 7px', letterSpacing: '.01em' }}>
+              {brand}
+            </span>
+          ))}
+          {client.childCompanies.length > 3 && (
+            <span style={{ fontSize: 9, fontWeight: 600, color: 'var(--n400)', background: 'var(--n100)', borderRadius: 999, padding: '2px 7px' }}>
+              +{client.childCompanies.length - 3}
+            </span>
+          )}
+        </div>
+      )}
+
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 10 }}>
         <div>

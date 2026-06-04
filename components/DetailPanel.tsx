@@ -119,6 +119,16 @@ export default function DetailPanel({ client, onClose, onRescore }: Props) {
               <span>{client.csm}</span><span style={{ color: 'var(--n300)' }}>·</span>
               <span style={{ fontFamily: 'var(--mono)' }}>€{formatARR(client.arr)}/yr</span>
             </div>
+            {client.childCompanies && client.childCompanies.length > 0 && (
+              <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 4, alignItems: 'center' }}>
+                <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--n400)', letterSpacing: '.05em', textTransform: 'uppercase', marginRight: 2 }}>Brands</span>
+                {client.childCompanies.map((brand, i) => (
+                  <span key={i} style={{ fontSize: 11, fontWeight: 500, color: 'var(--n600)', background: 'var(--n100)', borderRadius: 6, padding: '2px 8px' }}>
+                    {brand}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Score */}
