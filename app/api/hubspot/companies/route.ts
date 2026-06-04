@@ -51,6 +51,7 @@ const OWNER_NAMES: Record<string, string> = {
   '71337806': 'Tatiana Lozano',
   '76033686': 'Robin Sand',
   '64994666': 'Claudia Núñez',
+  '82166106': 'Claudia Núñez',
   '66551551': 'Isabel Fugmann',
   '62715576': 'Sophia Garner Rønne',
   '87061202': 'Lucia Fuentes',
@@ -238,8 +239,11 @@ export async function GET(req: NextRequest) {
         'churn_risk',
         'nps_status',
         'hs_csm_sentiment',
-        // Contact recency — only notes_last_contacted is a real human-contact date
+        // Contact recency:
+        // - notes_last_contacted: updated when CSM logs a call/email/meeting
+        // - hs_last_activity_date: updated by any engagement (emails on contacts too)
         'notes_last_contacted',
+        'hs_last_activity_date',
         // ARR / contract value — confirmed from hubspot.json
         'total_contract_value',
         'annualrevenue',
@@ -425,10 +429,14 @@ export async function GET(req: NextRequest) {
       // notes_last_contacted is the only reliable "human contacted the client" field.
       // Take the MOST RECENT value between deal and company — activity can be
       // logged on either record depending on how the CSM works in HubSpot.
-      const dealContactMs    = deal?.notes_last_contacted ? new Date(deal.notes_last_contacted).getTime() : NaN
-      const companyContactMs = cp.notes_last_contacted    ? new Date(cp.notes_last_contacted).getTime()  : NaN
+      const dealContactMs       = deal?.notes_last_contacted   ? new Date(deal.notes_last_contacted).getTime()  : NaN
+      const companyContactMs    = cp.notes_last_contacted      ? new Date(cp.notes_last_contacted).getTime()    : NaN
+      // hs_last_activity_date updates when any engagement (email/call/meeting) is
+      // logged on the company OR on any of its associated contacts — catches cases
+      // where the CSM logs activity on a contact record rather than the company directly
+      const companyActivityMs   = cp.hs_last_activity_date     ? new Date(cp.hs_last_activity_date).getTime()   : NaN
 
-      const candidates = [dealContactMs, companyContactMs].filter(t => !isNaN(t))
+      const candidates = [dealContactMs, companyContactMs, companyActivityMs].filter(t => !isNaN(t))
       const lastContactedMs = candidates.length > 0 ? Math.max(...candidates) : NaN
 
       const lastDays = !isNaN(lastContactedMs)
