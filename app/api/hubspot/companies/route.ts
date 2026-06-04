@@ -552,7 +552,9 @@ export async function GET(req: NextRequest) {
         ...(childCompanies.length > 0 ? { childCompanies } : {}),
         communicatedChurn: stage === '1309169016',
         winbackStatus: stage === '1309169016'
-          ? (deal.likelihood_of_winback === 'No' ? 'lost_case' : 'in_winback')
+          ? (deal.likelihood_of_winback === 'Yes' ? 'in_winback'
+            : deal.likelihood_of_winback === 'No' ? 'lost_case'
+            : null)
           : null,
       } as Client]
     })
