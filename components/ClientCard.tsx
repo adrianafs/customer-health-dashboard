@@ -29,9 +29,37 @@ const BRAND_STYLE: Record<string, { bg: string; color: string; border: string }>
   both:    { bg: '#FFF8E6', color: '#B45309', border: '#FDE68A' },
 }
 
+function renewalBadge(renewal: string | null) {
+  if (!renewal) return null
+  const days = Math.ceil((new Date(renewal).getTime() - Date.now()) / 86400000)
+  if (days <= 0 || days > 90) return null
+
+  const urgent = days <= 30
+  const bg     = urgent ? '#FFF0F1' : '#FFF8E6'
+  const color  = urgent ? '#F53D52' : '#B45309'
+  const border = urgent ? '#F53D52' : '#FDE68A'
+  const label  = days <= 30 ? `Renews in ${days}d` : `Renews in ${days}d`
+
+  return (
+    <div style={{
+      display: 'inline-flex', alignItems: 'center', gap: 4,
+      fontSize: 10, fontWeight: 700,
+      background: bg, color, border: `1px solid ${border}`,
+      borderRadius: 999, padding: '2px 8px',
+    }}>
+      <svg width="9" height="9" viewBox="0 0 9 9" fill="none">
+        <circle cx="4.5" cy="4.5" r="4" stroke={color} strokeWidth="1"/>
+        <path d="M4.5 2.5v2.25l1.25 1" stroke={color} strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+      {label}
+    </div>
+  )
+}
+
 export default function ClientCard({ client, onClick, selected }: { client: Client; onClick: () => void; selected?: boolean }) {
-  const col = STATE_COLORS[client.healthState]
+  const col   = STATE_COLORS[client.healthState]
   const brand = client.brand ?? null
+  const ren   = renewalBadge(client.contract.renewal)
 
   return (
     <div
@@ -52,8 +80,8 @@ export default function ClientCard({ client, onClick, selected }: { client: Clie
       onMouseEnter={e => { if (!selected) { (e.currentTarget as HTMLElement).style.boxShadow = 'var(--sm)'; (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)'; (e.currentTarget as HTMLElement).style.borderColor = 'var(--n300)' } }}
       onMouseLeave={e => { if (!selected) { (e.currentTarget as HTMLElement).style.boxShadow = 'var(--ss)'; (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.borderColor = 'var(--n200)' } }}
     >
-      {/* Top tags: Onboarding + Brand */}
-      {(client.signals.onboarding.active || brand) && (
+      {/* Tags row: Onboarding · Brand · Renewal */}
+      {(client.signals.onboarding.active || brand || ren) && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 7, flexWrap: 'wrap' }}>
           {client.signals.onboarding.active && (
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 600, color: 'var(--v600)', background: 'var(--v50)', border: '1px solid var(--v100)', borderRadius: 999, padding: '2px 8px' }}>
@@ -61,20 +89,11 @@ export default function ClientCard({ client, onClick, selected }: { client: Clie
             </div>
           )}
           {brand && BRAND_STYLE[brand] && (
-            <div style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              fontSize: 10,
-              fontWeight: 700,
-              background: BRAND_STYLE[brand].bg,
-              color: BRAND_STYLE[brand].color,
-              border: `1px solid ${BRAND_STYLE[brand].border}`,
-              borderRadius: 999,
-              padding: '2px 8px',
-            }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', fontSize: 10, fontWeight: 700, background: BRAND_STYLE[brand].bg, color: BRAND_STYLE[brand].color, border: `1px solid ${BRAND_STYLE[brand].border}`, borderRadius: 999, padding: '2px 8px' }}>
               {BRAND_LABEL[brand]}
             </div>
           )}
+          {ren}
         </div>
       )}
 
@@ -113,7 +132,7 @@ export default function ClientCard({ client, onClick, selected }: { client: Clie
           <span style={{ fontSize: 11, color: 'var(--n500)', fontWeight: 500 }}>{client.csm}</span>
         </div>
         <span style={{ fontSize: 10, color: 'var(--n400)', fontFamily: 'var(--mono)' }}>
-          {client.lastContactDaysAgo === 0 ? 'Today' : `${client.lastContactDaysAgo}d ago`}
+          {client.lastContactDaysAgo === 0 ? 'Today' : client.lastContactDaysAgo > 900 ? 'Never' : `${client.lastContactDaysAgo}d ago`}
         </span>
       </div>
     </div>
