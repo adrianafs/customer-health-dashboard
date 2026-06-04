@@ -188,7 +188,7 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // 5. Build owner map from hardcoded CSM list — no API call needed
+    // 5. Owner map — will be populated with hardcoded CSM names once IDs are confirmed
     const ownerMap: Record<string, string> = { ...CSM_BY_OWNER_ID }
 
     // 6. Map companies → Client objects
@@ -292,13 +292,14 @@ export async function GET(req: NextRequest) {
       return b.arr - a.arr
     })
 
-    // Build CSM filter list — only the hardcoded CS team, sorted by portfolio size
+    // Build CSM filter list from actual data — all owners with 2+ clients, sorted by portfolio size
     const ownerCount: Record<string, number> = {}
     for (const c of clients) if (c.csmOwnerId) ownerCount[c.csmOwnerId] = (ownerCount[c.csmOwnerId] ?? 0) + 1
 
-    const csmOwnerIds = CSM_LIST
-      .filter(csm => ownerCount[csm.ownerId] > 0) // only show CSMs who have customers
-      .sort((a, b) => (ownerCount[b.ownerId] ?? 0) - (ownerCount[a.ownerId] ?? 0))
+    const csmOwnerIds = Object.entries(ownerCount)
+      .filter(([, count]) => count >= 2)
+      .sort((a, b) => b[1] - a[1])
+      .map(([ownerId]) => ({ name: ownerMap[ownerId] ?? ownerId, ownerId }))
 
     return NextResponse.json({ clients, csmOwnerIds })
   } catch (err) {
