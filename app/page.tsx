@@ -243,6 +243,32 @@ export default function Dashboard() {
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', fontFamily: 'var(--font)' }}>
 
+      {/* Full-screen sync — first load only */}
+      {initializing && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 60, background: 'var(--n50)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 24 }}>
+          <svg width="44" height="44" viewBox="0 0 34 34" fill="none">
+            <path d="M17 3.103l12.6 7.277v14.554L17 32.21 4.4 24.934V10.38L17 3.103z" fill="#F3EBFF" stroke="#6A00FF" strokeWidth="1.6"/>
+            <path d="M17 10l5.5 3.175v6.35L17 22.5l-5.5-3.175V12.5L17 10z" fill="#6A00FF"/>
+            <path d="M17 13.5l2.5 1.443v2.886L17 19.5l-2.5-1.443V14.5L17 13.5z" fill="white" opacity=".75"/>
+          </svg>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div className="animate-spin-cls" style={{ width: 18, height: 18, borderRadius: '50%', border: '2px solid var(--v200)', borderTopColor: 'var(--v500)' }} />
+              <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--n900)', letterSpacing: '-.02em' }}>Syncing from HubSpot</span>
+            </div>
+            <span style={{ fontSize: 12, color: 'var(--n500)' }}>Fetching your customer portfolio…</span>
+          </div>
+        </div>
+      )}
+
+      {/* Refresh overlay — subsequent syncs only */}
+      {loading && !initializing && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 20, background: 'rgba(245,245,247,.65)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+          <div className="animate-spin-cls" style={{ width: 26, height: 26, borderRadius: '50%', border: '2px solid var(--v200)', borderTopColor: 'var(--v500)' }} />
+          <span style={{ fontSize: 13, color: 'var(--n700)', fontWeight: 600 }}>Refreshing…</span>
+        </div>
+      )}
+
       {/* Header */}
       <header style={{ height: 56, background: 'var(--n0)', borderBottom: '1px solid var(--n200)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px', flexShrink: 0, boxShadow: 'var(--ss)', zIndex: 50 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
