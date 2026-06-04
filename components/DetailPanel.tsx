@@ -1,66 +1,23 @@
 'use client'
-
 import { useState } from 'react'
 import { Client, HealthState, SignalDriver, formatARR } from '@/lib/types'
-import ScoreBar, { STATE_COLORS } from './ScoreBar'
+import ScoreBar, { STATE_COLORS, STATE_LABELS } from './ScoreBar'
 
-const STATE_LABELS: Record<HealthState, string> = {
-  stable: 'Stable',
-  keep_an_eye: 'Keep an Eye',
-  action_required: 'Action Required',
-  churn_risk: 'Churn Risk',
-}
+const DRIVER_ICON: Record<SignalDriver['type'], string> = { positive: '↑', neutral: '~', negative: '↓', critical: '!' }
+const DRIVER_COLOR: Record<SignalDriver['type'], string> = { positive: '#00CC9A', neutral: '#F5783D', negative: '#F53D52', critical: '#F53D52' }
 
-const STATE_BADGE_BG: Record<HealthState, string> = {
-  stable: '#EAF3DE',
-  keep_an_eye: '#FAEEDA',
-  action_required: '#FAECE7',
-  churn_risk: '#FCEBEB',
-}
-
-const STATE_BADGE_TEXT: Record<HealthState, string> = {
-  stable: '#3B6D11',
-  keep_an_eye: '#854F0B',
-  action_required: '#993C1D',
-  churn_risk: '#A32D2D',
-}
-
-function DriverIcon({ type }: { type: SignalDriver['type'] }) {
-  if (type === 'positive') return <span className="text-green-400 font-bold">↑</span>
-  if (type === 'negative') return <span className="text-orange-400 font-bold">↓</span>
-  if (type === 'critical') return <span className="text-red-400 font-bold">!</span>
-  return <span className="text-amber-400 font-bold">~</span>
-}
-
-function SigRow({ label, value }: { label: string; value: string | number }) {
+function SigRow({ label, value, color }: { label: string; value: string | number; color?: string }) {
   return (
-    <div className="flex justify-between items-center">
-      <span className="text-[11px] text-gray-500">{label}</span>
-      <span className="text-[11px] text-gray-300 font-mono">{value}</span>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', fontSize: 11, marginTop: 4 }}>
+      <span style={{ color: 'var(--fg-2)' }}>{label}</span>
+      <span style={{ color: color ?? 'var(--fg-1)', fontWeight: 600 }}>{value}</span>
     </div>
   )
 }
 
-function SignalCard({ title, source, children }: { title: string; source: string; children: React.ReactNode }) {
-  return (
-    <div className="rounded-lg p-3" style={{ backgroundColor: '#0d0d12', border: '1px solid rgba(255,255,255,0.07)' }}>
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-xs font-semibold text-white">{title}</span>
-        <span className="text-[9px] px-1.5 py-0.5 rounded uppercase tracking-wider font-medium"
-          style={{ backgroundColor: 'rgba(255,255,255,0.06)', color: '#6b7280' }}>{source}</span>
-      </div>
-      <div className="space-y-1">{children}</div>
-    </div>
-  )
-}
+interface Props { client: Client; onClose: () => void; onRescore: (c: Client) => void }
 
-interface DetailPanelProps {
-  client: Client
-  onClose: () => void
-  onRescore: (updated: Client) => void
-}
-
-export default function DetailPanel({ client, onClose, onRescore }: DetailPanelProps) {
+export default function DetailPanel({ client, onClose, onRescore }: Props) {
   const [drafting, setDrafting] = useState(false)
   const [rescoring, setRescoring] = useState(false)
   const [emailModal, setEmailModal] = useState<{ subject: string; body: string } | null>(null)
@@ -69,6 +26,13 @@ export default function DetailPanel({ client, onClose, onRescore }: DetailPanelP
   const daysToRenewal = client.contract.renewal
     ? Math.ceil((new Date(client.contract.renewal).getTime() - Date.now()) / 86400000)
     : null
+  const d = client.signals.deal
+  const co = client.signals.company
+  const ob = client.signals.onboarding
+
+  const stageColors: Record<string, string> = {
+    active: '#00CC9A', non_renewing: '#F53D52', in_trial: '#6A00FF', paused: '#F5783D', cancelled: '#F53D52',
+  }
 
   async function handleDraftEmail() {
     setDrafting(true)
@@ -83,7 +47,7 @@ export default function DetailPanel({ client, onClose, onRescore }: DetailPanelP
   async function handleRescore() {
     setRescoring(true)
     try {
-      const res = await fetch('/api/score', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ client, csmName: client.csm }) })
+      const res = await fetch('/api/score', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ client }) })
       const data = await res.json()
       const stateMap: Record<string, HealthState> = { stable: 'stable', keep_an_eye: 'keep_an_eye', action_required: 'action_required', churn_risk: 'churn_risk' }
       onRescore({
@@ -93,177 +57,159 @@ export default function DetailPanel({ client, onClose, onRescore }: DetailPanelP
         confidence: data.confidence ?? client.confidence,
         whyThisScore: data.reason ?? client.whyThisScore,
         recommendedAction: data.recommended_action ?? client.recommendedAction,
-        scoreDrivers: (data.top_signals ?? client.scoreDrivers).map((s: { label: string; direction: string }) => ({
+        scoreDrivers: (data.top_signals ?? []).map((s: { label: string; direction: string }) => ({
           label: s.label,
-          type: s.direction === 'declining' ? 'negative' : s.direction === 'improving' ? 'positive' : 'neutral',
-          direction: s.direction,
+          type: (s.direction === 'declining' ? 'negative' : s.direction === 'improving' ? 'positive' : 'neutral') as SignalDriver['type'],
+          direction: s.direction as SignalDriver['direction'],
         })),
         triggeredRules: data.triggered_rules ?? client.triggeredRules,
       })
-    } catch { alert('Failed to re-score. Check your API key.') }
+    } catch { alert('Failed to re-score.') }
     finally { setRescoring(false) }
   }
 
-  const d = client.signals.deal
-  const co = client.signals.company
-  const ob = client.signals.onboarding
-
   return (
     <>
-      <div className="fixed inset-0 z-30" style={{ backgroundColor: 'rgba(0,0,0,0.4)' }} onClick={onClose} />
-      <div className="fixed top-0 right-0 h-full z-40 flex flex-col overflow-hidden"
-        style={{ width: 380, backgroundColor: '#13131a', borderLeft: '1px solid rgba(255,255,255,0.07)' }}>
-        <div className="flex-1 overflow-y-auto">
-          <div className="p-4 space-y-4">
-            <button onClick={onClose} className="text-xs text-gray-500 hover:text-gray-300 transition-colors">← All accounts</button>
+      {/* Backdrop */}
+      <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(18,18,23,.3)', zIndex: 50, backdropFilter: 'blur(2px)' }} />
 
-            {/* Header */}
-            <div>
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <h2 className="text-lg font-bold text-white">{client.name}</h2>
-                  <div className="text-xs text-gray-500 mt-0.5">{client.csm} · €{formatARR(client.arr)}</div>
-                </div>
-                {daysToRenewal !== null && daysToRenewal < 60 && (
-                  <span className="shrink-0 text-[10px] px-2 py-1 rounded font-semibold uppercase"
-                    style={{ backgroundColor: 'rgba(226,75,74,0.15)', color: '#E24B4A' }}>
-                    Renews in {daysToRenewal}d
-                  </span>
-                )}
-              </div>
-            </div>
+      {/* Panel */}
+      <div className="animate-slide-in" style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: 400, background: '#fff', borderLeft: '1px solid var(--border)', zIndex: 51, display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '-12px 0 32px rgba(18,18,23,.08)' }}>
 
-            {/* Score */}
-            <div className="rounded-lg p-3" style={{ border: '1px solid rgba(255,255,255,0.07)' }}>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-3xl font-black" style={{ color }}>{client.score}</span>
-                <span className="text-[11px] px-2 py-1 rounded font-semibold uppercase tracking-wide"
-                  style={{ backgroundColor: STATE_BADGE_BG[client.healthState], color: STATE_BADGE_TEXT[client.healthState] }}>
-                  {STATE_LABELS[client.healthState]}
-                </span>
-              </div>
-              <ScoreBar score={client.score} healthState={client.healthState} height={4} />
-            </div>
+        {/* Panel header */}
+        <div style={{ height: 52, borderBottom: '1px solid var(--fb-neutral-100)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 18px', flexShrink: 0 }}>
+          <button onClick={onClose} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--fb-violet-500)', fontWeight: 500 }}>
+            ← All accounts
+          </button>
+          <a href={client.hubspotDealUrl} target="_blank" rel="noopener noreferrer"
+            style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--fg-2)', textDecoration: 'none', padding: '5px 10px', borderRadius: 'var(--r-md)', border: '1px solid var(--fb-neutral-100)', background: 'var(--fb-neutral-50)' }}>
+            ↗ HubSpot
+          </a>
+        </div>
 
-            {/* Why this score */}
-            <div className="rounded-lg p-3" style={{ backgroundColor: 'rgba(168,85,247,0.06)', border: '1px solid rgba(168,85,247,0.15)' }}>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-semibold text-purple-300">⚡ Why this score</span>
-                <span className="text-[9px] px-1.5 py-0.5 rounded uppercase font-medium"
-                  style={{ backgroundColor: 'rgba(168,85,247,0.15)', color: '#c084fc' }}>
-                  Confidence {client.confidence}%
-                </span>
-              </div>
-              <p className="text-[11px] text-gray-400 leading-relaxed mb-2">{client.whyThisScore}</p>
-              <div className="rounded p-2 mb-2" style={{ backgroundColor: 'rgba(168,85,247,0.08)' }}>
-                <div className="text-[9px] uppercase tracking-wider text-purple-400 font-semibold mb-1">Recommended Action</div>
-                <p className="text-[11px] text-purple-200">{client.recommendedAction}</p>
-              </div>
-              <div>
-                <div className="text-[9px] uppercase tracking-wider text-gray-600 font-semibold mb-1.5">Top Signals</div>
-                <div className="space-y-1">
-                  {client.scoreDrivers.map((dr, i) => (
-                    <div key={i} className="flex items-center gap-1.5">
-                      <DriverIcon type={dr.type} />
-                      <span className="text-[11px] text-gray-400">{dr.label}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              {client.triggeredRules.length > 0 && (
-                <div className="mt-2 flex flex-wrap gap-1">
-                  {client.triggeredRules.map(r => (
-                    <span key={r} className="text-[9px] px-1.5 py-0.5 rounded"
-                      style={{ backgroundColor: 'rgba(255,255,255,0.05)', color: '#6b7280' }}>
-                      {r}
-                    </span>
-                  ))}
+        {/* Scrollable body */}
+        <div style={{ flex: 1, overflowY: 'auto' }}>
+
+          {/* Client info */}
+          <div style={{ padding: '16px 18px', borderBottom: '1px solid var(--fb-neutral-100)' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 4 }}>
+              <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--fg-1)', lineHeight: 1.15 }}>{client.name}</div>
+              {daysToRenewal !== null && daysToRenewal < 60 && (
+                <div style={{ padding: '3px 10px', borderRadius: 'var(--r-pill)', fontSize: 11, fontWeight: 600, background: '#FFF0F1', border: '1px solid #F53D52', color: '#F53D52', flexShrink: 0 }}>
+                  Renewal in {daysToRenewal}d
                 </div>
               )}
             </div>
+            <div style={{ fontSize: 12, color: 'var(--fg-2)' }}>{client.csm} · €{formatARR(client.arr)}/yr</div>
+          </div>
 
-            {/* Signals grid */}
-            <div>
-              <div className="text-[10px] uppercase tracking-wider text-gray-600 font-semibold mb-2">Signals</div>
-              <div className="grid grid-cols-2 gap-2">
-                <SignalCard title="📋 Deal" source="HUBSPOT">
-                  <SigRow label="Stage" value={d.stageLabel} />
-                  <SigRow label="Auto renewal" value={d.autoRenewal ? 'Yes' : 'No'} />
-                  <SigRow label="Close date" value={d.closeDate ?? '—'} />
-                  {d.churnDate && <SigRow label="Churn date" value={d.churnDate} />}
-                  <SigRow label="Last contact" value={`${d.lastContactDaysAgo}d ago`} />
-                </SignalCard>
-
-                <SignalCard title="📊 Company" source="HUBSPOT">
-                  <SigRow label="Usage" value={co.usageHealth ?? '—'} />
-                  <SigRow label="Flows" value={co.totalActiveFlows} />
-                  <SigRow label="Service level" value={co.serviceLevel ?? '—'} />
-                  <SigRow label="NPS status" value={co.npsStatus ?? '—'} />
-                  {co.churnRisk && <div className="text-[10px] text-red-400 font-semibold">⚠ Churn risk flagged</div>}
-                </SignalCard>
-
-                <SignalCard title="🚀 Onboarding" source="HUBSPOT">
-                  <SigRow label="Active" value={ob.active ? 'Yes' : 'No'} />
-                  {ob.active && <SigRow label="Days in OB" value={ob.daysInOnboarding} />}
-                  {ob.stage && <SigRow label="Stage" value={ob.stage} />}
-                  <SigRow label="Open tasks" value={client.signals.openTasks} />
-                </SignalCard>
-
-                <SignalCard title="💬 Fathom" source="FATHOM">
-                  <p className="text-[11px] text-gray-400 leading-relaxed">
-                    {client.signals.fathom.summaries ?? 'No call data available'}
-                  </p>
-                  {client.signals.fathom.openActionItems > 0 && (
-                    <div className="text-[10px] text-amber-400 font-semibold mt-1">
-                      {client.signals.fathom.openActionItems} open action item(s)
-                    </div>
-                  )}
-                </SignalCard>
+          {/* Score */}
+          <div style={{ padding: '16px 18px', borderBottom: '1px solid var(--fb-neutral-100)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 10 }}>
+              <div style={{ fontSize: 48, fontWeight: 800, lineHeight: 1, color }}>{client.score}</div>
+              <div>
+                <div style={{ padding: '4px 12px', borderRadius: 'var(--r-pill)', fontSize: 11, fontWeight: 700, background: `${color}18`, color }}>{STATE_LABELS[client.healthState]}</div>
+                <div style={{ fontSize: 11, color: 'var(--fg-2)', marginTop: 3 }}>Confidence {client.confidence}%</div>
               </div>
             </div>
+            <ScoreBar score={client.score} healthState={client.healthState} height={5} />
+          </div>
 
-            {/* Contract */}
-            {client.contract.renewal && (
-              <div>
-                <div className="text-[10px] uppercase tracking-wider text-gray-600 font-semibold mb-2">Contract</div>
-                <div className="rounded-lg p-3 grid grid-cols-3 gap-2" style={{ border: '1px solid rgba(255,255,255,0.07)' }}>
-                  <div>
-                    <div className="text-[9px] uppercase tracking-wider text-gray-600 mb-0.5">Start</div>
-                    <div className="text-[11px] text-gray-300 font-mono">{client.contract.start ?? '—'}</div>
+          {/* Why this score */}
+          <div style={{ padding: '16px 18px', borderBottom: '1px solid var(--fb-neutral-100)' }}>
+            <div style={{ background: 'var(--fb-violet-50)', border: '1px solid var(--fb-violet-100)', borderRadius: 'var(--r-lg)', padding: 14 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--fb-violet-600)', letterSpacing: '.07em', textTransform: 'uppercase' }}>Why this score</span>
+                <span style={{ padding: '2px 8px', borderRadius: 'var(--r-pill)', fontSize: 10, fontWeight: 700, background: 'var(--fb-violet-100)', color: 'var(--fb-violet-600)' }}>CONFIDENCE {client.confidence}%</span>
+              </div>
+              <p style={{ fontSize: 12, color: 'var(--fb-neutral-800)', lineHeight: 1.65, marginBottom: 12 }}>{client.whyThisScore}</p>
+              <div style={{ background: 'rgba(106,0,255,.07)', borderRadius: 8, padding: '10px 12px', marginBottom: 10 }}>
+                <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.1em', color: 'var(--fb-violet-500)', textTransform: 'uppercase', marginBottom: 4 }}>Recommended action</div>
+                <div style={{ fontSize: 12, color: 'var(--fb-violet-700)', lineHeight: 1.55 }}>{client.recommendedAction}</div>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                {client.scoreDrivers.map((dr, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 6, fontSize: 12, color: 'var(--fb-neutral-800)' }}>
+                    <span style={{ color: DRIVER_COLOR[dr.type], fontWeight: 700, flexShrink: 0, width: 10 }}>{DRIVER_ICON[dr.type]}</span>
+                    {dr.label}
                   </div>
-                  <div>
-                    <div className="text-[9px] uppercase tracking-wider text-gray-600 mb-0.5">Renewal</div>
-                    <div className="text-[11px] font-mono" style={{ color: daysToRenewal !== null && daysToRenewal < 60 ? '#E24B4A' : '#d1d5db' }}>
-                      {client.contract.renewal}
-                    </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Signals */}
+          <div style={{ padding: '16px 18px', borderBottom: '1px solid var(--fb-neutral-100)' }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--fg-2)', letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: 10 }}>Signals</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              {[
+                { title: 'Deal', source: 'HUBSPOT', rows: [
+                  { k: 'Stage', v: d.stageLabel, c: d.stage === '1309169016' ? '#F53D52' : undefined },
+                  { k: 'Auto renewal', v: d.autoRenewal ? 'Yes ✓' : 'No', c: d.autoRenewal ? '#00CC9A' : '#F53D52' },
+                  { k: 'Renewal', v: d.closeDate ?? '—', c: daysToRenewal !== null && daysToRenewal < 60 ? '#F53D52' : undefined },
+                  { k: 'Last contact', v: `${d.lastContactDaysAgo}d ago`, c: d.lastContactDaysAgo > 30 ? '#F53D52' : undefined },
+                ]},
+                { title: 'Company', source: 'HUBSPOT', rows: [
+                  { k: 'Usage health', v: co.usageHealth ?? '—', c: co.usageHealth === 'Good' ? '#00CC9A' : co.usageHealth === 'None' ? '#F53D52' : co.usageHealth === 'Poor' ? '#F5783D' : undefined },
+                  { k: 'Active flows', v: co.totalActiveFlows, c: co.totalActiveFlows <= 1 ? '#F5783D' : '#00CC9A' },
+                  { k: 'Service level', v: co.serviceLevel ?? '—' },
+                  { k: 'NPS status', v: co.npsStatus ?? '—' },
+                ]},
+                { title: 'Onboarding', source: 'HUBSPOT', rows: [
+                  { k: 'Active', v: ob.active ? 'Yes' : 'No' },
+                  { k: 'Days in OB', v: ob.active ? ob.daysInOnboarding : '—', c: ob.daysInOnboarding > 90 ? '#F53D52' : undefined },
+                  { k: 'Stage', v: ob.stage ?? '—' },
+                  { k: 'Open tasks', v: client.signals.openTasks, c: client.signals.openTasks > 0 ? '#F5783D' : undefined },
+                ]},
+                { title: 'Call Sentiment', source: 'FATHOM', custom: (
+                  <p style={{ marginTop: 6, fontSize: 12, color: 'var(--fg-1)', lineHeight: 1.6 }}>
+                    {client.signals.fathom.summaries ?? <span style={{ color: 'var(--fg-3)' }}>No call data available</span>}
+                  </p>
+                )},
+              ].map(sc => (
+                <div key={sc.title} style={{ background: 'var(--fb-neutral-50)', border: '1px solid var(--fb-neutral-100)', borderRadius: 'var(--r-lg)', padding: 12 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--fg-1)' }}>{sc.title}</span>
+                    <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--fg-3)', letterSpacing: '.07em', textTransform: 'uppercase' }}>{sc.source}</span>
                   </div>
-                  <div>
-                    <div className="text-[9px] uppercase tracking-wider text-gray-600 mb-0.5">Age</div>
-                    <div className="text-[11px] text-gray-300 font-mono">{client.contract.ageMonths}mo</div>
-                  </div>
+                  {sc.custom ?? sc.rows?.map((r, i) => <SigRow key={i} label={r.k} value={r.v as string} color={r.c} />)}
                 </div>
-              </div>
-            )}
+              ))}
+            </div>
+          </div>
 
-            {/* Actions */}
-            <div className="space-y-2 pb-4">
-              <button onClick={handleDraftEmail} disabled={drafting}
-                className="w-full py-2.5 rounded-lg text-sm font-semibold text-white transition-all disabled:opacity-50"
-                style={{ backgroundColor: 'rgba(168,85,247,0.8)', border: '1px solid rgba(168,85,247,0.4)' }}>
-                {drafting ? 'Drafting…' : '✦ Draft retention email'}
+          {/* Contract */}
+          <div style={{ padding: '16px 18px', borderBottom: '1px solid var(--fb-neutral-100)' }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--fg-2)', letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: 10 }}>Contract</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8 }}>
+              {[
+                { l: 'Start', v: client.contract.start ?? '—' },
+                { l: 'Renewal', v: client.contract.renewal ?? '—', danger: daysToRenewal !== null && daysToRenewal < 60 },
+                { l: 'Age', v: `${client.contract.ageMonths}mo` },
+              ].map(c => (
+                <div key={c.l} style={{ background: 'var(--fb-neutral-50)', border: '1px solid var(--fb-neutral-100)', borderRadius: 'var(--r-lg)', padding: '10px 12px' }}>
+                  <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 3 }}>{c.l}</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: c.danger ? '#F53D52' : 'var(--fg-1)' }}>{c.v}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div style={{ padding: '16px 18px 24px' }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--fg-2)', letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: 10 }}>Actions</div>
+            <button onClick={handleDraftEmail} disabled={drafting} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '11px 16px', borderRadius: 'var(--r-md)', background: 'var(--fb-violet-500)', color: '#fff', border: 'none', fontFamily: 'inherit', fontSize: 13, fontWeight: 600, cursor: 'pointer', marginBottom: 8, boxShadow: 'var(--shadow-violet)', opacity: drafting ? .6 : 1 }}>
+              ✉ {drafting ? 'Drafting…' : 'Draft retention email'}
+            </button>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              <a href={client.hubspotDealUrl} target="_blank" rel="noopener noreferrer"
+                style={{ padding: '9px 12px', borderRadius: 'var(--r-md)', background: 'var(--fb-neutral-50)', color: 'var(--fg-1)', border: '1px solid var(--border)', fontSize: 12, fontWeight: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, textDecoration: 'none' }}>
+                ↗ Open in HubSpot
+              </a>
+              <button onClick={handleRescore} disabled={rescoring}
+                style={{ padding: '9px 12px', borderRadius: 'var(--r-md)', background: 'var(--fb-neutral-50)', color: 'var(--fg-1)', border: '1px solid var(--border)', fontFamily: 'inherit', fontSize: 12, fontWeight: 500, cursor: 'pointer', opacity: rescoring ? .6 : 1 }}>
+                {rescoring ? '⟳ Scoring…' : '↻ Re-score'}
               </button>
-              <div className="grid grid-cols-2 gap-2">
-                <a href={client.hubspotDealUrl} target="_blank" rel="noopener noreferrer"
-                  className="py-2 rounded-lg text-xs font-medium text-center transition-all hover:brightness-110"
-                  style={{ backgroundColor: '#1a1a24', border: '1px solid rgba(255,255,255,0.09)', color: '#9ca3af' }}>
-                  ↗ Open in HubSpot
-                </a>
-                <button onClick={handleRescore} disabled={rescoring}
-                  className="py-2 rounded-lg text-xs font-medium transition-all disabled:opacity-50 hover:brightness-110"
-                  style={{ backgroundColor: '#1a1a24', border: '1px solid rgba(255,255,255,0.09)', color: '#9ca3af' }}>
-                  {rescoring ? 'Scoring…' : '↻ Re-score account'}
-                </button>
-              </div>
             </div>
           </div>
         </div>
@@ -271,31 +217,38 @@ export default function DetailPanel({ client, onClose, onRescore }: DetailPanelP
 
       {/* Email modal */}
       {emailModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}>
-          <div className="rounded-xl max-w-lg w-full" style={{ backgroundColor: '#13131a', border: '1px solid rgba(255,255,255,0.1)' }}>
-            <div className="p-4 border-b" style={{ borderColor: 'rgba(255,255,255,0.07)' }}>
-              <div className="flex items-center justify-between">
-                <h3 className="font-semibold text-white text-sm">✦ AI-drafted retention email</h3>
-                <button onClick={() => setEmailModal(null)} className="text-gray-500 hover:text-white text-lg leading-none">×</button>
+        <>
+          <div onClick={() => setEmailModal(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(7,15,34,.6)', zIndex: 200, backdropFilter: 'blur(4px)' }} />
+          <div className="animate-fade-up" style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 'min(560px,95vw)', maxHeight: '88vh', background: '#fff', borderRadius: 'var(--r-xl)', zIndex: 201, display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 24px 48px -12px rgba(18,18,23,.22)' }}>
+            <div style={{ padding: '18px 22px', borderBottom: '1px solid var(--fb-neutral-100)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--fg-1)' }}>Draft retention email</div>
+                <div style={{ fontSize: 11, color: 'var(--fg-2)', marginTop: 1 }}>{client.name} · {client.csm}</div>
               </div>
-              <div className="mt-2 text-[11px] text-gray-500 font-mono">Subject: {emailModal.subject}</div>
+              <button onClick={() => setEmailModal(null)} style={{ width: 30, height: 30, borderRadius: 'var(--r-md)', border: '1px solid var(--fb-neutral-100)', background: 'none', cursor: 'pointer', fontSize: 16, color: 'var(--fg-2)' }}>×</button>
             </div>
-            <div className="p-4">
-              <p className="text-sm text-gray-300 whitespace-pre-line leading-relaxed">{emailModal.body}</p>
+            <div style={{ flex: 1, overflowY: 'auto', padding: '20px 22px' }}>
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--fb-neutral-700)', marginBottom: 5 }}>Subject</div>
+                <div style={{ padding: '8px 12px', borderRadius: 'var(--r-md)', border: '1px solid var(--border)', fontSize: 13, color: 'var(--fg-1)', background: 'var(--fb-neutral-50)' }}>{emailModal.subject}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--fb-neutral-700)', marginBottom: 5 }}>Body</div>
+                <div style={{ padding: '14px 16px', borderRadius: 'var(--r-md)', border: '1px solid var(--border)', fontSize: 13, color: 'var(--fg-1)', lineHeight: 1.7, whiteSpace: 'pre-line', background: '#fff' }}>{emailModal.body}</div>
+              </div>
             </div>
-            <div className="p-4 border-t flex gap-2" style={{ borderColor: 'rgba(255,255,255,0.07)' }}>
+            <div style={{ padding: '14px 22px', borderTop: '1px solid var(--fb-neutral-100)', display: 'flex', justifyContent: 'flex-end', gap: 8, background: 'var(--fb-neutral-50)' }}>
               <button onClick={() => navigator.clipboard.writeText(`Subject: ${emailModal.subject}\n\n${emailModal.body}`)}
-                className="flex-1 py-2 rounded-lg text-xs font-medium transition-all hover:brightness-110"
-                style={{ backgroundColor: 'rgba(168,85,247,0.15)', border: '1px solid rgba(168,85,247,0.3)', color: '#c084fc' }}>
-                Copy to clipboard
+                style={{ padding: '8px 16px', borderRadius: 'var(--r-md)', border: '1px solid var(--border)', background: '#fff', fontSize: 13, fontWeight: 500, cursor: 'pointer', color: 'var(--fg-1)' }}>
+                Copy
               </button>
-              <button onClick={() => setEmailModal(null)} className="py-2 px-4 rounded-lg text-xs font-medium"
-                style={{ backgroundColor: '#1a1a24', border: '1px solid rgba(255,255,255,0.07)', color: '#6b7280' }}>
-                Close
+              <button onClick={() => setEmailModal(null)}
+                style={{ padding: '8px 16px', borderRadius: 'var(--r-md)', background: 'var(--fb-violet-500)', color: '#fff', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', boxShadow: 'var(--shadow-violet)' }}>
+                Done
               </button>
             </div>
           </div>
-        </div>
+        </>
       )}
     </>
   )

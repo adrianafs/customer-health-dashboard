@@ -1,30 +1,27 @@
 'use client'
-
 import { useState, useMemo, useEffect, useCallback } from 'react'
-import { Client, HealthState, CSM_LIST, CSMName } from '@/lib/types'
+import { Client, HealthState, CSMName, formatARR } from '@/lib/types'
 import { mockClients } from '@/lib/mockData'
 import ClientCard from '@/components/ClientCard'
 import DetailPanel from '@/components/DetailPanel'
+import { STATE_COLORS, STATE_LABELS } from '@/components/ScoreBar'
 
-const COLUMNS: { state: HealthState; label: string; subtitle: string; color: string }[] = [
-  { state: 'stable',          label: 'Stable',          subtitle: 'No action needed',  color: '#639922' },
-  { state: 'keep_an_eye',     label: 'Keep an Eye',     subtitle: 'Monitor closely',   color: '#EF9F27' },
-  { state: 'action_required', label: 'Action Required', subtitle: 'Contact today',     color: '#D85A30' },
-  { state: 'churn_risk',      label: 'Churn Risk',      subtitle: 'Save urgently',     color: '#E24B4A' },
+const COLUMNS: { state: HealthState; subtitle: string }[] = [
+  { state: 'stable',          subtitle: 'No action needed' },
+  { state: 'keep_an_eye',     subtitle: 'Monitor closely' },
+  { state: 'action_required', subtitle: 'Contact today' },
+  { state: 'churn_risk',      subtitle: 'Save urgently' },
 ]
-
-const DEFAULT_CSM = { name: 'All', ownerId: 'all' }
 
 export default function Dashboard() {
   const [loading, setLoading] = useState(false)
   const [apiError, setApiError] = useState<string | null>(null)
   const [dataSource, setDataSource] = useState<'mock' | 'hubspot'>('mock')
-  const [selectedClient, setSelectedClient] = useState<Client | null>(null)
+  const [allClients, setAllClients] = useState<Client[]>(mockClients)
+  const [csmList, setCsmList] = useState<{ name: CSMName; ownerId: string }[]>([])
   const [activeCsmId, setActiveCsmId] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
-
-  const [allClients, setAllClients] = useState<Client[]>(mockClients)
-  const [csmList, setCsmList] = useState<{ name: CSMName; ownerId: string }[]>(CSM_LIST)
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null)
 
   const loadData = useCallback(async () => {
     setLoading(true)
@@ -33,7 +30,7 @@ export default function Dashboard() {
       const res = await fetch('/api/hubspot/companies')
       const data = await res.json()
       if (!res.ok) {
-        setApiError(`API ${res.status}: ${data?.error ?? 'unknown error'}`)
+        setApiError(`${res.status}: ${data?.error ?? 'unknown'}`)
       } else if (data?.clients?.length > 0) {
         setAllClients(data.clients)
         if (data.csmOwnerIds?.length > 0) setCsmList(data.csmOwnerIds)
@@ -43,9 +40,7 @@ export default function Dashboard() {
       } else {
         setApiError('HubSpot returned 0 customers')
       }
-    } catch (e) {
-      setApiError(`Network error: ${String(e)}`)
-    }
+    } catch (e) { setApiError(String(e)) }
     setAllClients(mockClients)
     setDataSource('mock')
     setLoading(false)
@@ -53,21 +48,10 @@ export default function Dashboard() {
 
   useEffect(() => {
     loadData()
-    const interval = setInterval(loadData, 5 * 60 * 1000)
-    return () => clearInterval(interval)
+    const t = setInterval(loadData, 5 * 60 * 1000)
+    return () => clearInterval(t)
   }, [loadData])
 
-  function handleCsmChange(ownerId: string) {
-    setActiveCsmId(ownerId)
-    setSelectedClient(null)
-  }
-
-  function handleRescore(updated: Client) {
-    setAllClients(prev => prev.map(c => c.id === updated.id ? updated : c))
-    setSelectedClient(updated)
-  }
-
-  // Filter by CSM (frontend — uses deal's csmOwnerId) and search query
   const clients = useMemo(() => {
     let base = allClients
     if (activeCsmId !== 'all') base = base.filter(c => c.csmOwnerId === activeCsmId)
@@ -75,136 +59,115 @@ export default function Dashboard() {
     return base
   }, [allClients, activeCsmId, searchQuery])
 
-  const filtered = clients
+  const counts = useMemo(() => {
+    const c: Record<HealthState, number> = { stable: 0, keep_an_eye: 0, action_required: 0, churn_risk: 0 }
+    clients.forEach(x => c[x.healthState]++)
+    return c
+  }, [clients])
 
-  const stateCounts = useMemo(() => {
-    const counts: Record<HealthState, number> = { stable: 0, keep_an_eye: 0, action_required: 0, churn_risk: 0 }
-    filtered.forEach(c => counts[c.healthState]++)
-    return counts
-  }, [filtered])
+  function handleRescore(updated: Client) {
+    setAllClients(prev => prev.map(c => c.id === updated.id ? updated : c))
+    setSelectedClient(updated)
+  }
 
-  const activeCsm = csmList.find(c => c.ownerId === activeCsmId) ?? DEFAULT_CSM
+  const activeCsmName = activeCsmId === 'all' ? 'All CSMs' : (csmList.find(c => c.ownerId === activeCsmId)?.name ?? activeCsmId)
 
   return (
-    <div className="min-h-screen flex flex-col relative" style={{ backgroundColor: '#0d0d12' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--fb-neutral-50)', fontFamily: 'Inter, ui-sans-serif, system-ui, sans-serif', position: 'relative' }}>
+
+      {/* Loading overlay */}
+      {loading && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 20, background: 'rgba(245,245,247,.8)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+          <div style={{ width: 32, height: 32, borderRadius: '50%', border: '2px solid var(--fb-violet-200)', borderTopColor: 'var(--fb-violet-500)' }} className="animate-spin-custom" />
+          <span style={{ fontSize: 13, color: 'var(--fg-2)', fontWeight: 500 }}>Loading from HubSpot…</span>
+        </div>
+      )}
+
       {/* Header */}
-      <header className="shrink-0 px-6 py-3 flex items-center justify-between"
-        style={{ borderBottom: '1px solid rgba(255,255,255,0.07)', backgroundColor: '#13131a' }}>
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center font-black text-sm"
-            style={{ background: 'linear-gradient(135deg, #7c3aed, #6d28d9)', boxShadow: '0 0 12px rgba(124,58,237,0.4)' }}>F</div>
+      <header style={{ height: 52, background: '#fff', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px', position: 'sticky', top: 0, zIndex: 40, boxShadow: 'var(--shadow-sm)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
+            <path d="M13 2.309l9.526 5.5v11L13 24.309 3.474 18.809v-11L13 2.309z" fill="#F3EBFF" stroke="#6A00FF" strokeWidth="1.5"/>
+            <path d="M13 8l4.5 2.598v5.196L13 18.196l-4.5-2.598V10.6L13 8z" fill="#6A00FF"/>
+          </svg>
           <div>
-            <h1 className="text-sm font-bold text-white leading-none">Customer Health Dashboard</h1>
-            <p className="text-[10px] text-gray-500 mt-0.5">Flowbox Customer Success · {activeCsmId === 'all' ? 'All CSMs' : (csmList.find(c => c.ownerId === activeCsmId)?.name ?? activeCsmId)}</p>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--fg-1)', lineHeight: 1 }}>Customer Health</div>
+            <div style={{ fontSize: 11, color: 'var(--fg-2)', marginTop: 1 }}>Flowbox · {activeCsmName}</div>
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5">
-            <div className="w-2 h-2 rounded-full animate-pulse-live"
-              style={{ backgroundColor: dataSource === 'hubspot' ? '#22c55e' : '#f59e0b' }} />
-            <span className="text-[10px] text-gray-500 uppercase tracking-wider">
-              {dataSource === 'hubspot' ? 'HubSpot Live' : 'Mock Data'}
-            </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {/* Source pill */}
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 'var(--r-pill)', fontSize: 10, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', background: dataSource === 'hubspot' ? 'var(--fb-success-50)' : 'var(--fb-violet-50)', border: `1px solid ${dataSource === 'hubspot' ? '#00CC9A' : 'var(--fb-violet-200)'}`, color: dataSource === 'hubspot' ? 'var(--fb-success-600)' : 'var(--fb-violet-600)' }}>
+            <div style={{ width: 5, height: 5, borderRadius: '50%', background: dataSource === 'hubspot' ? '#00CC9A' : 'var(--fb-violet-500)' }} className="animate-pulse-dot" />
+            {dataSource === 'hubspot' ? 'HubSpot Live' : 'Mock Data'}
           </div>
           <button onClick={() => loadData()} disabled={loading}
-            className="text-[11px] px-2.5 py-1.5 rounded-lg transition-all hover:brightness-110 disabled:opacity-50"
-            style={{ backgroundColor: '#1a1a24', border: '1px solid rgba(255,255,255,0.09)', color: '#6b7280' }}>
-            {loading ? '⟳ Loading…' : '↻ Refresh'}
+            style={{ borderRadius: 'var(--r-md)', fontFamily: 'inherit', fontWeight: 500, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, background: '#fff', color: 'var(--fg-1)', border: '1px solid var(--border)', padding: '7px 13px', boxShadow: 'var(--shadow-sm)', opacity: loading ? .5 : 1 }}>
+            ↻ Refresh
           </button>
         </div>
       </header>
 
       {/* Error banner */}
       {apiError && (
-        <div className="shrink-0 px-6 py-2 text-[11px] flex items-center gap-2"
-          style={{ backgroundColor: 'rgba(226,75,74,0.1)', borderBottom: '1px solid rgba(226,75,74,0.2)', color: '#fca5a5' }}>
+        <div style={{ background: '#FFF0F1', borderBottom: '1px solid #F53D52', padding: '8px 20px', fontSize: 11, color: '#F53D52', display: 'flex', gap: 8 }}>
           <span>⚠ HubSpot error (showing mock data):</span>
-          <span className="font-mono truncate">{apiError}</span>
+          <span style={{ fontFamily: 'monospace' }}>{apiError}</span>
         </div>
       )}
 
-      {/* Stats bar */}
-      <div className="shrink-0 flex" style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+      {/* Stats */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', margin: '14px 20px 0', background: '#fff', borderRadius: 'var(--r-xl)', border: '1px solid var(--border)', overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
         {COLUMNS.map(col => (
-          <div key={col.state} className="flex-1 px-6 py-2 flex items-center gap-3"
-            style={{ borderRight: '1px solid rgba(255,255,255,0.07)' }}>
-            <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: col.color }} />
-            <div>
-              <span className="font-bold text-base" style={{ color: col.color }}>{stateCounts[col.state]}</span>
-              <span className="text-gray-500 text-xs ml-1.5">{col.label}</span>
-            </div>
+          <div key={col.state} style={{ padding: '14px 18px', position: 'relative', borderRight: col.state !== 'churn_risk' ? '1px solid var(--fb-neutral-100)' : 'none' }}>
+            <div style={{ fontSize: 28, fontWeight: 800, lineHeight: 1, color: STATE_COLORS[col.state] }}>{counts[col.state]}</div>
+            <div style={{ fontSize: 11, color: 'var(--fg-2)', marginTop: 2, fontWeight: 500 }}>{STATE_LABELS[col.state]}</div>
+            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 3, background: STATE_COLORS[col.state] }} />
           </div>
         ))}
       </div>
 
-      {/* Filter bar */}
-      <div className="shrink-0 px-6 py-2.5 flex items-center gap-2 flex-wrap"
-        style={{ borderBottom: '1px solid rgba(255,255,255,0.07)', backgroundColor: '#13131a' }}>
-        <span className="text-xs text-gray-500">CSM:</span>
-        {/* All tab */}
-        <button onClick={() => handleCsmChange('all')}
-          className="text-xs px-2.5 py-1 rounded-lg transition-all"
-          style={{
-            backgroundColor: activeCsmId === 'all' ? 'rgba(124,58,237,0.2)' : 'rgba(255,255,255,0.04)',
-            border: activeCsmId === 'all' ? '1px solid rgba(124,58,237,0.4)' : '1px solid rgba(255,255,255,0.07)',
-            color: activeCsmId === 'all' ? '#c084fc' : '#6b7280',
-          }}>
-          All
-        </button>
-        {csmList.map(csm => (
-          <button key={csm.ownerId} onClick={() => handleCsmChange(csm.ownerId)}
-            className="text-xs px-2.5 py-1 rounded-lg transition-all"
-            style={{
-              backgroundColor: activeCsmId === csm.ownerId ? 'rgba(124,58,237,0.2)' : 'rgba(255,255,255,0.04)',
-              border: activeCsmId === csm.ownerId ? '1px solid rgba(124,58,237,0.4)' : '1px solid rgba(255,255,255,0.07)',
-              color: activeCsmId === csm.ownerId ? '#c084fc' : '#6b7280',
-            }}>
-            {csm.name}
-          </button>
-        ))}
-        <div className="ml-auto relative">
-          <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
-            placeholder="Search accounts…"
-            className="text-xs pl-7 pr-3 py-1.5 rounded-lg outline-none bg-transparent"
-            style={{ border: '1px solid rgba(255,255,255,0.09)', color: '#d1d5db', backgroundColor: '#0d0d12', width: 180 }} />
-          <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-600 text-xs">⌕</span>
+      {/* Filters */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 20px', flexWrap: 'wrap' }}>
+        {/* CSM segment control */}
+        <div style={{ display: 'flex', background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', padding: 3, gap: 2 }}>
+          {[{ name: 'All', ownerId: 'all' }, ...csmList].map(csm => (
+            <button key={csm.ownerId} onClick={() => { setActiveCsmId(csm.ownerId); setSelectedClient(null) }}
+              style={{ border: 'none', borderRadius: 6, padding: '5px 12px', fontFamily: 'inherit', fontSize: 12, fontWeight: 500, cursor: 'pointer', transition: 'all .12s', background: activeCsmId === csm.ownerId ? 'var(--fb-violet-500)' : 'none', color: activeCsmId === csm.ownerId ? '#fff' : 'var(--fg-2)' }}>
+              {csm.name === 'All' ? 'All CSMs' : csm.name}
+            </button>
+          ))}
         </div>
+
+        {/* Search */}
+        <div style={{ position: 'relative' }}>
+          <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--fg-3)', fontSize: 12 }}>⌕</span>
+          <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search accounts…"
+            style={{ border: '1px solid var(--border)', borderRadius: 'var(--r-md)', padding: '7px 12px 7px 28px', fontFamily: 'inherit', fontSize: 12, color: 'var(--fg-1)', background: '#fff', outline: 'none', width: 200 }} />
+        </div>
+
+        <span style={{ fontSize: 12, color: 'var(--fg-2)' }}>{clients.length} accounts</span>
       </div>
 
-      {/* Loading spinner overlay */}
-      {loading && (
-        <div className="absolute inset-0 z-20 flex items-center justify-center" style={{ backgroundColor: 'rgba(13,13,18,0.7)', top: 0 }}>
-          <div className="flex flex-col items-center gap-3">
-            <div className="w-8 h-8 rounded-full border-2 border-purple-500 border-t-transparent animate-spin" />
-            <span className="text-sm text-gray-400">Loading from HubSpot…</span>
-          </div>
-        </div>
-      )}
-
-      {/* Kanban board */}
-      <div className="flex-1 overflow-hidden flex">
+      {/* Board */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12, padding: '0 20px 32px', alignItems: 'start' }}>
         {COLUMNS.map(col => {
-          const colClients = filtered.filter(c => c.healthState === col.state)
+          const colClients = clients.filter(c => c.healthState === col.state)
           return (
-            <div key={col.state} className="flex-1 flex flex-col min-w-0"
-              style={{ borderRight: '1px solid rgba(255,255,255,0.05)' }}>
-              <div className="px-3 py-2.5 shrink-0"
-                style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', backgroundColor: '#13131a' }}>
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: col.color }} />
-                  <span className="text-xs font-semibold text-white">{col.label}</span>
-                  <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full ml-auto"
-                    style={{ backgroundColor: 'rgba(255,255,255,0.06)', color: '#6b7280' }}>
-                    {colClients.length}
-                  </span>
+            <div key={col.state}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 2px 10px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <div style={{ width: 7, height: 7, borderRadius: '50%', background: STATE_COLORS[col.state], flexShrink: 0 }} />
+                  <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--fg-1)' }}>{STATE_LABELS[col.state]}</span>
+                  <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--fg-2)', background: 'var(--fb-neutral-100)', borderRadius: 'var(--r-pill)', padding: '1px 7px' }}>{colClients.length}</span>
                 </div>
-                <div className="text-[10px] text-gray-600 mt-0.5 pl-4">{col.subtitle}</div>
+                <span style={{ fontSize: 10, color: 'var(--fb-neutral-400)', fontWeight: 500 }}>{col.subtitle}</span>
               </div>
-              <div className="flex-1 overflow-y-auto p-2 space-y-2">
-                {colClients.length === 0 && <div className="text-center py-8 text-xs text-gray-700">No accounts</div>}
-                {colClients.map(client => (
-                  <ClientCard key={client.id} client={client} onClick={() => setSelectedClient(client)} />
-                ))}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {colClients.length === 0
+                  ? <div style={{ padding: '24px 16px', borderRadius: 'var(--r-lg)', border: '1px dashed var(--fb-neutral-200)', background: 'rgba(255,255,255,.5)', fontSize: 12, color: 'var(--fb-neutral-400)', textAlign: 'center' }}>No accounts</div>
+                  : colClients.map(c => <ClientCard key={c.id} client={c} onClick={() => setSelectedClient(c)} selected={selectedClient?.id === c.id} />)
+                }
               </div>
             </div>
           )
