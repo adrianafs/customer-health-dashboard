@@ -3,7 +3,7 @@ export const runtime = 'nodejs'
 export const fetchCache = 'force-no-store'
 
 import { NextRequest, NextResponse } from 'next/server'
-import { Client, HealthState, CSMName, CSM_LIST, DEAL_STAGE_LABELS } from '@/lib/types'
+import { Client, HealthState, CSMName, CSM_LIST, CSM_BY_OWNER_ID, DEAL_STAGE_LABELS } from '@/lib/types'
 
 const HS = 'https://api.hubapi.com'
 const TOKEN = process.env.HUBSPOT_TOKEN
@@ -188,25 +188,8 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // 5. Fetch each unique owner ID individually (list endpoint is scope-limited)
-    const uniqueOwnerIds = Array.from(new Set(
-      companies.map(c => (c.properties as Record<string, string>)?.hubspot_owner_id).filter(Boolean)
-    ))
-    const ownerMap: Record<string, string> = {}
-    await sleep(300)
-    await Promise.all(
-      uniqueOwnerIds.map(async id => {
-        try {
-          const r = await hsGet(`/crm/v3/owners/${id}`)
-          if (!r.ok) return
-          const o = await r.json()
-          const first = (o.firstName ?? '').trim()
-          const last  = (o.lastName  ?? '').trim()
-          const email = (o.email ?? '').split('@')[0].split('.')[0]
-          ownerMap[String(id)] = first || last || (email.charAt(0).toUpperCase() + email.slice(1)) || String(id)
-        } catch { /* skip */ }
-      })
-    )
+    // 5. Build owner map from hardcoded CSM list — no API call needed
+    const ownerMap: Record<string, string> = { ...CSM_BY_OWNER_ID }
 
     // 6. Map companies → Client objects
     const clients: Client[] = companies.map(co => {
@@ -309,21 +292,13 @@ export async function GET(req: NextRequest) {
       return b.arr - a.arr
     })
 
-    // Build CSM filter list — only people with 2+ clients, sorted by count
-    // Use the csm name already resolved from ownername
+    // Build CSM filter list — only the hardcoded CS team, sorted by portfolio size
     const ownerCount: Record<string, number> = {}
-    const ownerNames: Record<string, string> = {}
-    for (const c of clients) {
-      if (c.csmOwnerId) {
-        ownerCount[c.csmOwnerId] = (ownerCount[c.csmOwnerId] ?? 0) + 1
-        ownerNames[c.csmOwnerId] = c.csm
-      }
-    }
+    for (const c of clients) if (c.csmOwnerId) ownerCount[c.csmOwnerId] = (ownerCount[c.csmOwnerId] ?? 0) + 1
 
-    const csmOwnerIds = Object.entries(ownerCount)
-      .filter(([, count]) => count >= 2)
-      .sort((a, b) => b[1] - a[1])
-      .map(([ownerId]) => ({ name: ownerNames[ownerId] ?? ownerId, ownerId }))
+    const csmOwnerIds = CSM_LIST
+      .filter(csm => ownerCount[csm.ownerId] > 0) // only show CSMs who have customers
+      .sort((a, b) => (ownerCount[b.ownerId] ?? 0) - (ownerCount[a.ownerId] ?? 0))
 
     return NextResponse.json({ clients, csmOwnerIds })
   } catch (err) {
