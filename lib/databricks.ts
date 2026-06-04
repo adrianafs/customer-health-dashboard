@@ -3,20 +3,26 @@ const TOKEN = process.env.DATABRICKS_TOKEN
 const WH_ID = process.env.DATABRICKS_WAREHOUSE_ID
 
 export interface UsageStats {
-  // Platform usage (ugc_company_level_usage)
+  // Platform usage — Flowbox UGC (ugc_company_level_usage)
   lastActiveDate:     string | null
   activeDays30:       number
   flows30d:           number
   platformDays:       number
-  // KPIs (ugc_company_level_kpis)
+  // KPIs — Flowbox UGC (ugc_company_level_kpis)
   conversions30d:     number
   orders30d:          number
   engagements30d:     number
   collectedPosts30d:  number
+  // Influencer Marketing — Dreaminfluence
+  imCompanyId:        number | null
+  activeDreamteams:   number
+  totalDreamteams:    number
+  activeInfluencers:  number
+  lastCampaignDate:   string | null
   // Chargebee billing (approximate — data being reworked)
-  cbStatus:           string | null  // active, non_renewing, paused, cancelled…
-  cbTermEnd:          string | null  // current_term_end date
-  cbCancelScheduled:  string | null  // non-null = cancellation scheduled
+  cbStatus:           string | null
+  cbTermEnd:          string | null
+  cbCancelScheduled:  string | null
 }
 
 async function runQuery(statement: string): Promise<unknown[][] | null> {
@@ -52,19 +58,34 @@ async function runQuery(statement: string): Promise<unknown[][] | null> {
 export async function getUsageStats(
   ugcCompanyId: string,
   hubspotCompanyId: string,
+  brand: 'flowbox' | 'dream' | 'both' | null = null,
 ): Promise<UsageStats | null> {
   if (!HOST || !TOKEN || !WH_ID) return null
 
+  const needsUGC = brand === 'flowbox' || brand === 'both' || brand === null
+  const needsIM  = brand === 'dream'   || brand === 'both'
+
   const id = parseInt(ugcCompanyId, 10)
-  if (isNaN(id)) return null
+  const ugcValid = !isNaN(id) && ugcCompanyId !== ''
 
-  // Run all three queries in parallel
-  const [usageRows, kpiRows, cbRows] = await Promise.all([
+  // Need at least one data source
+  if (!ugcValid && !needsIM) return null
 
-    // 1. Platform usage
-    runQuery(`
+  // Run queries in parallel — only run UGC queries if we have a valid ugc ID
+  const [usageRows, kpiRows, cbRows, imLookupRows] = await Promise.all([
+
+    // 1. Flowbox UGC usage
+    ugcValid && needsUGC ? runQuery(`
       SELECT
-        MAX(date_day) AS last_active,
+        -- Last day with REAL activity (not just a zero-filled row)
+        MAX(CASE WHEN (
+          distributed_post_to_a_flow > 0
+          OR approved_posts > 0
+          OR rights_request_sent_by_comment > 0
+          OR rights_request_sent_by_dm > 0
+          OR added_tag_to_a_post > 0
+          OR created_publish_post > 0
+        ) THEN date_day END) AS last_active,
         SUM(CASE WHEN (
           distributed_post_to_a_flow > 0
           OR approved_posts > 0
@@ -77,10 +98,10 @@ export async function getUsageStats(
       FROM core.main.ugc_company_level_usage
       WHERE ugc_company_id = ${id}
         AND date_day >= DATEADD(DAY, -30, CURRENT_DATE)
-    `),
+    `) : Promise.resolve(null),
 
-    // 2. KPIs — conversions, orders, engagements, content collection
-    runQuery(`
+    // 2. Flowbox UGC KPIs
+    ugcValid && needsUGC ? runQuery(`
       SELECT
         SUM(conversions)     AS conversions_30d,
         SUM(total_orders)    AS orders_30d,
@@ -89,14 +110,15 @@ export async function getUsageStats(
       FROM core.main.ugc_company_level_kpis
       WHERE ugc_company_id = ${id}
         AND date_day >= DATEADD(DAY, -30, CURRENT_DATE)
-    `),
+    `) : Promise.resolve(null),
 
-    // 3. Chargebee subscription status (via HubSpot company ID)
+    // 3. Chargebee billing + IM company ID lookup
     runQuery(`
       SELECT
         cs.status,
         cs.current_term_end,
-        cs.cancel_schedule_created_at
+        cs.cancel_schedule_created_at,
+        cc.im_company_id
       FROM core.main.chargebee_subscriptions cs
       JOIN core.main.chargebee_customers cc ON cs.chargebee_customer_id = cc.chargebee_customer_id
       WHERE cc.hubspot_company_id = '${hubspotCompanyId}'
@@ -104,9 +126,42 @@ export async function getUsageStats(
       ORDER BY cs.current_term_end DESC
       LIMIT 1
     `),
+
+    // 4. IM lookup — get im_company_id from Chargebee (needed for IM queries)
+    needsIM ? runQuery(`
+      SELECT im_company_id
+      FROM core.main.chargebee_customers
+      WHERE hubspot_company_id = '${hubspotCompanyId}'
+        AND im_company_id IS NOT NULL
+      LIMIT 1
+    `) : Promise.resolve(null),
   ])
 
-  // Parse usage
+  // Resolve im_company_id — from chargebee query or im lookup
+  const cb = cbRows?.[0]
+  const imIdFromCb = cb?.[3] ? parseInt(String(cb[3]), 10) : NaN
+  const imIdFromLookup = imLookupRows?.[0]?.[0] ? parseInt(String(imLookupRows[0][0]), 10) : NaN
+  const imCompanyId = !isNaN(imIdFromCb) ? imIdFromCb : !isNaN(imIdFromLookup) ? imIdFromLookup : null
+
+  // 5. IM dreamteam stats (needs im_company_id resolved first)
+  let imRows: unknown[][] | null = null
+  if (needsIM && imCompanyId) {
+    imRows = await runQuery(`
+      SELECT
+        COUNT(DISTINCT dt.dream_team)                                                           AS total_dreamteams,
+        SUM(CASE WHEN dt.archived = false AND dt.inactive = false THEN 1 ELSE 0 END)           AS active_dreamteams,
+        COUNT(DISTINCT CASE WHEN da.archived = false
+          AND da.start_date <= CURRENT_DATE
+          AND (da.end_date IS NULL OR da.end_date >= CURRENT_DATE)
+          THEN da.assignment END)                                                              AS active_influencers,
+        MAX(da.start_date)                                                                      AS last_campaign_date
+      FROM core.main.dreamteams dt
+      LEFT JOIN core.main.dreamteamassignments da ON da.dream_team = dt.dream_team
+      WHERE dt.im_company_id = ${imCompanyId}
+    `)
+  }
+
+  // Parse UGC usage
   const u = usageRows?.[0]
   const lastActive   = u?.[0] as string | null ?? null
   const activeDays30 = parseInt(String(u?.[1] ?? '0'), 10) || 0
@@ -115,18 +170,24 @@ export async function getUsageStats(
     ? Math.max(0, Math.floor((Date.now() - new Date(lastActive).getTime()) / 86400000))
     : 999
 
-  // Parse KPIs
+  // Parse UGC KPIs
   const k = kpiRows?.[0]
   const conversions30d    = parseInt(String(k?.[0] ?? '0'), 10) || 0
   const orders30d         = parseInt(String(k?.[1] ?? '0'), 10) || 0
   const engagements30d    = parseInt(String(k?.[2] ?? '0'), 10) || 0
   const collectedPosts30d = parseInt(String(k?.[3] ?? '0'), 10) || 0
 
-  // Parse Chargebee
-  const cb = cbRows?.[0]
+  // Parse Chargebee (im_company_id already resolved above)
   const cbStatus          = cb?.[0] as string | null ?? null
   const cbTermEnd         = cb?.[1] ? String(cb[1]).split('T')[0] : null
   const cbCancelScheduled = cb?.[2] ? String(cb[2]).split('T')[0] : null
+
+  // Parse IM stats
+  const im = imRows?.[0]
+  const totalDreamteams   = parseInt(String(im?.[0] ?? '0'), 10) || 0
+  const activeDreamteams  = parseInt(String(im?.[1] ?? '0'), 10) || 0
+  const activeInfluencers = parseInt(String(im?.[2] ?? '0'), 10) || 0
+  const lastCampaignDate  = im?.[3] ? String(im[3]).split('T')[0] : null
 
   return {
     lastActiveDate: lastActive,
@@ -137,6 +198,11 @@ export async function getUsageStats(
     orders30d,
     engagements30d,
     collectedPosts30d,
+    imCompanyId,
+    activeDreamteams,
+    totalDreamteams,
+    activeInfluencers,
+    lastCampaignDate,
     cbStatus,
     cbTermEnd,
     cbCancelScheduled,

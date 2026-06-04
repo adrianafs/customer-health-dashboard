@@ -15,6 +15,7 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const platformId = searchParams.get('platformId') ?? ''
   const companyId  = searchParams.get('companyId')  ?? ''
+  const brand      = (searchParams.get('brand') ?? null) as 'flowbox' | 'dream' | 'both' | null
   const isDebug    = searchParams.get('debug') === '1'
 
   if (!platformId) return NextResponse.json({ error: 'platformId is required' }, { status: 400 })
@@ -43,11 +44,11 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ status: res.status, raw })
   }
 
-  const cacheKey = `${platformId}:${companyId}`
+  const cacheKey = `${platformId}:${companyId}:${brand}`
   const cached = cache.get(cacheKey)
   if (cached && Date.now() < cached.expiresAt) return NextResponse.json({ ...cached.data, cached: true })
 
-  const data = await getUsageStats(platformId, companyId)
+  const data = await getUsageStats(platformId, companyId, brand)
   if (!data) return NextResponse.json({ error: 'No data available' }, { status: 404 })
 
   cache.set(cacheKey, { data, expiresAt: Date.now() + TTL })
