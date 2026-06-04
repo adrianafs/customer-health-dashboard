@@ -123,10 +123,9 @@ Rules:
 // ─── Send Slack DM ────────────────────────────────────────────────────────────
 async function sendDM(slackId: string, csmName: string, accounts: any[], personalMessage: string) {
   const urgent     = accounts.filter(a => ['churn_risk', 'action_required'].includes(a.healthState))
-  const nonStable  = accounts.filter(a => a.healthState !== 'stable')
 
-  // Only show non-stable accounts in the list (no need to list all stable ones)
-  const accountsToShow = nonStable.length > 0 ? nonStable : accounts.slice(0, 5)
+  // Only list churn-risk and action-required accounts (skip keep-an-eye and stable)
+  const accountsToShow = urgent
 
   const accountLines = accountsToShow.map((a: any) => {
     const emoji = STATE_EMOJI[a.healthState] ?? '⚪'
@@ -165,9 +164,7 @@ async function sendDM(slackId: string, csmName: string, accounts: any[], persona
       type: 'section',
       text: {
         type: 'mrkdwn',
-        text: nonStable.length > 0
-          ? `*Accounts needing attention (${nonStable.length}/${accounts.length}):*\n\n${accountLines}`
-          : `*Your top accounts today:*\n\n${accountLines}`,
+        text: `*Accounts needing attention (${urgent.length}/${accounts.length}):*\n\n${accountLines}`,
       },
     })
   }
