@@ -26,6 +26,23 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(result)
   }
 
+  // raw=1 shows exactly what runQuery returns before parsing
+  if (searchParams.get('raw') === '1') {
+    const HOST = process.env.DATABRICKS_HOST
+    const TOKEN = process.env.DATABRICKS_TOKEN
+    const WH_ID = process.env.DATABRICKS_WAREHOUSE_ID
+    const id = parseInt(platformId, 10)
+    const sql = `SELECT MAX(date_day) AS last_active, SUM(CASE WHEN distributed_post_to_a_flow > 0 THEN 1 ELSE 0 END) AS active_days_30, SUM(distributed_post_to_a_flow) AS flows_30d FROM core.main.ugc_company_level_usage WHERE ugc_company_id = ${id} AND date_day >= DATEADD(DAY, -30, CURRENT_DATE)`
+    const res = await fetch(`${HOST}/api/2.0/sql/statements`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ warehouse_id: WH_ID, statement: sql, wait_timeout: '30s', on_wait_timeout: 'CANCEL' }),
+      cache: 'no-store',
+    })
+    const raw = await res.json()
+    return NextResponse.json({ status: res.status, raw })
+  }
+
   const cacheKey = `${platformId}:${companyId}`
   const cached = cache.get(cacheKey)
   if (cached && Date.now() < cached.expiresAt) return NextResponse.json({ ...cached.data, cached: true })
