@@ -186,17 +186,23 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // 5. Build owner map directly from HubSpot — ownerId → first name
+    // 5. Build owner map — paginate all HubSpot owners → ownerId → display name
     const ownerMap: Record<string, string> = {}
     await sleep(300)
-    const ownersRes = await hsGet('/crm/v3/owners?limit=100')
-    if (ownersRes.ok) {
-      const ownersData = await ownersRes.json()
-      for (const o of ownersData.results ?? []) {
-        const name = `${o.firstName ?? ''}`.trim() || o.email?.split('@')[0] || 'Unknown'
+    let ownerAfter = ''
+    do {
+      const ownerRes = await hsGet(`/crm/v3/owners?limit=100${ownerAfter ? `&after=${ownerAfter}` : ''}`)
+      if (!ownerRes.ok) break
+      const ownerData = await ownerRes.json()
+      for (const o of ownerData.results ?? []) {
+        const first = (o.firstName ?? '').trim()
+        const last = (o.lastName ?? '').trim()
+        const email = (o.email ?? '').split('@')[0]
+        const name = first || last || email || String(o.id)
         ownerMap[String(o.id)] = name
       }
-    }
+      ownerAfter = ownerData.paging?.next?.after ?? ''
+    } while (ownerAfter)
 
     // 6. Map companies → Client objects
     const clients: Client[] = companies.map(co => {
