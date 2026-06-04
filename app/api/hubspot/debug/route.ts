@@ -22,11 +22,11 @@ export async function GET() {
     }),
   })
   const dealsData = dealsRes.ok ? await dealsRes.json() : {}
-  const dealOwnerIds = new Set<string>(
+  const dealOwnerIds = Array.from(new Set<string>(
     (dealsData.results ?? [])
       .map((d: Record<string, unknown>) => (d.properties as Record<string, string>)?.hubspot_owner_id)
       .filter(Boolean)
-  )
+  ))
 
   // 2. Fetch all owners from the list endpoint (works with Bearer token)
   const allOwners: Record<string, { firstName: string; lastName: string; email: string }> = {}
@@ -60,7 +60,7 @@ export async function GET() {
   return NextResponse.json({
     source: `Deal owners from Contracts pipeline (${CONTRACTS_PIPELINE})`,
     totalOwnersInHubSpot: Object.keys(allOwners).length,
-    dealOwnerIds: dealOwnerIds.size,
+    dealOwnerIds: dealOwnerIds.length,
     known,
     unknown,
     allOwnersSample: Object.entries(allOwners).slice(0, 5).map(([id, o]) => ({ id, ...o })),
