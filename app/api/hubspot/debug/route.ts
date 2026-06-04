@@ -10,29 +10,29 @@ function auth() { return { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'ap
 export async function GET() {
   if (!TOKEN) return NextResponse.json({ error: 'HUBSPOT_TOKEN not set' })
 
-  // Stages of the contracts pipeline
-  const stagesRes = await fetch(`${HS}/crm/v3/pipelines/deals/58017946/stages`, { headers: auth(), cache: 'no-store' })
-  const stages = stagesRes.ok ? await stagesRes.json() : { error: await stagesRes.text() }
-
-  // All deals in contracts pipeline — NO owner filter — show real owner IDs
-  const searchRes = await fetch(`${HS}/crm/v3/objects/deals/search`, {
-    method: 'POST', headers: auth(), cache: 'no-store',
-    body: JSON.stringify({
-      limit: 10,
-      properties: ['dealname', 'dealstage', 'hubspot_owner_id', 'amount'],
-      filterGroups: [{ filters: [{ propertyName: 'pipeline', operator: 'EQ', value: '58017946' }] }],
-    }),
-  })
-  const deals = searchRes.ok ? await searchRes.json() : { error: await searchRes.text() }
-
-  // All HubSpot owners so we can match IDs to names
-  const ownersRes = await fetch(`${HS}/crm/v3/owners?limit=100`, { headers: auth(), cache: 'no-store' })
-  const owners = ownersRes.ok ? await ownersRes.json() : { error: await ownersRes.text() }
+  // Fetch first page of owners — show raw response to diagnose pagination + fields
+  const res = await fetch(`${HS}/crm/v3/owners?limit=100`, { headers: auth(), cache: 'no-store' })
+  const data = res.ok ? await res.json() : { error: await res.text() }
 
   return NextResponse.json({
-    totalDealsInPipeline: deals?.total ?? 0,
-    stages: stages?.results?.map((s: Record<string, unknown>) => ({ id: s.id, label: s.label })) ?? stages,
-    sampleDeals: deals?.results?.map((d: Record<string, unknown>) => ({ id: d.id, props: d.properties })) ?? deals,
-    owners: owners?.results?.map((o: Record<string, unknown>) => ({ id: o.id, name: `${o.firstName} ${o.lastName}`, email: o.email })) ?? owners,
+    total: data.results?.length,
+    paging: data.paging,
+    // Show ALL fields for first 5 owners so we can see what's available
+    sample: data.results?.slice(0, 5).map((o: Record<string, unknown>) => ({
+      id: o.id,
+      email: o.email,
+      firstName: o.firstName,
+      lastName: o.lastName,
+      userId: o.userId,
+      archived: o.archived,
+      allFields: Object.keys(o),
+    })),
+    // Show just id+name for all owners
+    all: data.results?.map((o: Record<string, unknown>) => ({
+      id: o.id,
+      firstName: o.firstName,
+      lastName: o.lastName,
+      email: o.email,
+    })),
   })
 }
