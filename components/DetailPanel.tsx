@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { Client, HealthState, SignalDriver, formatARR } from '@/lib/types'
 import type { EngagementResult } from '@/lib/hubspot-engagements'
+import type { HubSpotMeeting as MeetingData } from '@/app/api/hubspot/meetings/route'
 import ScoreBar, { STATE_COLORS, STATE_LABELS } from './ScoreBar'
 
 const DI: Record<SignalDriver['type'], string> = { positive: '↑', neutral: '~', negative: '↓', critical: '!' }
@@ -17,6 +18,24 @@ function SRow({ k, v, cls }: { k: string; v: string | number; cls?: string }) {
   )
 }
 
+const OUTCOME_LABELS: Record<string, { label: string; color: string }> = {
+  COMPLETED:   { label: 'Completed',   color: 'var(--s500)' },
+  SCHEDULED:   { label: 'Scheduled',   color: 'var(--v500)' },
+  NO_SHOW:     { label: 'No show',     color: 'var(--d500)' },
+  CANCELLED:   { label: 'Cancelled',   color: 'var(--w500)' },
+  RESCHEDULED: { label: 'Rescheduled', color: 'var(--w500)' },
+}
+
+function MeetingOutcomeBadge({ outcome }: { outcome: string | null }) {
+  if (!outcome) return null
+  const { label, color } = OUTCOME_LABELS[outcome] ?? { label: outcome, color: 'var(--n500)' }
+  return (
+    <span style={{ display: 'inline-block', marginTop: 3, fontSize: 10, fontWeight: 700, color, background: `${color}14`, borderRadius: 999, padding: '1px 6px' }}>
+      {label}
+    </span>
+  )
+}
+
 interface Props { client: Client; onClose: () => void; onRescore: (c: Client) => void }
 
 export default function DetailPanel({ client, onClose, onRescore }: Props) {
@@ -29,6 +48,8 @@ export default function DetailPanel({ client, onClose, onRescore }: Props) {
   const [sentTo, setSentTo] = useState<string | null>(null)
   const [engagements, setEngagements] = useState<EngagementResult | null>(null)
   const [engagementsLoading, setEngagementsLoading] = useState(false)
+  const [meetings, setMeetings] = useState<{ lastMeeting: MeetingData | null; nextMeeting: MeetingData | null } | null>(null)
+  const [meetingsLoading, setMeetingsLoading] = useState(false)
 
   // Load HubSpot engagement data when panel opens
   useEffect(() => {
@@ -42,6 +63,18 @@ export default function DetailPanel({ client, onClose, onRescore }: Props) {
       .catch(() => {})
       .finally(() => setEngagementsLoading(false))
   }, [client.companyId, client.name])
+
+  // Load HubSpot meetings (with outcome/status)
+  useEffect(() => {
+    if (!client.companyId) return
+    setMeetings(null)
+    setMeetingsLoading(true)
+    fetch(`/api/hubspot/meetings?companyId=${client.companyId}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data) setMeetings(data) })
+      .catch(() => {})
+      .finally(() => setMeetingsLoading(false))
+  }, [client.companyId])
 
   const color = STATE_COLORS[client.healthState]
   const daysToRenewal = client.contract.renewal
@@ -174,7 +207,7 @@ export default function DetailPanel({ client, onClose, onRescore }: Props) {
                 { title: 'Deal', src: 'HUBSPOT', rows: [
                   { k: 'Stage', v: d.stageLabel, cls: d.stage === '1309169016' ? 'bd' : undefined },
                   { k: 'Auto renewal', v: d.autoRenewal ? 'Yes ✓' : 'No', cls: d.autoRenewal ? 'ok' : 'bd' },
-                  { k: 'Close date', v: d.closeDate ?? '—', cls: daysToRenewal !== null && daysToRenewal < 60 ? 'bd' : undefined },
+                  { k: 'Sub. end date', v: d.closeDate ?? '—', cls: daysToRenewal !== null && daysToRenewal < 60 ? 'bd' : undefined },
                   { k: 'Last contact', v: `${d.lastContactDaysAgo}d ago`, cls: d.lastContactDaysAgo > 30 ? 'bd' : d.lastContactDaysAgo > 14 ? 'wn' : 'ok' },
                 ]},
                 { title: 'Company', src: 'HUBSPOT', rows: [
@@ -198,6 +231,51 @@ export default function DetailPanel({ client, onClose, onRescore }: Props) {
                   {sc.rows?.map((r, i) => <SRow key={i} k={r.k} v={r.v as string} cls={r.cls} />)}
                 </div>
               ))}
+              {/* Meetings — last + next */}
+              <div style={{ background: 'var(--n50)', border: '1px solid var(--n100)', borderRadius: 12, padding: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <span style={{ fontSize: 12, fontWeight: 600 }}>Meetings</span>
+                  <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--n400)', letterSpacing: '.07em' }}>HUBSPOT</span>
+                </div>
+                {meetingsLoading ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--n400)', fontSize: 11.5 }}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" style={{ animation: 'spin 1s linear infinite', flexShrink: 0 }}>
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="40 20" />
+                    </svg>
+                    Loading…
+                  </div>
+                ) : meetings ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {meetings.lastMeeting ? (
+                      <div>
+                        <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--n400)', letterSpacing: '.06em', textTransform: 'uppercase', marginBottom: 2 }}>Last meeting</div>
+                        <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--n900)' }}>{meetings.lastMeeting.date}</div>
+                        {meetings.lastMeeting.title && (
+                          <div style={{ fontSize: 10.5, color: 'var(--n600)', marginTop: 1 }}>{meetings.lastMeeting.title}</div>
+                        )}
+                        <MeetingOutcomeBadge outcome={meetings.lastMeeting.outcome} />
+                      </div>
+                    ) : (
+                      <span style={{ fontSize: 11, color: 'var(--n400)', fontStyle: 'italic' }}>No past meetings</span>
+                    )}
+                    <div style={{ height: 1, background: 'var(--n100)' }} />
+                    {meetings.nextMeeting ? (
+                      <div>
+                        <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--v500)', letterSpacing: '.06em', textTransform: 'uppercase', marginBottom: 2 }}>Next meeting</div>
+                        <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--n900)' }}>{meetings.nextMeeting.date}</div>
+                        {meetings.nextMeeting.title && (
+                          <div style={{ fontSize: 10.5, color: 'var(--n600)', marginTop: 1 }}>{meetings.nextMeeting.title}</div>
+                        )}
+                      </div>
+                    ) : (
+                      <span style={{ fontSize: 11, color: 'var(--n400)', fontStyle: 'italic' }}>No upcoming meetings</span>
+                    )}
+                  </div>
+                ) : (
+                  <span style={{ fontSize: 11, color: 'var(--n400)', fontStyle: 'italic' }}>Unavailable</span>
+                )}
+              </div>
+
               {/* HubSpot Activity — live sentiment */}
               <div style={{ background: 'var(--n50)', border: '1px solid var(--n100)', borderRadius: 12, padding: 12 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
@@ -279,10 +357,14 @@ export default function DetailPanel({ client, onClose, onRescore }: Props) {
           <div style={{ padding: '18px 20px', borderBottom: '1px solid var(--n100)' }}>
             <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--n500)', letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: 12 }}>Contract</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8 }}>
-              {[{ l: 'Start', v: client.contract.start ?? '—' }, { l: 'Renewal', v: client.contract.renewal ?? '—', danger: daysToRenewal !== null && daysToRenewal < 60 }, { l: 'Age', v: `${client.contract.ageMonths}mo` }].map(c => (
+              {([
+                { l: 'Start', v: client.contract.start ?? '—', danger: false },
+                { l: 'End', v: client.contract.renewal ?? '—', danger: daysToRenewal !== null && daysToRenewal < 60 },
+                { l: 'Auto-renewal', v: d.autoRenewal ? 'Yes ✓' : 'No', danger: false, ok: d.autoRenewal },
+              ] as { l: string; v: string; danger: boolean; ok?: boolean }[]).map(c => (
                 <div key={c.l} style={{ background: 'var(--n50)', border: '1px solid var(--n100)', borderRadius: 12, padding: '10px 12px' }}>
                   <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--n500)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 3 }}>{c.l}</div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: c.danger ? 'var(--d500)' : 'var(--n900)' }}>{c.v}</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: c.danger ? 'var(--d500)' : c.ok === false ? 'var(--w500)' : c.ok ? 'var(--s500)' : 'var(--n900)' }}>{c.v}</div>
                 </div>
               ))}
             </div>
