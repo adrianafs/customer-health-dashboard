@@ -8,24 +8,23 @@ import { Client, HealthState, CSMName, DEAL_STAGE_LABELS } from '@/lib/types'
 const HS = 'https://api.hubapi.com'
 const TOKEN = process.env.HUBSPOT_TOKEN
 
-// ─── Pipeline IDs (confirmed via /api/hubspot/diagnose) ──────────────────────
-const CONTRACTS_PIPELINE  = '58017946'
-const ONBOARDING_PIPELINE = '63371875'
+// ─── Pipeline IDs (portal 8988558, confirmed via /api/hubspot/diagnose) ──────
+const CONTRACTS_PIPELINE  = '874052773'
+const ONBOARDING_PIPELINE = '874052774'
 
-// Onboarding stages = still being onboarded (excludes 124085903 = Fully Onboarded)
+// Onboarding stages = still being onboarded (excludes 1309169026 = Fully Onboarded)
 const ONBOARDING_ACTIVE_STAGES = new Set([
-  '1007128757', // Handover
-  '124085898',  // Onboarding Kick-off
-  '124085899',  // Implementation
-  '124085900',  // Stuck in Onboarding
-  '124085901',  // Client Live
-  '124085902',  // Implementation Review Done
+  '1309169021', // Onboarding Kick-off
+  '1309169022', // Implementation
+  '1309169023', // Stuck in Onboarding
+  '1309169024', // Client Live
+  '1309169025', // Implementation Review Done
 ])
 
 // Contract stages to exclude from the dashboard entirely
 const EXCLUDED_STAGES = new Set([
-  '114969757', // Churned
-  '115681793', // Contract not started
+  '1309169018', // Churned
+  '1309169012', // Contract not started
 ])
 
 // ─── HubSpot portal ID — used for building deal URLs ─────────────────────────
@@ -185,26 +184,26 @@ function classify(
 
   // ── CHURN RISK ──────────────────────────────────────────────────────────────
   if (churnFlag)              return { state: 'churn_risk', rules: ['churn_risk_flag'] }
-  if (stage === '114969754')  return { state: 'churn_risk', rules: ['communicated_churn_stage'] }
+  if (stage === '1309169016') return { state: 'churn_risk', rules: ['communicated_churn_stage'] }
 
   // ── ACTION REQUIRED ─────────────────────────────────────────────────────────
-  if (inOB && obDays > 90 && stage === '124085899')
+  if (inOB && obDays > 90 && stage === '1309169022')
     return { state: 'action_required', rules: ['onboarding_implementation_90d'] }
   if (!autoRenewal && daysUntil(subscriptionEndDate) < 100)
     return { state: 'action_required', rules: ['auto_renewal_false_sub_end_100d'] }
-  if (stage === '114969752' && lastDays > 30)
+  if (stage === '1309169014' && lastDays > 30)
     return { state: 'action_required', rules: ['up_for_renewal_no_contact_30d'] }
-  if (stage === '114969753' && daysUntil(subscriptionEndDate) <= 45)
+  if (stage === '1309169015' && daysUntil(subscriptionEndDate) <= 45)
     return { state: 'action_required', rules: ['renewal_in_progress_sub_end_45d'] }
 
   // ── KEEP AN EYE ─────────────────────────────────────────────────────────────
   if (inOB)                   return { state: 'keep_an_eye', rules: ['onboarding_active'] }
   if (serviceLevel === 'High' && lastDays > 45)
     return { state: 'keep_an_eye', rules: ['high_service_no_contact_45d'] }
-  if (stage === '114969752' && lastDays > 45)
+  if (stage === '1309169014' && lastDays > 45)
     return { state: 'keep_an_eye', rules: ['up_for_renewal_no_contact_45d'] }
-  if (stage === '114969753')  return { state: 'keep_an_eye', rules: ['renewal_in_progress'] }
-  if (stage === '115288434' && daysUntil(pauseEndDate) <= 30)
+  if (stage === '1309169015') return { state: 'keep_an_eye', rules: ['renewal_in_progress'] }
+  if (stage === '1309169017' && daysUntil(pauseEndDate) <= 30)
     return { state: 'keep_an_eye', rules: ['paused_end_30d'] }
 
   // ── STABLE (default) ────────────────────────────────────────────────────────
@@ -304,7 +303,7 @@ export async function GET(req: NextRequest) {
       filterGroups: [{
         filters: [
           { propertyName: 'pipeline',  operator: 'EQ',  value: ONBOARDING_PIPELINE },
-          { propertyName: 'dealstage', operator: 'NEQ', value: '124085903' }, // exclude Fully Onboarded
+          { propertyName: 'dealstage', operator: 'NEQ', value: '1309169026' }, // exclude Fully Onboarded
         ],
       }],
     })
@@ -412,11 +411,11 @@ export async function GET(req: NextRequest) {
         drivers.push({ label: 'Churn risk flagged', type: 'critical', direction: 'declining' })
       if (!autoRenewal && daysUntil(subscriptionEndDate) < 100)
         drivers.push({ label: `No auto-renewal, ends in ${daysUntil(subscriptionEndDate)}d`, type: 'negative', direction: 'declining' })
-      if (stage === '114969754')
+      if (stage === '1309169016')
         drivers.push({ label: 'Communicated churn', type: 'critical', direction: 'declining' })
-      if (stage === '115288434')
+      if (stage === '1309169017')
         drivers.push({ label: pauseEndDate ? `Paused — resumes ${pauseEndDate}` : 'Paused', type: 'neutral', direction: 'stable' })
-      if (stage === '114969756')
+      if (stage === '1309169019')
         drivers.push({ label: 'Renewed', type: 'positive', direction: 'improving' })
 
       const actionMap: Record<HealthState, string> = {

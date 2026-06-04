@@ -12,23 +12,22 @@ export const CSM_LIST: { name: CSMName; ownerId: string }[] = []
 export const CSM_BY_OWNER_ID: Record<string, string> = {}
 
 export const DEAL_STAGE_LABELS: Record<string, string> = {
-  // Contracts pipeline (58017946) — real stage IDs confirmed from portal
-  '115681793': 'Contract not started',
-  '114969751': 'Active Contract',
-  '114969752': 'Up for Renewal',
-  '114969753': 'Renewal in Progress',
-  '114969754': 'Communicated Churn (in Winback)',
-  '115288434': 'Paused',
-  '114969757': 'Churned',
-  '114969756': 'Closed Won (Renewed)',
-  // Onboarding pipeline (63371875) — real stage IDs confirmed from portal
-  '1007128757': 'Handover',
-  '124085898':  'Onboarding Kick-off',
-  '124085899':  'Implementation',
-  '124085900':  'Stuck in Onboarding',
-  '124085901':  'Client Live',
-  '124085902':  'Implementation Review Done',
-  '124085903':  'Client Fully Onboarded',
+  // Contracts pipeline (874052773) — portal 8988558
+  '1309169012': 'Contract not started',
+  '1309169013': 'Active Contract',
+  '1309169014': 'Up for Renewal',
+  '1309169015': 'Renewal in Progress',
+  '1309169016': 'Communicated Churn (in Winback)',
+  '1309169017': 'Paused',
+  '1309169018': 'Churned',
+  '1309169019': 'Closed Won (Renewed)',
+  // Onboarding pipeline (874052774) — portal 8988558
+  '1309169021': 'Onboarding Kick-off',
+  '1309169022': 'Implementation',
+  '1309169023': 'Stuck in Onboarding',
+  '1309169024': 'Client Live',
+  '1309169025': 'Implementation Review Done',
+  '1309169026': 'Client Fully Onboarded',
 }
 
 export type Client = {

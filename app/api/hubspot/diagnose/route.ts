@@ -5,7 +5,7 @@ import { NextResponse } from 'next/server'
 
 const HS = 'https://api.hubapi.com'
 const TOKEN = process.env.HUBSPOT_TOKEN
-const CONTRACTS_PIPELINE = '58017946'
+const CONTRACTS_PIPELINE = '874052773'
 const EXCLUDED_STAGES = new Set(['1309169018', '1309169012'])
 
 function auth() {
