@@ -43,7 +43,19 @@ STABLE: default if none of the above apply.
 
 Today: ${today}
 
-Return ONLY valid JSON, no markdown.`
+Return ONLY valid JSON (no markdown) with EXACTLY this shape:
+{
+  "status": "CHURN_RISK" | "ACTION_REQUIRED" | "KEEP_AN_EYE" | "STABLE",
+  "score": 0-100,                      // overall health, higher = healthier
+  "confidence": 0-100,                 // how certain you are GIVEN the data provided.
+                                       // Base it on data completeness + signal agreement:
+                                       // many populated, mutually-consistent signals → high (85-95);
+                                       // sparse data, "unknown" fields, or conflicting signals → low (40-60).
+  "reason": "one or two sentences explaining the score",
+  "recommended_action": "one concrete next step for the CSM",
+  "top_signals": [ { "label": "short signal", "direction": "improving" | "stable" | "declining" } ],
+  "triggered_rules": [ "rule names that fired" ]
+}`
 
 export async function POST(request: NextRequest) {
   try {
