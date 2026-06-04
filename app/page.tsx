@@ -24,6 +24,7 @@ export default function Dashboard() {
   const [searchQuery, setSearchQuery] = useState('')
 
   const [allClients, setAllClients] = useState<Client[]>(mockClients)
+  const [csmList, setCsmList] = useState<{ name: CSMName; ownerId: string }[]>(CSM_LIST)
 
   const loadData = useCallback(async () => {
     setLoading(true)
@@ -33,8 +34,9 @@ export default function Dashboard() {
       const data = await res.json()
       if (!res.ok) {
         setApiError(`API ${res.status}: ${data?.error ?? 'unknown error'}`)
-      } else if (Array.isArray(data) && data.length > 0) {
-        setAllClients(data)
+      } else if (data?.clients?.length > 0) {
+        setAllClients(data.clients)
+        if (data.csmOwnerIds?.length > 0) setCsmList(data.csmOwnerIds)
         setDataSource('hubspot')
         setLoading(false)
         return
@@ -93,7 +95,7 @@ export default function Dashboard() {
             style={{ background: 'linear-gradient(135deg, #7c3aed, #6d28d9)', boxShadow: '0 0 12px rgba(124,58,237,0.4)' }}>F</div>
           <div>
             <h1 className="text-sm font-bold text-white leading-none">Customer Health Dashboard</h1>
-            <p className="text-[10px] text-gray-500 mt-0.5">Flowbox Customer Success · {activeCsmId === 'all' ? 'All CSMs' : activeCsm.name}</p>
+            <p className="text-[10px] text-gray-500 mt-0.5">Flowbox Customer Success · {activeCsmId === 'all' ? 'All CSMs' : (csmList.find(c => c.ownerId === activeCsmId)?.name ?? activeCsmId)}</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -149,7 +151,7 @@ export default function Dashboard() {
           }}>
           All
         </button>
-        {CSM_LIST.map(csm => (
+        {csmList.map(csm => (
           <button key={csm.ownerId} onClick={() => handleCsmChange(csm.ownerId)}
             className="text-xs px-2.5 py-1 rounded-lg transition-all"
             style={{
