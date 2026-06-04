@@ -17,6 +17,7 @@ export const CSM_LIST: { name: CSMName; ownerId: string }[] = [
   { name: 'Chantal',  ownerId: '46571229'  },
   { name: 'Frida',    ownerId: '46571222'  },
   { name: 'Oktawia',  ownerId: '7359612'   },
+  { name: 'Jana',     ownerId: '78103049'  },
   { name: 'David',    ownerId: '81605073'  },
 ]
 
