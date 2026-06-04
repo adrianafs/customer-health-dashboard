@@ -21,6 +21,25 @@ export default function DetailPanel({ client, onClose, onRescore }: Props) {
   const [drafting, setDrafting] = useState(false)
   const [rescoring, setRescoring] = useState(false)
   const [emailModal, setEmailModal] = useState<{ subject: string; body: string } | null>(null)
+  const [editedSubject, setEditedSubject] = useState('')
+  const [editedBody, setEditedBody] = useState('')
+  const [sending, setSending] = useState(false)
+  const [sentTo, setSentTo] = useState<string | null>(null)
+
+  async function handleSendEmail() {
+    setSending(true)
+    try {
+      const res = await fetch('/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subject: editedSubject, body: editedBody, clientName: client.name, csmName: client.csm }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Send failed')
+      setSentTo(data.sentTo)
+    } catch (e) { alert(String(e)) }
+    finally { setSending(false) }
+  }
 
   const color = STATE_COLORS[client.healthState]
   const daysToRenewal = client.contract.renewal
@@ -40,6 +59,9 @@ export default function DetailPanel({ client, onClose, onRescore }: Props) {
       const res = await fetch('/api/draft-email', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ client }) })
       const data = await res.json()
       setEmailModal(data)
+      setEditedSubject(data.subject)
+      setEditedBody(data.body)
+      setSentTo(null)
     } catch { alert('Failed to draft email. Check your API key.') }
     finally { setDrafting(false) }
   }
@@ -218,35 +240,99 @@ export default function DetailPanel({ client, onClose, onRescore }: Props) {
       {/* Email modal */}
       {emailModal && (
         <>
-          <div onClick={() => setEmailModal(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(7,15,34,.6)', zIndex: 200, backdropFilter: 'blur(4px)' }} />
-          <div className="animate-fade-up" style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 'min(560px,95vw)', maxHeight: '88vh', background: '#fff', borderRadius: 'var(--r-xl)', zIndex: 201, display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 24px 48px -12px rgba(18,18,23,.22)' }}>
-            <div style={{ padding: '18px 22px', borderBottom: '1px solid var(--fb-neutral-100)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--fg-1)' }}>Draft retention email</div>
-                <div style={{ fontSize: 11, color: 'var(--fg-2)', marginTop: 1 }}>{client.name} · {client.csm}</div>
+          <div onClick={() => { setEmailModal(null); setSentTo(null) }} style={{ position: 'fixed', inset: 0, background: 'rgba(7,15,34,.6)', zIndex: 200, backdropFilter: 'blur(4px)' }} />
+          <div className="animate-fade-up" style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 'min(600px,95vw)', maxHeight: '92vh', background: '#fff', borderRadius: 'var(--r-xl)', zIndex: 201, display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 24px 48px -12px rgba(18,18,23,.22)' }}>
+
+            {/* Modal header */}
+            <div style={{ padding: '18px 22px', borderBottom: '1px solid var(--fb-neutral-100)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 34, height: 34, borderRadius: 'var(--r-md)', background: `${color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span style={{ fontSize: 16 }}>✉</span>
+                </div>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--fg-1)' }}>Draft retention email</div>
+                  <div style={{ fontSize: 11, color: 'var(--fg-2)', marginTop: 1 }}>{client.name} · from {client.csm}</div>
+                </div>
               </div>
-              <button onClick={() => setEmailModal(null)} style={{ width: 30, height: 30, borderRadius: 'var(--r-md)', border: '1px solid var(--fb-neutral-100)', background: 'none', cursor: 'pointer', fontSize: 16, color: 'var(--fg-2)' }}>×</button>
+              <button onClick={() => { setEmailModal(null); setSentTo(null) }} style={{ width: 30, height: 30, borderRadius: 'var(--r-md)', border: '1px solid var(--fb-neutral-100)', background: 'none', cursor: 'pointer', fontSize: 16, color: 'var(--fg-2)' }}>×</button>
             </div>
-            <div style={{ flex: 1, overflowY: 'auto', padding: '20px 22px' }}>
-              <div style={{ marginBottom: 12 }}>
-                <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--fb-neutral-700)', marginBottom: 5 }}>Subject</div>
-                <div style={{ padding: '8px 12px', borderRadius: 'var(--r-md)', border: '1px solid var(--border)', fontSize: 13, color: 'var(--fg-1)', background: 'var(--fb-neutral-50)' }}>{emailModal.subject}</div>
+
+            {sentTo ? (
+              /* Success state */
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 32px', gap: 16, textAlign: 'center' }}>
+                <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--fb-success-50)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>✓</div>
+                <div>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--fg-1)', marginBottom: 6 }}>Draft sent to your inbox</div>
+                  <div style={{ fontSize: 13, color: 'var(--fg-2)', lineHeight: 1.6 }}>
+                    Sent to <strong>{sentTo}</strong>.<br/>
+                    Review it there, then forward or copy-paste to send to {client.name}.
+                  </div>
+                </div>
+                <div style={{ marginTop: 8, padding: '10px 16px', background: 'var(--fb-violet-50)', border: '1px solid var(--fb-violet-100)', borderRadius: 8, fontSize: 12, color: 'var(--fb-violet-600)' }}>
+                  Check your inbox at {sentTo}
+                </div>
+                <button onClick={() => { setEmailModal(null); setSentTo(null) }}
+                  style={{ marginTop: 8, padding: '10px 24px', borderRadius: 'var(--r-md)', background: 'var(--fb-violet-500)', color: '#fff', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', boxShadow: 'var(--shadow-violet)' }}>
+                  Done
+                </button>
               </div>
-              <div>
-                <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--fb-neutral-700)', marginBottom: 5 }}>Body</div>
-                <div style={{ padding: '14px 16px', borderRadius: 'var(--r-md)', border: '1px solid var(--border)', fontSize: 13, color: 'var(--fg-1)', lineHeight: 1.7, whiteSpace: 'pre-line', background: '#fff' }}>{emailModal.body}</div>
-              </div>
-            </div>
-            <div style={{ padding: '14px 22px', borderTop: '1px solid var(--fb-neutral-100)', display: 'flex', justifyContent: 'flex-end', gap: 8, background: 'var(--fb-neutral-50)' }}>
-              <button onClick={() => navigator.clipboard.writeText(`Subject: ${emailModal.subject}\n\n${emailModal.body}`)}
-                style={{ padding: '8px 16px', borderRadius: 'var(--r-md)', border: '1px solid var(--border)', background: '#fff', fontSize: 13, fontWeight: 500, cursor: 'pointer', color: 'var(--fg-1)' }}>
-                Copy
-              </button>
-              <button onClick={() => setEmailModal(null)}
-                style={{ padding: '8px 16px', borderRadius: 'var(--r-md)', background: 'var(--fb-violet-500)', color: '#fff', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', boxShadow: 'var(--shadow-violet)' }}>
-                Done
-              </button>
-            </div>
+            ) : (
+              <>
+                {/* Editable fields */}
+                <div style={{ flex: 1, overflowY: 'auto', padding: '20px 22px' }}>
+
+                  {/* AI badge */}
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 'var(--r-pill)', background: 'var(--fb-violet-50)', border: '1px solid var(--fb-violet-100)', fontSize: 10, fontWeight: 700, color: 'var(--fb-violet-600)', letterSpacing: '.06em', marginBottom: 16 }}>
+                    ✦ AI-drafted · review before sending
+                  </div>
+
+                  {/* Send destination note */}
+                  <div style={{ padding: '10px 14px', borderRadius: 'var(--r-md)', background: '#F0FDF9', border: '1px solid #00CC9A40', fontSize: 12, color: '#00A378', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span>→</span>
+                    <span>Will be sent to <strong>your {client.csm.split(' ')[0].toLowerCase()}@getflowbox.com inbox</strong> — not to the client directly</span>
+                  </div>
+
+                  {/* Subject */}
+                  <div style={{ marginBottom: 14 }}>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--fb-neutral-700)', marginBottom: 5 }}>Subject</div>
+                    <input
+                      value={editedSubject}
+                      onChange={e => setEditedSubject(e.target.value)}
+                      style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--r-md)', border: '1px solid var(--border)', fontFamily: 'inherit', fontSize: 13, color: 'var(--fg-1)', background: '#fff', outline: 'none' }}
+                    />
+                  </div>
+
+                  {/* Body */}
+                  <div>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--fb-neutral-700)', marginBottom: 5 }}>Body</div>
+                    <textarea
+                      value={editedBody}
+                      onChange={e => setEditedBody(e.target.value)}
+                      rows={10}
+                      style={{ width: '100%', padding: '12px', borderRadius: 'var(--r-md)', border: '1px solid var(--border)', fontFamily: 'inherit', fontSize: 13, color: 'var(--fg-1)', background: '#fff', outline: 'none', resize: 'vertical', lineHeight: 1.7 }}
+                    />
+                  </div>
+                </div>
+
+                {/* Footer actions */}
+                <div style={{ padding: '14px 22px', borderTop: '1px solid var(--fb-neutral-100)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--fb-neutral-50)', flexShrink: 0 }}>
+                  <button onClick={() => navigator.clipboard.writeText(`Subject: ${editedSubject}\n\n${editedBody}`)}
+                    style={{ padding: '8px 14px', borderRadius: 'var(--r-md)', border: '1px solid var(--border)', background: '#fff', fontSize: 12, fontWeight: 500, cursor: 'pointer', color: 'var(--fg-2)' }}>
+                    Copy
+                  </button>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button onClick={() => { setEmailModal(null); setSentTo(null) }}
+                      style={{ padding: '8px 16px', borderRadius: 'var(--r-md)', border: '1px solid var(--border)', background: '#fff', fontSize: 13, fontWeight: 500, cursor: 'pointer', color: 'var(--fg-1)' }}>
+                      Cancel
+                    </button>
+                    <button onClick={handleSendEmail} disabled={sending}
+                      style={{ padding: '8px 20px', borderRadius: 'var(--r-md)', background: 'var(--fb-violet-500)', color: '#fff', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', boxShadow: 'var(--shadow-violet)', opacity: sending ? .6 : 1, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      {sending ? '⟳ Sending…' : '✉ Send to my inbox'}
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </>
       )}
