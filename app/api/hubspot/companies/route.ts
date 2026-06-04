@@ -4,6 +4,9 @@ export const fetchCache = 'force-no-store'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { Client, HealthState, CSMName, DEAL_STAGE_LABELS } from '@/lib/types'
+import { readFile } from 'fs/promises'
+import type { DemoSignalsMap } from '@/app/api/cron/churn-signals/route'
+import { DEMO_SIGNALS_PATH } from '@/app/api/cron/churn-signals/route'
 
 const HS = 'https://api.hubapi.com'
 const TOKEN = process.env.HUBSPOT_TOKEN
@@ -238,6 +241,13 @@ export async function GET(req: NextRequest) {
   }
 
   try {
+    // ── 0. Load demo churn signals (if file exists) ───────────────────────────
+    let demoSignals: DemoSignalsMap = {}
+    try {
+      const raw = await readFile(DEMO_SIGNALS_PATH, 'utf-8')
+      demoSignals = JSON.parse(raw)
+    } catch { /* file doesn't exist yet */ }
+
     // ── 1. Customer companies ─────────────────────────────────────────────────
     const companies = await searchAll('/crm/v3/objects/companies/search', {
       limit: 100,
@@ -571,8 +581,28 @@ export async function GET(req: NextRequest) {
             : deal.likelihood_of_winback === 'No' ? 'lost_case'
             : null)
           : null,
+        ...(demoSignals[coId] ? { demoChurnSignals: demoSignals[coId].signals } : {}),
       } as Client]
     })
+
+    // Apply demo overrides — move to churn_risk without touching HubSpot
+    const DEMO_LABELS: Record<string, string> = {
+      no_platform_login_30d: 'no platform logins in the last 30 days',
+      economic:    'budget or ROI concerns detected in communications',
+      resources:   'no time or no internal owner for Flowbox',
+      stakeholder: 'stakeholder change detected',
+      product:     'product dissatisfaction or technical issues',
+      competitor:  'competitor mentioned',
+      strategy:    'strategic shift away from UGC or influencer marketing',
+      content:     'disappointment with UGC content volume',
+    }
+    for (const c of clients) {
+      if (c.demoChurnSignals && c.demoChurnSignals.length > 0 && c.healthState !== 'churn_risk') {
+        c.healthState = 'churn_risk'
+        c.score = 14
+        c.whyThisScore = `AI-detected risk signals: ${c.demoChurnSignals.map(s => DEMO_LABELS[s] ?? s).join('; ')}.`
+      }
+    }
 
     // Sort: churn → action → keep_an_eye → stable, then by ARR desc
     const order: Record<HealthState, number> = { churn_risk: 0, action_required: 1, keep_an_eye: 2, stable: 3 }
