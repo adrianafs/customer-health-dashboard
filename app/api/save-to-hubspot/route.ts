@@ -35,8 +35,8 @@ export async function POST(req: NextRequest) {
 
     if (!noteRes.ok) {
       const err = await noteRes.text()
-      console.error('HubSpot note creation failed:', err)
-      return NextResponse.json({ error: 'Failed to create note in HubSpot', detail: err }, { status: 500 })
+      console.error('HubSpot note creation failed:', noteRes.status, err)
+      return NextResponse.json({ error: `HubSpot ${noteRes.status}: ${err}` }, { status: 500 })
     }
 
     const note = await noteRes.json()
