@@ -1,8 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { Client, HealthState, SignalDriver, formatARR } from '@/lib/types'
-import type { EngagementResult } from '@/lib/hubspot-engagements'
-import type { HubSpotMeeting as MeetingData } from '@/app/api/hubspot/meetings/route'
 import ScoreBar, { STATE_COLORS, STATE_LABELS } from './ScoreBar'
 
 const DI: Record<SignalDriver['type'], string> = { positive: '↑', neutral: '~', negative: '↓', critical: '!' }
@@ -18,23 +16,138 @@ function SRow({ k, v, cls }: { k: string; v: string | number; cls?: string }) {
   )
 }
 
-const OUTCOME_LABELS: Record<string, { label: string; color: string }> = {
-  COMPLETED:   { label: 'Completed',   color: 'var(--s500)' },
-  SCHEDULED:   { label: 'Scheduled',   color: 'var(--v500)' },
-  NO_SHOW:     { label: 'No show',     color: 'var(--d500)' },
-  CANCELLED:   { label: 'Cancelled',   color: 'var(--w500)' },
-  RESCHEDULED: { label: 'Rescheduled', color: 'var(--w500)' },
-}
+// ── Notes section ─────────────────────────────────────────────────────────────
 
-function MeetingOutcomeBadge({ outcome }: { outcome: string | null }) {
-  if (!outcome) return null
-  const { label, color } = OUTCOME_LABELS[outcome] ?? { label: outcome, color: 'var(--n500)' }
+interface Note { id: string; body: string; date: string | null }
+
+function NotesSection({ client }: { client: Client }) {
+  const [notes, setNotes] = useState<Note[]>([])
+  const [newNote, setNewNote] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [saved, setSaved] = useState(false)
+
+  useEffect(() => {
+    setLoading(true)
+    fetch(`/api/notes?companyId=${client.companyId}`)
+      .then(r => r.json())
+      .then(d => setNotes(d.notes ?? []))
+      .catch(() => setNotes([]))
+      .finally(() => setLoading(false))
+  }, [client.companyId])
+
+  async function handleSave() {
+    if (!newNote.trim()) return
+    setSaving(true)
+    try {
+      const res = await fetch('/api/notes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          companyId: client.companyId,
+          dealId: client.id !== client.companyId ? client.id : undefined,
+          note: newNote,
+          csmName: client.csm,
+        }),
+      })
+      if (!res.ok) throw new Error('Failed to save')
+      // Optimistically add to list
+      const today = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+      setNotes(prev => [{
+        id: Date.now().toString(),
+        body: `[${client.csm} via CS Dashboard]\n\n${newNote.trim()}`,
+        date: today,
+      }, ...prev])
+      setNewNote('')
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2000)
+    } catch {
+      alert('Could not save note. Check HUBSPOT_TOKEN.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
   return (
-    <span style={{ display: 'inline-block', marginTop: 3, fontSize: 10, fontWeight: 700, color, background: `${color}14`, borderRadius: 999, padding: '1px 6px' }}>
-      {label}
-    </span>
+    <div style={{ padding: '18px 20px', borderBottom: '1px solid var(--n100)' }}>
+      <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--n500)', letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: 12 }}>
+        Notes
+      </div>
+
+      {/* Input */}
+      <div style={{ marginBottom: 12 }}>
+        <textarea
+          value={newNote}
+          onChange={e => setNewNote(e.target.value)}
+          placeholder={`Add a note about ${client.name}…`}
+          rows={3}
+          onKeyDown={e => { if (e.key === 'Enter' && e.metaKey) handleSave() }}
+          style={{
+            width: '100%', padding: '10px 12px', borderRadius: 8,
+            border: '1px solid var(--n200)', fontFamily: 'var(--font)',
+            fontSize: 12, color: 'var(--n900)', background: 'var(--n0)',
+            outline: 'none', resize: 'none', lineHeight: 1.6,
+            boxSizing: 'border-box',
+          }}
+        />
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 6 }}>
+          <span style={{ fontSize: 10, color: 'var(--n400)' }}>Saved to HubSpot · ⌘↵ to save</span>
+          <button
+            onClick={handleSave}
+            disabled={saving || !newNote.trim()}
+            style={{
+              padding: '6px 14px', borderRadius: 8,
+              background: saved ? 'var(--s500)' : 'var(--v500)',
+              color: '#fff', border: 'none', cursor: 'pointer',
+              fontFamily: 'var(--font)', fontSize: 12, fontWeight: 600,
+              opacity: saving || !newNote.trim() ? .5 : 1,
+              transition: 'all .2s',
+            }}
+          >
+            {saving ? '…' : saved ? '✓ Saved' : 'Save note'}
+          </button>
+        </div>
+      </div>
+
+      {/* Existing notes */}
+      {loading ? (
+        <div style={{ fontSize: 11, color: 'var(--n400)', fontStyle: 'italic' }}>Loading notes…</div>
+      ) : notes.length === 0 ? (
+        <div style={{ fontSize: 11, color: 'var(--n400)', fontStyle: 'italic' }}>No notes yet</div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {notes.map(n => {
+            // Strip the "[CSM via CS Dashboard]" prefix for display
+            const body = n.body.replace(/^\[.*? via CS Dashboard\]\n\n/, '')
+            const author = n.body.match(/^\[(.*?) via CS Dashboard\]/)?.[1] ?? null
+            return (
+              <div key={n.id} style={{
+                background: 'var(--n50)', border: '1px solid var(--n100)',
+                borderRadius: 8, padding: '10px 12px',
+              }}>
+                <div style={{ fontSize: 12, color: 'var(--n800)', lineHeight: 1.6, marginBottom: 6 }}>
+                  {body}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  {author && (
+                    <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--v600)', background: 'var(--v50)', borderRadius: 999, padding: '1px 7px', border: '1px solid var(--v100)' }}>
+                      {author.split(' ')[0]}
+                    </span>
+                  )}
+                  {n.date && (
+                    <span style={{ fontSize: 10, color: 'var(--n400)' }}>{n.date}</span>
+                  )}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
   )
 }
+
+// ── Main panel ────────────────────────────────────────────────────────────────
 
 interface Props { client: Client; onClose: () => void; onRescore: (c: Client) => void }
 
@@ -46,52 +159,6 @@ export default function DetailPanel({ client, onClose, onRescore }: Props) {
   const [editedBody, setEditedBody] = useState('')
   const [sending, setSending] = useState(false)
   const [sentTo, setSentTo] = useState<string | null>(null)
-  const [engagements, setEngagements] = useState<EngagementResult | null>(null)
-  const [engagementsLoading, setEngagementsLoading] = useState(false)
-  const [usage, setUsage] = useState<import('@/lib/databricks').UsageStats | null>(null)
-  const [meetings, setMeetings] = useState<{ lastMeeting: MeetingData | null; nextMeeting: MeetingData | null } | null>(null)
-  const [meetingsLoading, setMeetingsLoading] = useState(false)
-
-  // Load HubSpot engagement data when panel opens
-  useEffect(() => {
-    if (!client.companyId) return
-    setEngagements(null)
-    setEngagementsLoading(true)
-    const params = new URLSearchParams({ id: client.companyId, name: client.name })
-    fetch(`/api/engagements?${params}`)
-      .then(r => r.ok ? r.json() : null)
-      .then(data => { if (data && !data.error) setEngagements(data) })
-      .catch(() => {})
-      .finally(() => setEngagementsLoading(false))
-  }, [client.companyId, client.name])
-
-  // Load Databricks usage — UGC for flowbox, IM for dream, both for full suite
-  const hasDatabricks = client.brand === 'dream' || client.brand === 'both' || client.flowboxPlatformId
-  useEffect(() => {
-    if (!hasDatabricks) return
-    setUsage(null)
-    const params = new URLSearchParams({
-      platformId: client.flowboxPlatformId ?? '',
-      companyId:  client.companyId,
-      ...(client.brand ? { brand: client.brand } : {}),
-    })
-    fetch(`/api/usage?${params}`)
-      .then(r => r.ok ? r.json() : null)
-      .then(data => { if (data && !data.error) setUsage(data) })
-      .catch(() => {})
-  }, [client.flowboxPlatformId, client.companyId, client.brand, hasDatabricks])
-
-  // Load HubSpot meetings (with outcome/status)
-  useEffect(() => {
-    if (!client.companyId) return
-    setMeetings(null)
-    setMeetingsLoading(true)
-    fetch(`/api/hubspot/meetings?companyId=${client.companyId}`)
-      .then(r => r.ok ? r.json() : null)
-      .then(data => { if (data) setMeetings(data) })
-      .catch(() => {})
-      .finally(() => setMeetingsLoading(false))
-  }, [client.companyId])
 
   const color = STATE_COLORS[client.healthState]
   const daysToRenewal = client.contract.renewal
@@ -132,7 +199,6 @@ export default function DetailPanel({ client, onClose, onRescore }: Props) {
   const d = client.signals.deal
   const co = client.signals.company
   const ob = client.signals.onboarding
-  const stC: Record<string, string> = { active: 'var(--s500)', non_renewing: 'var(--d500)', in_trial: 'var(--v500)', paused: 'var(--w500)', cancelled: 'var(--d500)' }
 
   return (
     <>
@@ -141,7 +207,6 @@ export default function DetailPanel({ client, onClose, onRescore }: Props) {
       <div className="animate-panel" style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: 420, background: 'var(--n0)', borderLeft: '1px solid var(--n200)', zIndex: 101, display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '-16px 0 48px rgba(18,18,23,.1)' }}>
         <div style={{ height: 3, background: color, flexShrink: 0 }} />
 
-        {/* Panel header */}
         <div style={{ height: 56, borderBottom: '1px solid var(--n100)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px', flexShrink: 0 }}>
           <button onClick={onClose} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font)', fontSize: 13, fontWeight: 700, color: 'var(--v500)', padding: 0, letterSpacing: '-.01em' }}>
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8l5 5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
@@ -155,11 +220,12 @@ export default function DetailPanel({ client, onClose, onRescore }: Props) {
         </div>
 
         <div style={{ flex: 1, overflowY: 'auto' }}>
+
           {/* Client info */}
           <div style={{ padding: '18px 20px', borderBottom: '1px solid var(--n100)' }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, marginBottom: 6 }}>
               <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-.03em', lineHeight: 1.1 }}>{client.name}</div>
-              {daysToRenewal !== null && daysToRenewal < 60 && (
+              {daysToRenewal !== null && daysToRenewal > 0 && daysToRenewal < 60 && (
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 10px', borderRadius: 999, fontSize: 11, fontWeight: 700, background: 'var(--d50)', border: '1px solid var(--d500)', color: 'var(--d500)', flexShrink: 0 }}>
                   Renewal in {daysToRenewal}d
                 </div>
@@ -168,31 +234,6 @@ export default function DetailPanel({ client, onClose, onRescore }: Props) {
             <div style={{ fontSize: 12, color: 'var(--n500)', display: 'flex', alignItems: 'center', gap: 8 }}>
               <span>{client.csm}</span><span style={{ color: 'var(--n300)' }}>·</span>
               <span style={{ fontFamily: 'var(--mono)' }}>€{formatARR(client.arr)}/yr</span>
-            </div>
-            {client.childCompanies && client.childCompanies.length > 0 && (
-              <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 4, alignItems: 'center' }}>
-                <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--n400)', letterSpacing: '.05em', textTransform: 'uppercase', marginRight: 2 }}>Brands</span>
-                {client.childCompanies.map((brand, i) => (
-                  <span key={i} style={{ fontSize: 11, fontWeight: 500, color: 'var(--n600)', background: 'var(--n100)', borderRadius: 6, padding: '2px 8px' }}>
-                    {brand}
-                  </span>
-                ))}
-              </div>
-            )}
-
-            {/* Contract summary row */}
-            <div style={{ marginTop: 12, display: 'flex', flexWrap: 'nowrap', gap: 6, overflowX: 'auto' }}>
-              {([
-                { l: 'Start', v: client.contract.start ?? '—', danger: false },
-                { l: 'End', v: client.contract.renewal ?? '—', danger: daysToRenewal !== null && daysToRenewal < 60 },
-                { l: 'Auto-renewal', v: d.autoRenewal ? 'Yes ✓' : 'No', danger: false, ok: d.autoRenewal },
-                { l: 'Notice', v: client.contract.noticePeriodMonths ? `${client.contract.noticePeriodMonths}mo` : '—', danger: false },
-              ] as { l: string; v: string; danger: boolean; ok?: boolean }[]).map(c => (
-                <div key={c.l} style={{ background: 'var(--n50)', border: '1px solid var(--n100)', borderRadius: 8, padding: '6px 10px', flexShrink: 0 }}>
-                  <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--n400)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 2, whiteSpace: 'nowrap' }}>{c.l}</div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: c.danger ? 'var(--d500)' : c.ok === false ? 'var(--w500)' : c.ok ? 'var(--s500)' : 'var(--n900)', whiteSpace: 'nowrap' }}>{c.v}</div>
-                </div>
-              ))}
             </div>
           </div>
 
@@ -238,198 +279,63 @@ export default function DetailPanel({ client, onClose, onRescore }: Props) {
               {[
                 { title: 'Deal', src: 'HUBSPOT', rows: [
                   { k: 'Stage', v: d.stageLabel, cls: d.stage === '1309169016' ? 'bd' : undefined },
-                  { k: 'Sub. end date', v: d.closeDate ?? '—', cls: daysToRenewal !== null && daysToRenewal < 60 ? 'bd' : undefined },
-                  { k: 'Last contact', v: `${d.lastContactDaysAgo}d ago`, cls: d.lastContactDaysAgo > 30 ? 'bd' : d.lastContactDaysAgo > 14 ? 'wn' : 'ok' },
+                  { k: 'Auto renewal', v: d.autoRenewal ? 'Yes ✓' : 'No', cls: d.autoRenewal ? 'ok' : 'bd' },
+                  { k: 'Close date', v: d.closeDate ?? '—', cls: daysToRenewal !== null && daysToRenewal > 0 && daysToRenewal < 60 ? 'bd' : undefined },
+                  { k: 'Last contact', v: d.lastContactDaysAgo > 900 ? 'Never' : `${d.lastContactDaysAgo}d ago`, cls: d.lastContactDaysAgo > 30 ? 'bd' : d.lastContactDaysAgo > 14 ? 'wn' : 'ok' },
                 ]},
                 { title: 'Company', src: 'HUBSPOT', rows: [
+                  { k: 'Usage health', v: co.usageHealth ?? '—', cls: co.usageHealth === 'Good' ? 'ok' : co.usageHealth === 'None' ? 'bd' : co.usageHealth === 'Poor' ? 'wn' : undefined },
+                  { k: 'Active flows', v: co.totalActiveFlows, cls: co.totalActiveFlows <= 1 ? 'wn' : 'ok' },
                   { k: 'Service level', v: co.serviceLevel ?? '—' },
                   { k: 'NPS status', v: co.npsStatus ?? '—' },
                 ]},
-                // ── Flowbox UGC section (flowbox or both)
-                ...((client.brand === 'flowbox' || client.brand === 'both' || !client.brand) ? [{
-                  title: 'Flowbox usage', src: 'DATABRICKS' as const, rows: [
-                    { k: 'Activity days (30d)',     v: !client.flowboxPlatformId ? 'No platform ID' : usage ? (usage.activeDays30 > 0 ? `${usage.activeDays30} days` : 'None') : '…', cls: usage ? (usage.activeDays30 === 0 ? 'bd' : usage.activeDays30 < 5 ? 'wn' : 'ok') : undefined },
-                    { k: 'Flows distributed (30d)', v: !client.flowboxPlatformId ? '—' : usage ? usage.flows30d : '…', cls: usage ? (usage.flows30d === 0 ? 'bd' : usage.flows30d < 10 ? 'wn' : 'ok') : undefined },
-                    { k: 'Conversions (30d)',        v: !client.flowboxPlatformId ? '—' : usage ? usage.conversions30d : '…', cls: usage ? (usage.conversions30d === 0 ? 'bd' : usage.conversions30d < 5 ? 'wn' : 'ok') : undefined },
-                    { k: 'Orders (30d)',             v: !client.flowboxPlatformId ? '—' : usage ? usage.orders30d : '…', cls: usage ? (usage.orders30d === 0 ? 'bd' : usage.orders30d < 3 ? 'wn' : 'ok') : undefined },
-                    { k: 'Engagements (30d)',        v: !client.flowboxPlatformId ? '—' : usage ? usage.engagements30d : '…', cls: usage ? (usage.engagements30d === 0 ? 'bd' : usage.engagements30d < 100 ? 'wn' : 'ok') : undefined },
-                    { k: 'Last active',              v: !client.flowboxPlatformId ? '—' : usage?.lastActiveDate ?? '…', cls: usage ? (usage.platformDays > 60 ? 'bd' : usage.platformDays > 30 ? 'wn' : 'ok') : undefined },
-                  ]
-                }] : []),
-                // ── Dreaminfluence IM section (dream or both)
-                ...((client.brand === 'dream' || client.brand === 'both') ? [{
-                  title: 'Influencer Marketing', src: 'DATABRICKS' as const, rows: [
-                    { k: 'Total teams',          v: usage ? usage.totalTeams        : '…', cls: usage ? (usage.totalTeams === 0 ? 'bd' : 'ok') : undefined },
-                    { k: 'Total influencers',    v: usage ? usage.totalInfluencers   : '…', cls: usage ? (usage.totalInfluencers === 0 ? 'bd' : 'ok') : undefined },
-                    { k: 'Active campaigns',     v: usage ? usage.activeCampaigns    : '…', cls: usage ? (usage.activeCampaigns === 0 ? 'wn' : 'ok') : undefined },
-                    { k: 'Last activity',        v: usage?.lastActivity ?? (usage ? 'None' : '…'), cls: usage && !usage.lastActivity ? 'bd' : undefined },
-                  ]
-                }] : []),
-                ...(usage?.cbStatus ? [{ title: 'Billing', src: 'DATABRICKS', rows: [
-                  { k: 'Subscription status', v: usage.cbStatus, cls: usage.cbStatus === 'active' ? 'ok' : usage.cbStatus === 'non_renewing' ? 'wn' : 'bd' },
-                  { k: 'Term end',            v: usage.cbTermEnd ?? '—' },
-                  ...(usage.cbCancelScheduled ? [{ k: 'Cancel scheduled', v: usage.cbCancelScheduled, cls: 'bd' as const }] : []),
-                ]}] : []),
-                ...(ob.active ? [{ title: 'Onboarding', src: 'HUBSPOT', rows: [
-                  { k: 'Days in OB', v: ob.daysInOnboarding, cls: ob.daysInOnboarding > 90 ? 'bd' : undefined },
+                { title: 'Onboarding', src: 'HUBSPOT', rows: [
+                  { k: 'Active', v: ob.active ? 'Yes' : 'No' },
+                  { k: 'Days in OB', v: ob.active ? ob.daysInOnboarding : '—', cls: ob.daysInOnboarding > 90 ? 'bd' : undefined },
                   { k: 'Stage', v: ob.stage ?? '—' },
                   { k: 'Open tasks', v: client.signals.openTasks, cls: client.signals.openTasks > 0 ? 'wn' : undefined },
-                ]}] : []),
+                ]},
               ].map(sc => (
                 <div key={sc.title} style={{ background: 'var(--n50)', border: '1px solid var(--n100)', borderRadius: 12, padding: 12 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
                     <span style={{ fontSize: 12, fontWeight: 600 }}>{sc.title}</span>
-                    <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.07em', color: sc.src === 'DATABRICKS' ? 'var(--v500)' : 'var(--n400)' }}>{sc.src}</span>
+                    <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--n400)', letterSpacing: '.07em' }}>{sc.src}</span>
                   </div>
                   {sc.rows?.map((r, i) => <SRow key={i} k={r.k} v={r.v as string} cls={r.cls} />)}
                 </div>
               ))}
-              {/* Meetings — last + next */}
               <div style={{ background: 'var(--n50)', border: '1px solid var(--n100)', borderRadius: 12, padding: 12 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                  <span style={{ fontSize: 12, fontWeight: 600 }}>Meetings</span>
-                  <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--n400)', letterSpacing: '.07em' }}>HUBSPOT</span>
+                  <span style={{ fontSize: 12, fontWeight: 600 }}>Fathom</span>
+                  <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--n400)', letterSpacing: '.07em' }}>SENTIMENT</span>
                 </div>
-                {meetingsLoading ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--n400)', fontSize: 11.5 }}>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" style={{ animation: 'spin 1s linear infinite', flexShrink: 0 }}>
-                      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="40 20" />
-                    </svg>
-                    Loading…
-                  </div>
-                ) : meetings ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    {meetings.lastMeeting ? (
-                      <div>
-                        <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--n400)', letterSpacing: '.06em', textTransform: 'uppercase', marginBottom: 2 }}>Last meeting</div>
-                        <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--n900)' }}>{meetings.lastMeeting.date}</div>
-                        {meetings.lastMeeting.title && (
-                          <div style={{ fontSize: 10.5, color: 'var(--n600)', marginTop: 1 }}>{meetings.lastMeeting.title}</div>
-                        )}
-                        <MeetingOutcomeBadge outcome={meetings.lastMeeting.outcome} />
-                      </div>
-                    ) : (
-                      <span style={{ fontSize: 11, color: 'var(--n400)', fontStyle: 'italic' }}>No past meetings</span>
-                    )}
-                    <div style={{ height: 1, background: 'var(--n100)' }} />
-                    {meetings.nextMeeting ? (
-                      <div>
-                        <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--v500)', letterSpacing: '.06em', textTransform: 'uppercase', marginBottom: 2 }}>Next meeting</div>
-                        <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--n900)' }}>{meetings.nextMeeting.date}</div>
-                        {meetings.nextMeeting.title && (
-                          <div style={{ fontSize: 10.5, color: 'var(--n600)', marginTop: 1 }}>{meetings.nextMeeting.title}</div>
-                        )}
-                      </div>
-                    ) : (
-                      <span style={{ fontSize: 11, color: 'var(--n400)', fontStyle: 'italic' }}>No upcoming meetings</span>
-                    )}
-                  </div>
-                ) : (
-                  <span style={{ fontSize: 11, color: 'var(--n400)', fontStyle: 'italic' }}>Unavailable</span>
-                )}
-              </div>
-
-              {/* HubSpot Activity — live sentiment */}
-              <div style={{ background: 'var(--n50)', border: '1px solid var(--n100)', borderRadius: 12, padding: 12 }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                  <span style={{ fontSize: 12, fontWeight: 600 }}>Activity</span>
-                  <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--n400)', letterSpacing: '.07em' }}>AI SENTIMENT</span>
+                <div style={{ marginTop: 8, fontSize: 11.5, color: 'var(--n800)', lineHeight: 1.65 }}>
+                  {client.signals.fathom.summaries ?? <span style={{ color: 'var(--n400)', fontStyle: 'italic' }}>No call data available</span>}
                 </div>
-
-                {engagementsLoading ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 0', color: 'var(--n400)', fontSize: 11.5 }}>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" style={{ animation: 'spin 1s linear infinite', flexShrink: 0 }}>
-                      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="40 20" />
-                    </svg>
-                    Analysing activity…
-                  </div>
-                ) : engagements && engagements.activityCount > 0 ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {/* Sentiment sentence */}
-                    {engagements.sentiment && (
-                      <div style={{
-                        fontSize: 11.5, lineHeight: 1.6, fontStyle: 'italic',
-                        color: engagements.sentimentType === 'churn' || engagements.sentimentType === 'negative'
-                          ? 'var(--d500)'
-                          : engagements.sentimentType === 'positive' ? 'var(--s500)' : 'var(--n700)',
-                      }}>
-                        &ldquo;{engagements.sentiment}&rdquo;
-                      </div>
-                    )}
-                    {/* Stats */}
-                    <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: 11, color: 'var(--n500)' }}>
-                        <strong style={{ color: 'var(--n800)' }}>{engagements.activityCount}</strong> activities in 6mo
-                      </span>
-                      {engagements.lastActivityDate && (
-                        <span style={{ fontSize: 11, color: 'var(--n500)' }}>
-                          Last: <strong style={{ color: 'var(--n800)' }}>{engagements.lastActivityDate}</strong>
-                        </span>
-                      )}
-                      {engagements.openActionItems.length > 0 && (
-                        <span style={{ fontSize: 11, color: 'var(--w500)', fontWeight: 600 }}>
-                          {engagements.openActionItems.length} pending action{engagements.openActionItems.length !== 1 ? 's' : ''}
-                        </span>
-                      )}
-                    </div>
-                    {/* Open action items */}
-                    {engagements.openActionItems.length > 0 && (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                        {engagements.openActionItems.map((item, i) => (
-                          <div key={i} style={{ fontSize: 10.5, color: 'var(--n600)', display: 'flex', gap: 4 }}>
-                            <span style={{ color: 'var(--w500)', flexShrink: 0 }}>•</span>
-                            <span>{item}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    {/* Churn risk signals */}
-                    {engagements.churnSignals?.some(s => s.detected) && (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                        <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--d500)', letterSpacing: '.07em', textTransform: 'uppercase' }}>⚠ Risk signals detected</div>
-                        {engagements.churnSignals.filter(s => s.detected).map(s => {
-                          const SIGNAL_LABELS: Record<string, string> = {
-                            economic:    '💸 Budget / ROI concerns',
-                            resources:   '⏱ No time / no owner',
-                            stakeholder: '👤 Stakeholder change',
-                            product:     '🔧 Product dissatisfaction',
-                            competitor:  '⚔️ Competitor mentioned',
-                            strategy:    '↩ Strategy shift (away from UGC)',
-                            content:     '📉 Not enough UGC content',
-                          }
-                          return (
-                            <div key={s.key} style={{ fontSize: 10.5, color: 'var(--n800)', display: 'flex', flexDirection: 'column', gap: 1, background: 'var(--d50)', borderRadius: 6, padding: '4px 8px' }}>
-                              <span style={{ fontWeight: 700, color: 'var(--d600)' }}>{SIGNAL_LABELS[s.key] ?? s.key}</span>
-                              {s.evidence && <span style={{ color: 'var(--n600)', fontStyle: 'italic' }}>&ldquo;{s.evidence}&rdquo;</span>}
-                            </div>
-                          )
-                        })}
-                      </div>
-                    )}
-                    {/* Activity type breakdown */}
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                      {(['EMAIL', 'MEETING', 'CALL', 'NOTE'] as const).map(type => {
-                        const count = engagements.engagements.filter(e => e.type === type).length
-                        if (!count) return null
-                        const labels = { EMAIL: '✉', MEETING: '📅', CALL: '📞', NOTE: '📝' }
-                        return (
-                          <span key={type} style={{ fontSize: 10, padding: '2px 7px', background: 'var(--n100)', color: 'var(--n600)', borderRadius: 5, fontWeight: 500 }}>
-                            {labels[type]} {count} {type.toLowerCase()}{count !== 1 ? 's' : ''}
-                          </span>
-                        )
-                      })}
-                    </div>
-                  </div>
-                ) : engagements && engagements.activityCount === 0 ? (
-                  <span style={{ fontSize: 11.5, color: 'var(--n400)', fontStyle: 'italic' }}>No activity found in the last 90 days</span>
-                ) : (
-                  <span style={{ fontSize: 11.5, color: 'var(--n400)', fontStyle: 'italic' }}>Activity data unavailable</span>
-                )}
               </div>
             </div>
           </div>
 
           {/* Contract */}
+          <div style={{ padding: '18px 20px', borderBottom: '1px solid var(--n100)' }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--n500)', letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: 12 }}>Contract</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8 }}>
+              {[
+                { l: 'Start', v: client.contract.start ?? '—' },
+                { l: 'Renewal', v: client.contract.renewal ?? '—', danger: daysToRenewal !== null && daysToRenewal > 0 && daysToRenewal < 60 },
+                { l: 'Age', v: `${client.contract.ageMonths}mo` },
+              ].map(c => (
+                <div key={c.l} style={{ background: 'var(--n50)', border: '1px solid var(--n100)', borderRadius: 12, padding: '10px 12px' }}>
+                  <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--n500)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 3 }}>{c.l}</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: c.danger ? 'var(--d500)' : 'var(--n900)' }}>{c.v}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Notes — saved to HubSpot, visible to whole team */}
+          <NotesSection client={client} />
+
           {/* Actions */}
           <div style={{ padding: '18px 20px 28px' }}>
             <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--n500)', letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: 12 }}>Actions</div>
@@ -438,7 +344,7 @@ export default function DetailPanel({ client, onClose, onRescore }: Props) {
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1.5" y="3" width="11" height="8.5" rx="1.5" stroke="white" strokeWidth="1.3"/><path d="M1.5 5.5l5 3 5-3" stroke="white" strokeWidth="1.3" strokeLinecap="round"/></svg>
               {drafting ? 'Drafting…' : 'Draft & send retention email'}
             </button>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
               <a href={client.hubspotDealUrl} target="_blank" rel="noopener noreferrer"
                 style={{ padding: '9px 12px', borderRadius: 8, background: 'var(--n50)', color: 'var(--n900)', border: '1px solid var(--n200)', fontSize: 12, fontWeight: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, textDecoration: 'none' }}>
                 ↗ Open in HubSpot
@@ -470,7 +376,6 @@ export default function DetailPanel({ client, onClose, onRescore }: Props) {
               </div>
               <button onClick={() => { setEmailModal(null); setSentTo(null) }} style={{ width: 30, height: 30, borderRadius: 8, border: '1px solid var(--n200)', background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--n500)' }}>×</button>
             </div>
-
             {sentTo ? (
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 32px', gap: 16, textAlign: 'center' }}>
                 <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--s50)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -480,9 +385,6 @@ export default function DetailPanel({ client, onClose, onRescore }: Props) {
                   <div style={{ fontSize: 18, fontWeight: 800, letterSpacing: '-.02em', marginBottom: 5 }}>Draft sent to your inbox</div>
                   <div style={{ fontSize: 13, color: 'var(--n500)', lineHeight: 1.6 }}>Sent to <strong>{sentTo}</strong>.<br/>Review, then copy-paste to send to {client.name}.</div>
                 </div>
-                <div style={{ marginTop: 8, padding: '10px 18px', background: 'var(--v50)', border: '1px solid var(--v100)', borderRadius: 8, fontSize: 12, color: 'var(--v600)' }}>
-                  Check your inbox at {sentTo}
-                </div>
                 <button onClick={() => { setEmailModal(null); setSentTo(null) }}
                   style={{ marginTop: 8, padding: '10px 24px', borderRadius: 8, background: 'var(--v500)', color: '#fff', border: 'none', fontSize: 13, fontWeight: 700, cursor: 'pointer', boxShadow: 'var(--sv)' }}>Done</button>
               </div>
@@ -491,10 +393,6 @@ export default function DetailPanel({ client, onClose, onRescore }: Props) {
                 <div style={{ flex: 1, overflowY: 'auto', padding: '20px 22px' }}>
                   <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 999, background: 'var(--v50)', border: '1px solid var(--v100)', fontSize: 10, fontWeight: 700, color: 'var(--v600)', letterSpacing: '.05em', marginBottom: 16 }}>
                     ✦ AI-drafted · review before sending
-                  </div>
-                  <div style={{ padding: '10px 14px', borderRadius: 8, background: 'var(--s50)', border: '1px solid #00CC9A40', fontSize: 12, color: 'var(--s600)', marginBottom: 16, display: 'flex', gap: 8 }}>
-                    <span>→</span>
-                    <span>Will be sent to <strong>your {client.csm.split(' ')[0].toLowerCase()}@getflowbox.com inbox</strong> — not to the client</span>
                   </div>
                   <div style={{ marginBottom: 14 }}>
                     <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--n700)', marginBottom: 5, letterSpacing: '.02em' }}>Subject</div>
