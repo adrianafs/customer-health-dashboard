@@ -48,7 +48,11 @@ export default function DetailPanel({ client, onClose, onRescore }: Props) {
   const [sentTo, setSentTo] = useState<string | null>(null)
   const [engagements, setEngagements] = useState<EngagementResult | null>(null)
   const [engagementsLoading, setEngagementsLoading] = useState(false)
-  const [usage, setUsage] = useState<{ lastActiveDate: string | null; activeDays30: number; flows30d: number; platformDays: number } | null>(null)
+  const [usage, setUsage] = useState<{
+    lastActiveDate: string | null; activeDays30: number; flows30d: number; platformDays: number
+    conversions30d: number; orders30d: number; engagements30d: number; collectedPosts30d: number
+    cbStatus: string | null; cbTermEnd: string | null; cbCancelScheduled: string | null
+  } | null>(null)
   const [meetings, setMeetings] = useState<{ lastMeeting: MeetingData | null; nextMeeting: MeetingData | null } | null>(null)
   const [meetingsLoading, setMeetingsLoading] = useState(false)
 
@@ -65,15 +69,15 @@ export default function DetailPanel({ client, onClose, onRescore }: Props) {
       .finally(() => setEngagementsLoading(false))
   }, [client.companyId, client.name])
 
-  // Load Databricks usage data
+  // Load Databricks usage + KPIs + Chargebee
   useEffect(() => {
     if (!client.flowboxPlatformId) return
     setUsage(null)
-    fetch(`/api/usage?platformId=${client.flowboxPlatformId}`)
+    fetch(`/api/usage?platformId=${client.flowboxPlatformId}&companyId=${client.companyId}`)
       .then(r => r.ok ? r.json() : null)
       .then(data => { if (data && !data.error) setUsage(data) })
       .catch(() => {})
-  }, [client.flowboxPlatformId])
+  }, [client.flowboxPlatformId, client.companyId])
 
   // Load HubSpot meetings (with outcome/status)
   useEffect(() => {
@@ -225,10 +229,19 @@ export default function DetailPanel({ client, onClose, onRescore }: Props) {
                   { k: 'NPS status', v: co.npsStatus ?? '—' },
                 ]},
                 { title: 'Platform usage', src: 'DATABRICKS', rows: [
-                  { k: 'Activity (30d)', v: !client.flowboxPlatformId ? 'No platform ID' : usage ? (usage.activeDays30 > 0 ? `${usage.activeDays30} active days` : 'No activity') : '…', cls: usage ? (usage.activeDays30 === 0 ? 'bd' : usage.activeDays30 < 5 ? 'wn' : 'ok') : undefined },
+                  { k: 'Active days (30d)',       v: !client.flowboxPlatformId ? 'No platform ID' : usage ? (usage.activeDays30 > 0 ? `${usage.activeDays30} days` : 'None') : '…', cls: usage ? (usage.activeDays30 === 0 ? 'bd' : usage.activeDays30 < 5 ? 'wn' : 'ok') : undefined },
                   { k: 'Flows distributed (30d)', v: !client.flowboxPlatformId ? '—' : usage ? usage.flows30d : '…', cls: usage ? (usage.flows30d === 0 ? 'bd' : usage.flows30d < 10 ? 'wn' : 'ok') : undefined },
-                  { k: 'Last active', v: !client.flowboxPlatformId ? '—' : usage?.lastActiveDate ?? '…', cls: usage ? (usage.platformDays > 60 ? 'bd' : usage.platformDays > 30 ? 'wn' : 'ok') : undefined },
+                  { k: 'Conversions (30d)',        v: !client.flowboxPlatformId ? '—' : usage ? usage.conversions30d : '…', cls: usage ? (usage.conversions30d === 0 ? 'bd' : usage.conversions30d < 5 ? 'wn' : 'ok') : undefined },
+                  { k: 'Orders (30d)',             v: !client.flowboxPlatformId ? '—' : usage ? usage.orders30d : '…', cls: usage ? (usage.orders30d === 0 ? 'bd' : usage.orders30d < 3 ? 'wn' : 'ok') : undefined },
+                  { k: 'Engagements (30d)',        v: !client.flowboxPlatformId ? '—' : usage ? usage.engagements30d : '…', cls: usage ? (usage.engagements30d === 0 ? 'bd' : usage.engagements30d < 100 ? 'wn' : 'ok') : undefined },
+                  { k: 'Posts collected (30d)',    v: !client.flowboxPlatformId ? '—' : usage ? usage.collectedPosts30d : '…', cls: usage ? (usage.collectedPosts30d === 0 ? 'bd' : usage.collectedPosts30d < 10 ? 'wn' : 'ok') : undefined },
+                  { k: 'Last active',              v: !client.flowboxPlatformId ? '—' : usage?.lastActiveDate ?? '…', cls: usage ? (usage.platformDays > 60 ? 'bd' : usage.platformDays > 30 ? 'wn' : 'ok') : undefined },
                 ]},
+                ...(usage?.cbStatus ? [{ title: 'Billing', src: 'DATABRICKS', rows: [
+                  { k: 'Subscription status', v: usage.cbStatus, cls: usage.cbStatus === 'active' ? 'ok' : usage.cbStatus === 'non_renewing' ? 'wn' : 'bd' },
+                  { k: 'Term end',            v: usage.cbTermEnd ?? '—' },
+                  ...(usage.cbCancelScheduled ? [{ k: 'Cancel scheduled', v: usage.cbCancelScheduled, cls: 'bd' as const }] : []),
+                ]}] : []),
                 ...(ob.active ? [{ title: 'Onboarding', src: 'HUBSPOT', rows: [
                   { k: 'Days in OB', v: ob.daysInOnboarding, cls: ob.daysInOnboarding > 90 ? 'bd' : undefined },
                   { k: 'Stage', v: ob.stage ?? '—' },
