@@ -47,7 +47,9 @@ export async function GET() {
 
   const coDealIds: Record<string, string[]> = {}
   for (const r of assocData.results ?? []) {
-    coDealIds[String(r.from?.id)] = (r.to ?? []).map((t: Record<string, unknown>) => String(t.id))
+    coDealIds[String(r.from?.id)] = (r.to ?? []).map((t: Record<string, unknown>) =>
+      String(t.toObjectId ?? t.id ?? '')
+    ).filter(Boolean)
   }
 
   const allDealIds = Array.from(new Set(Object.values(coDealIds).flat())) as string[]

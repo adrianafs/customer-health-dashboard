@@ -237,7 +237,10 @@ export async function GET(req: NextRequest) {
       const assocData = await assocRes.json()
       for (const r of assocData.results ?? []) {
         const fromId = String(r.from?.id ?? '')
-        const toIds  = (r.to ?? []).map((t: Record<string, unknown>) => String(t.id))
+        // HubSpot v4 associations API uses `toObjectId`, not `id`
+        const toIds = (r.to ?? []).map((t: Record<string, unknown>) =>
+          String(t.toObjectId ?? t.id ?? '')
+        ).filter(Boolean)
         if (fromId && toIds.length > 0) coDealIds[fromId] = toIds
       }
     }
@@ -311,7 +314,8 @@ export async function GET(req: NextRequest) {
       if (obAssoc.ok) {
         const obData = await obAssoc.json()
         for (const r of obData.results ?? []) {
-          const coId = String(r.to?.[0]?.id ?? '')
+          const toObj = r.to?.[0] as Record<string, unknown> | undefined
+          const coId = String(toObj?.toObjectId ?? toObj?.id ?? '')
           if (!coId) continue
           const dealId = String(r.from?.id ?? '')
           const obDeal = obDeals.find(d => String(d.id) === dealId)
