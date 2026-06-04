@@ -7,13 +7,12 @@ import { getEngagementDataForCompany, EngagementResult } from '@/lib/hubspot-eng
 const HS = 'https://api.hubapi.com'
 const TOKEN = process.env.HUBSPOT_TOKEN
 
-// ── 15-minute in-process cache ────────────────────────────────────────────────
 interface CacheEntry { data: EngagementResult; expiresAt: number }
 const cache = new Map<string, CacheEntry>()
 const TTL = 15 * 60 * 1000
 
 // GET /api/engagements?id=companyId&name=CompanyName
-// GET /api/engagements?test=1&id=companyId  → raw API test, no Claude
+// GET /api/engagements?test=1&id=companyId  → raw API test
 export async function GET(req: NextRequest) {
   if (!TOKEN) {
     return NextResponse.json({ error: 'HUBSPOT_TOKEN not configured' }, { status: 500 })
@@ -25,16 +24,35 @@ export async function GET(req: NextRequest) {
   const isTest      = searchParams.get('test') === '1'
 
   if (!companyId) {
-    return NextResponse.json({ error: 'id is required — add ?id=COMPANY_ID' }, { status: 400 })
+    return NextResponse.json({ error: 'id is required' }, { status: 400 })
   }
 
-  // Test mode: raw API response to debug scope issues
+  // Test mode: try all CRM v3 activity object types
   if (isTest) {
-    const auth = { Authorization: `Bearer ${TOKEN}` }
-    const url = `${HS}/engagements/v1/engagements/associated/COMPANY/${companyId}/paged?limit=5`
-    const res = await fetch(url, { headers: auth, cache: 'no-store' })
-    const body = await res.text()
-    return NextResponse.json({ status: res.status, url, body: JSON.parse(body) })
+    const auth = { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' }
+    const results: Record<string, unknown> = {}
+
+    for (const type of ['notes', 'emails', 'meetings', 'calls'] as const) {
+      const res = await fetch(`${HS}/crm/v3/objects/${type}/search`, {
+        method: 'POST',
+        headers: auth,
+        cache: 'no-store',
+        body: JSON.stringify({
+          limit: 3,
+          properties: type === 'notes' ? ['hs_note_body', 'hs_timestamp'] :
+                      type === 'emails' ? ['hs_email_subject', 'hs_email_text', 'hs_timestamp'] :
+                      type === 'meetings' ? ['hs_meeting_title', 'hs_meeting_body', 'hs_timestamp'] :
+                      ['hs_call_body', 'hs_timestamp'],
+          filterGroups: [{
+            filters: [{ propertyName: 'associations.company', operator: 'EQ', value: companyId }],
+          }],
+        }),
+      })
+      const body = await res.json()
+      results[type] = { status: res.status, total: body.total, sample: body.results?.slice(0, 2) }
+    }
+
+    return NextResponse.json({ companyId, results })
   }
 
   const cached = cache.get(companyId)
