@@ -247,6 +247,8 @@ export async function GET(req: NextRequest) {
         'total_contract_value', 'annualrevenue',
         'subscription_start_date', 'subscription_start_date__first_contract_',
         'hs_parent_company_id',
+        // Flowbox platform ID → maps to ugc_company_id in Databricks usage tables
+        'flowbox_platform_id',
       ],
       filterGroups: [{
         filters: [{ propertyName: 'lifecyclestage', operator: 'EQ', value: 'customer' }],
@@ -513,6 +515,7 @@ export async function GET(req: NextRequest) {
         renewalUrgent: daysUntil(subscriptionEndDate) > 0 && daysUntil(subscriptionEndDate) < 60,
         lastContactDaysAgo: lastDays,
         hubspotDealUrl: `https://app.hubspot.com/contacts/${PORTAL_ID}/deal/${dealId}`,
+        flowboxPlatformId: cp.flowbox_platform_id ?? null,
         ...(childCompanies.length > 0 ? { childCompanies } : {}),
       } as Client]
     })

@@ -32,6 +32,7 @@ export const DEAL_STAGE_LABELS: Record<string, string> = {
 
 export type Client = {
   id: string          // deal ID
+  flowboxPlatformId: string | null  // ugc_company_id in Databricks
   companyId: string
   name: string
   arr: number

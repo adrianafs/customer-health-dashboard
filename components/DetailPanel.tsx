@@ -48,6 +48,7 @@ export default function DetailPanel({ client, onClose, onRescore }: Props) {
   const [sentTo, setSentTo] = useState<string | null>(null)
   const [engagements, setEngagements] = useState<EngagementResult | null>(null)
   const [engagementsLoading, setEngagementsLoading] = useState(false)
+  const [usage, setUsage] = useState<{ lastActiveDate: string | null; activeDays30: number; flows30d: number; platformDays: number } | null>(null)
   const [meetings, setMeetings] = useState<{ lastMeeting: MeetingData | null; nextMeeting: MeetingData | null } | null>(null)
   const [meetingsLoading, setMeetingsLoading] = useState(false)
 
@@ -63,6 +64,16 @@ export default function DetailPanel({ client, onClose, onRescore }: Props) {
       .catch(() => {})
       .finally(() => setEngagementsLoading(false))
   }, [client.companyId, client.name])
+
+  // Load Databricks usage data
+  useEffect(() => {
+    if (!client.flowboxPlatformId) return
+    setUsage(null)
+    fetch(`/api/usage?platformId=${client.flowboxPlatformId}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data && !data.error) setUsage(data) })
+      .catch(() => {})
+  }, [client.flowboxPlatformId])
 
   // Load HubSpot meetings (with outcome/status)
   useEffect(() => {
@@ -210,8 +221,9 @@ export default function DetailPanel({ client, onClose, onRescore }: Props) {
                   { k: 'Last contact', v: `${d.lastContactDaysAgo}d ago`, cls: d.lastContactDaysAgo > 30 ? 'bd' : d.lastContactDaysAgo > 14 ? 'wn' : 'ok' },
                 ]},
                 { title: 'Company', src: 'HUBSPOT', rows: [
-                  { k: 'Usage health', v: co.usageHealth ?? '—', cls: co.usageHealth === 'Good' ? 'ok' : co.usageHealth === 'None' ? 'bd' : co.usageHealth === 'Poor' ? 'wn' : undefined },
-                  { k: 'Active flows', v: co.totalActiveFlows, cls: co.totalActiveFlows <= 1 ? 'wn' : 'ok' },
+                  { k: 'Platform activity (30d)', v: usage ? (usage.activeDays30 > 0 ? `${usage.activeDays30} active days` : 'No activity') : '…', cls: usage ? (usage.activeDays30 === 0 ? 'bd' : usage.activeDays30 < 5 ? 'wn' : 'ok') : undefined },
+                  { k: 'Flows distributed (30d)', v: usage ? usage.flows30d : '…', cls: usage ? (usage.flows30d === 0 ? 'bd' : usage.flows30d < 10 ? 'wn' : 'ok') : undefined },
+                  { k: 'Last platform activity', v: usage?.lastActiveDate ?? '—', cls: usage ? (usage.platformDays > 60 ? 'bd' : usage.platformDays > 30 ? 'wn' : 'ok') : undefined },
                   { k: 'Service level', v: co.serviceLevel ?? '—' },
                   { k: 'NPS status', v: co.npsStatus ?? '—' },
                 ]},
