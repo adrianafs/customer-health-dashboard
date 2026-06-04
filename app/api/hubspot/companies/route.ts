@@ -184,9 +184,9 @@ function classify(
 ): { state: HealthState; rules: string[] } {
 
   // ── CHURN RISK ──────────────────────────────────────────────────────────────
-  // If "Working on Anti-churn?" = No, the situation is resolved — treat as stable
-  if (churnFlag && !workingOnAntiChurn)    return { state: 'stable',     rules: ['anti_churn_resolved'] }
-  if (stage === '1309169016' && !workingOnAntiChurn) return { state: 'stable', rules: ['anti_churn_resolved'] }
+  // If "Working on Anti-churn?" = No, churn is confirmed/resolved — move to stable
+  if (churnFlag && workingOnAntiChurn)              return { state: 'stable',     rules: ['anti_churn_resolved'] }
+  if (stage === '1309169016' && workingOnAntiChurn) return { state: 'stable',     rules: ['anti_churn_resolved'] }
   if (churnFlag)              return { state: 'churn_risk', rules: ['churn_risk_flag'] }
   if (stage === '1309169016') return { state: 'churn_risk', rules: ['communicated_churn_stage'] }
 
@@ -410,7 +410,7 @@ export async function GET(req: NextRequest) {
 
       const serviceLevel        = cp.client_success_service_level as 'High' | 'Medium' | 'Low' | null ?? null
       const churnFlag           = cp.churn_risk === 'true'
-      const workingOnAntiChurn  = deal.likelihood_of_winback === 'Yes'
+      const workingOnAntiChurn  = deal.likelihood_of_winback === 'No'
       const ob                  = obCoMap[coId] ?? { active: false, days: 0, stage: null }
 
       // ── Brand detection ───────────────────────────────────────────────────
