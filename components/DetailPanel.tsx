@@ -1,6 +1,7 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Client, HealthState, SignalDriver, formatARR } from '@/lib/types'
+import type { FathomCompanyResult } from '@/lib/fathom'
 import ScoreBar, { STATE_COLORS, STATE_LABELS } from './ScoreBar'
 
 const DI: Record<SignalDriver['type'], string> = { positive: '↑', neutral: '~', negative: '↓', critical: '!' }
@@ -26,6 +27,22 @@ export default function DetailPanel({ client, onClose, onRescore }: Props) {
   const [editedBody, setEditedBody] = useState('')
   const [sending, setSending] = useState(false)
   const [sentTo, setSentTo] = useState<string | null>(null)
+  const [fathom, setFathom] = useState<FathomCompanyResult | null>(null)
+  const [fathomLoading, setFathomLoading] = useState(false)
+
+  // Load Fathom data when panel opens
+  useEffect(() => {
+    if (!client.companyId) return
+    setFathom(null)
+    setFathomLoading(true)
+    const params = new URLSearchParams({ name: client.name, id: client.companyId })
+    if (client.csm) params.set('csm', `${client.csm.toLowerCase()}@getflowbox.com`)
+    fetch(`/api/fathom?${params}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data && !data.error) setFathom(data) })
+      .catch(() => {})
+      .finally(() => setFathomLoading(false))
+  }, [client.companyId, client.name, client.csm])
 
   const color = STATE_COLORS[client.healthState]
   const daysToRenewal = client.contract.renewal
@@ -172,14 +189,73 @@ export default function DetailPanel({ client, onClose, onRescore }: Props) {
                   {sc.rows?.map((r, i) => <SRow key={i} k={r.k} v={r.v as string} cls={r.cls} />)}
                 </div>
               ))}
+              {/* Fathom — live data */}
               <div style={{ background: 'var(--n50)', border: '1px solid var(--n100)', borderRadius: 12, padding: 12 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
                   <span style={{ fontSize: 12, fontWeight: 600 }}>Fathom</span>
-                  <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--n400)', letterSpacing: '.07em' }}>SENTIMENT</span>
+                  <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--n400)', letterSpacing: '.07em' }}>MEETING SENTIMENT</span>
                 </div>
-                <div style={{ marginTop: 8, fontSize: 11.5, color: 'var(--n800)', lineHeight: 1.65 }}>
-                  {client.signals.fathom.summaries ?? <span style={{ color: 'var(--n400)', fontStyle: 'italic' }}>No call data available</span>}
-                </div>
+
+                {fathomLoading ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 0', color: 'var(--n400)', fontSize: 11.5 }}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" style={{ animation: 'spin 1s linear infinite', flexShrink: 0 }}>
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="40 20" />
+                    </svg>
+                    Fetching call data…
+                  </div>
+                ) : fathom && fathom.callCount > 0 ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {fathom.sentiment && (
+                      <div style={{
+                        fontSize: 11.5, lineHeight: 1.6, fontStyle: 'italic',
+                        color: fathom.sentimentType === 'churn' || fathom.sentimentType === 'negative'
+                          ? 'var(--d500)'
+                          : fathom.sentimentType === 'positive' ? 'var(--s500)' : 'var(--n700)',
+                      }}>
+                        &ldquo;{fathom.sentiment}&rdquo;
+                      </div>
+                    )}
+                    <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: 11, color: 'var(--n500)' }}>
+                        <strong style={{ color: 'var(--n800)' }}>{fathom.callCount}</strong> call{fathom.callCount !== 1 ? 's' : ''} in 90d
+                      </span>
+                      {fathom.lastCallDate && (
+                        <span style={{ fontSize: 11, color: 'var(--n500)' }}>
+                          Last: <strong style={{ color: 'var(--n800)' }}>{fathom.lastCallDate}</strong>
+                        </span>
+                      )}
+                      {fathom.openActionItems > 0 && (
+                        <span style={{ fontSize: 11, color: 'var(--w500)', fontWeight: 600 }}>
+                          {fathom.openActionItems} open action{fathom.openActionItems !== 1 ? 's' : ''}
+                        </span>
+                      )}
+                    </div>
+                    {fathom.openActionItemsForCsm.length > 0 && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        {fathom.openActionItemsForCsm.slice(0, 3).map((item, i) => (
+                          <div key={i} style={{ fontSize: 10.5, color: 'var(--n600)', display: 'flex', gap: 4 }}>
+                            <span style={{ color: 'var(--w500)', flexShrink: 0 }}>•</span>
+                            <span>{item.text}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {fathom.meetings.length > 0 && (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                        {fathom.meetings.slice(0, 4).map((m, i) => (
+                          <a key={m.id} href={m.share_url ?? m.url} target="_blank" rel="noopener noreferrer"
+                            style={{ fontSize: 10, padding: '2px 7px', background: 'var(--n100)', color: 'var(--v500)', borderRadius: 5, textDecoration: 'none', fontWeight: 500, whiteSpace: 'nowrap' }}>
+                            ▶ {m.created_at?.split('T')[0] ?? `Call ${i + 1}`}
+                          </a>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ) : fathom && fathom.callCount === 0 ? (
+                  <span style={{ fontSize: 11.5, color: 'var(--n400)', fontStyle: 'italic' }}>No calls found in the last 90 days</span>
+                ) : (
+                  <span style={{ fontSize: 11.5, color: 'var(--n400)', fontStyle: 'italic' }}>Call data unavailable</span>
+                )}
               </div>
             </div>
           </div>
