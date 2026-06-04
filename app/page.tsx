@@ -16,7 +16,6 @@ const COLUMNS: { state: HealthState; label: string; subtitle: string; color: str
 const DEFAULT_CSM = CSM_LIST[0] // Claudia
 
 export default function Dashboard() {
-  const [clients, setClients] = useState<Client[]>(mockClients)
   const [loading, setLoading] = useState(false)
   const [apiError, setApiError] = useState<string | null>(null)
   const [dataSource, setDataSource] = useState<'mock' | 'hubspot'>('mock')
@@ -24,38 +23,37 @@ export default function Dashboard() {
   const [activeCsmId, setActiveCsmId] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
 
-  const loadData = useCallback(async (ownerId: string) => {
+  const [allClients, setAllClients] = useState<Client[]>(mockClients)
+
+  const loadData = useCallback(async () => {
     setLoading(true)
     setApiError(null)
     try {
-      const url = ownerId === 'all' ? '/api/hubspot/companies' : `/api/hubspot/companies?owner=${ownerId}`
-      const res = await fetch(url)
+      const res = await fetch('/api/hubspot/companies')
       const data = await res.json()
       if (!res.ok) {
         setApiError(`API ${res.status}: ${data?.error ?? 'unknown error'}`)
       } else if (Array.isArray(data) && data.length > 0) {
-        setClients(data)
+        setAllClients(data)
         setDataSource('hubspot')
         setLoading(false)
         return
       } else {
-        setApiError(`HubSpot returned 0 deals for owner ${ownerId}`)
+        setApiError('HubSpot returned 0 customers')
       }
     } catch (e) {
       setApiError(`Network error: ${String(e)}`)
     }
-    // fallback to mock
-    const csmEntry = CSM_LIST.find(c => c.ownerId === ownerId)
-    setClients(csmEntry ? mockClients.filter(c => c.csm === csmEntry.name) : mockClients)
+    setAllClients(mockClients)
     setDataSource('mock')
     setLoading(false)
   }, [])
 
   useEffect(() => {
-    loadData(activeCsmId)
-    const interval = setInterval(() => loadData(activeCsmId), 5 * 60 * 1000)
+    loadData()
+    const interval = setInterval(loadData, 5 * 60 * 1000)
     return () => clearInterval(interval)
-  }, [activeCsmId, loadData])
+  }, [loadData])
 
   function handleCsmChange(ownerId: string) {
     setActiveCsmId(ownerId)
@@ -63,14 +61,19 @@ export default function Dashboard() {
   }
 
   function handleRescore(updated: Client) {
-    setClients(prev => prev.map(c => c.id === updated.id ? updated : c))
+    setAllClients(prev => prev.map(c => c.id === updated.id ? updated : c))
     setSelectedClient(updated)
   }
 
-  const filtered = useMemo(() => {
-    if (!searchQuery) return clients
-    return clients.filter(c => c.name.toLowerCase().includes(searchQuery.toLowerCase()))
-  }, [clients, searchQuery])
+  // Filter by CSM (frontend — uses deal's csmOwnerId) and search query
+  const clients = useMemo(() => {
+    let base = allClients
+    if (activeCsmId !== 'all') base = base.filter(c => c.csmOwnerId === activeCsmId)
+    if (searchQuery) base = base.filter(c => c.name.toLowerCase().includes(searchQuery.toLowerCase()))
+    return base
+  }, [allClients, activeCsmId, searchQuery])
+
+  const filtered = clients
 
   const stateCounts = useMemo(() => {
     const counts: Record<HealthState, number> = { stable: 0, keep_an_eye: 0, action_required: 0, churn_risk: 0 }
@@ -81,7 +84,7 @@ export default function Dashboard() {
   const activeCsm = CSM_LIST.find(c => c.ownerId === activeCsmId) ?? DEFAULT_CSM
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ backgroundColor: '#0d0d12' }}>
+    <div className="min-h-screen flex flex-col relative" style={{ backgroundColor: '#0d0d12' }}>
       {/* Header */}
       <header className="shrink-0 px-6 py-3 flex items-center justify-between"
         style={{ borderBottom: '1px solid rgba(255,255,255,0.07)', backgroundColor: '#13131a' }}>
@@ -101,7 +104,7 @@ export default function Dashboard() {
               {dataSource === 'hubspot' ? 'HubSpot Live' : 'Mock Data'}
             </span>
           </div>
-          <button onClick={() => loadData(activeCsmId)} disabled={loading}
+          <button onClick={() => loadData()} disabled={loading}
             className="text-[11px] px-2.5 py-1.5 rounded-lg transition-all hover:brightness-110 disabled:opacity-50"
             style={{ backgroundColor: '#1a1a24', border: '1px solid rgba(255,255,255,0.09)', color: '#6b7280' }}>
             {loading ? '⟳ Loading…' : '↻ Refresh'}
@@ -165,6 +168,16 @@ export default function Dashboard() {
           <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-600 text-xs">⌕</span>
         </div>
       </div>
+
+      {/* Loading spinner overlay */}
+      {loading && (
+        <div className="absolute inset-0 z-20 flex items-center justify-center" style={{ backgroundColor: 'rgba(13,13,18,0.7)', top: 0 }}>
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-8 h-8 rounded-full border-2 border-purple-500 border-t-transparent animate-spin" />
+            <span className="text-sm text-gray-400">Loading from HubSpot…</span>
+          </div>
+        </div>
+      )}
 
       {/* Kanban board */}
       <div className="flex-1 overflow-hidden flex">
