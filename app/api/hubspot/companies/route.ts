@@ -617,6 +617,38 @@ export async function GET(req: NextRequest) {
       })
     }
 
+    // ── Debug: explain empty results ─────────────────────────────────────────
+    if (clients.length === 0) {
+      let noDeals = 0, wrongPipeline = 0, allExcluded = 0
+      for (const co of companies) {
+        const coId = String(co.id)
+        const dealIds = coDealIds[coId] ?? []
+        if (dealIds.length === 0) { noDeals++; continue }
+        const allDeals = dealIds.map(id => ({ id, props: dealPropsMap[id] })).filter(d => d.props)
+        if (allDeals.length === 0) { noDeals++; continue }
+        const contractDeals = allDeals.filter(d => d.props.pipeline === CONTRACTS_PIPELINE)
+        if (contractDeals.length === 0) { wrongPipeline++; continue }
+        const validDeals = contractDeals.filter(d => !EXCLUDED_STAGES.has(d.props.dealstage ?? ''))
+        if (validDeals.length === 0) { allExcluded++; continue }
+      }
+      const sampleDealId = Object.values(coDealIds).flat()[0]
+      const sampleDeal = sampleDealId ? dealPropsMap[sampleDealId] : null
+      return NextResponse.json({
+        clients: [],
+        csmOwnerIds: [],
+        _debug: {
+          companiesFound: companies.length,
+          dealIdsFound: Object.values(coDealIds).flat().length,
+          dealPropsLoaded: Object.keys(dealPropsMap).length,
+          noDeals,
+          wrongPipeline,
+          allExcluded,
+          contractsPipelineId: CONTRACTS_PIPELINE,
+          sampleDealProps: sampleDeal,
+        },
+      })
+    }
+
     return NextResponse.json({ clients, csmOwnerIds })
 
   } catch (err) {
