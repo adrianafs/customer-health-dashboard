@@ -63,8 +63,9 @@ const OWNER_NAMES: Record<string, string> = {
   '83251257': 'Jeno Toth',
   '71337806': 'Tatiana Lozano',
   '76033686': 'Robin Sand',
-  '64994666': 'Claudia Núñez',
-  '82166106': 'Claudia Núñez', // secondary account
+  '64994666':  'Claudia Núñez',
+  '82166106':  'Claudia Núñez',
+  '1918285936':'Claudia Núñez',
   '66551551': 'Isabel Fugmann',
   '62715576': 'Sophia Garner Rønne',
   '87061202': 'Lucia Fuentes',

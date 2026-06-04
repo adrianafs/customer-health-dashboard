@@ -28,22 +28,31 @@ export async function GET() {
       .filter(Boolean)
   ))
 
-  // 2. Fetch all owners from the list endpoint (works with Bearer token)
+  // 2. Try multiple endpoints to get all users/owners
   const allOwners: Record<string, { firstName: string; lastName: string; email: string }> = {}
-  let offset = 0
-  let done = false
-  while (!done) {
-    const r = await fetch(`${HS}/crm/v3/owners?limit=200&offset=${offset}&includeDeactivated=true`, {
-      headers: auth(), cache: 'no-store',
-    })
-    if (!r.ok) break
-    const data = await r.json()
-    for (const o of data.results ?? []) {
+
+  // Try /crm/v3/owners
+  const ownersRes = await fetch(`${HS}/crm/v3/owners?limit=200&includeDeactivated=true`, {
+    headers: auth(), cache: 'no-store',
+  })
+  if (ownersRes.ok) {
+    const ownersData = await ownersRes.json()
+    for (const o of ownersData.results ?? []) {
       allOwners[String(o.id)] = { firstName: o.firstName ?? '', lastName: o.lastName ?? '', email: o.email ?? '' }
     }
-    if ((data.results ?? []).length < 200) done = true
-    else offset += 200
   }
+
+  // Try /settings/v3/users (requires settings.users.read scope)
+  const usersRes = await fetch(`${HS}/settings/v3/users/?limit=100`, {
+    headers: auth(), cache: 'no-store',
+  })
+  const usersData = usersRes.ok ? await usersRes.json() : null
+
+  // Try /crm/v3/owners with userId field
+  const ownersV2Res = await fetch(`${HS}/crm/v3/owners?limit=200`, {
+    headers: auth(), cache: 'no-store',
+  })
+  const ownersV2Data = ownersV2Res.ok ? await ownersV2Res.json() : null
 
   // 3. Cross-reference: which deal owner IDs are known vs unknown?
   const known: Record<string, unknown>[] = []
@@ -59,10 +68,13 @@ export async function GET() {
 
   return NextResponse.json({
     source: `Deal owners from Contracts pipeline (${CONTRACTS_PIPELINE})`,
-    totalOwnersInHubSpot: Object.keys(allOwners).length,
     dealOwnerIds: dealOwnerIds.length,
     known,
     unknown,
-    allOwnersSample: Object.entries(allOwners).slice(0, 5).map(([id, o]) => ({ id, ...o })),
+    crm_owners: Object.entries(allOwners).map(([id, o]) => ({ id, ...o })),
+    settings_users: usersData,
+    owners_v2: ownersV2Data?.results?.map((o: Record<string, unknown>) => ({
+      id: o.id, userId: o.userId, firstName: o.firstName, lastName: o.lastName, email: o.email,
+    })),
   })
 }
