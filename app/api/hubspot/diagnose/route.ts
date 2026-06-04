@@ -98,6 +98,28 @@ export async function GET() {
     companiesWithNoDeals = sampleIds.length
   }
 
+  // 5. Fetch real pipeline list from HubSpot
+  const pipelinesRes = await fetch(`${HS}/crm/v3/pipelines/deals`, {
+    headers: auth(), cache: 'no-store',
+  })
+  const pipelinesData = pipelinesRes.ok ? await pipelinesRes.json() : {}
+  const pipelines = (pipelinesData.results ?? []).map((p: Record<string, unknown>) => ({
+    id: p.id,
+    label: p.label,
+    stages: ((p.stages ?? []) as Record<string, unknown>[]).map(s => ({ id: s.id, label: s.label })),
+  }))
+
+  // 6. Fetch a raw sample deal to see actual properties
+  const sampleDealId = allDealIds[0]
+  let sampleDeal = null
+  if (sampleDealId) {
+    const sampleRes = await fetch(
+      `${HS}/crm/v3/objects/deals/${sampleDealId}?properties=dealname,pipeline,dealstage,amount`,
+      { headers: auth(), cache: 'no-store' }
+    )
+    sampleDeal = sampleRes.ok ? await sampleRes.json() : null
+  }
+
   return NextResponse.json({
     summary: {
       totalCustomerCompanies: companies.length,
@@ -118,5 +140,7 @@ export async function GET() {
     stageBreakdown,
     contractsPipelineId: CONTRACTS_PIPELINE,
     excludedStages: Array.from(EXCLUDED_STAGES),
+    realPipelines: pipelines,
+    sampleDeal,
   })
 }
