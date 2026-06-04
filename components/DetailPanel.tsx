@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { Client, HealthState, SignalDriver, formatARR } from '@/lib/types'
+import type { EngagementResult } from '@/lib/hubspot-engagements'
 import ScoreBar, { STATE_COLORS, STATE_LABELS } from './ScoreBar'
 
 const DI: Record<SignalDriver['type'], string> = { positive: '↑', neutral: '~', negative: '↓', critical: '!' }
@@ -163,6 +164,38 @@ export default function DetailPanel({ client, onClose, onRescore }: Props) {
   const [editedBody, setEditedBody] = useState('')
   const [sending, setSending] = useState(false)
   const [sentTo, setSentTo] = useState<string | null>(null)
+  const [engagements, setEngagements] = useState<EngagementResult | null>(null)
+  const [engagementsLoading, setEngagementsLoading] = useState(false)
+  const [usage, setUsage] = useState<import('@/lib/databricks').UsageStats | null>(null)
+
+  // Load HubSpot engagement sentiment
+  useEffect(() => {
+    if (!client.companyId) return
+    setEngagements(null)
+    setEngagementsLoading(true)
+    const params = new URLSearchParams({ id: client.companyId, name: client.name })
+    fetch(`/api/engagements?${params}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data && !data.error) setEngagements(data) })
+      .catch(() => {})
+      .finally(() => setEngagementsLoading(false))
+  }, [client.companyId, client.name])
+
+  // Load Databricks usage — UGC for flowbox, IM for dream, both for full suite
+  const hasDatabricks = client.brand === 'dream' || client.brand === 'both' || !!client.flowboxPlatformId
+  useEffect(() => {
+    if (!hasDatabricks) return
+    setUsage(null)
+    const params = new URLSearchParams({
+      platformId: client.flowboxPlatformId ?? '',
+      companyId:  client.companyId,
+      ...(client.brand ? { brand: client.brand } : {}),
+    })
+    fetch(`/api/usage?${params}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data && !data.error) setUsage(data) })
+      .catch(() => {})
+  }, [client.flowboxPlatformId, client.companyId, client.brand, hasDatabricks])
 
   const color = STATE_COLORS[client.healthState]
   const daysToRenewal = client.contract.renewal
@@ -299,34 +332,75 @@ export default function DetailPanel({ client, onClose, onRescore }: Props) {
                   { k: 'Last contact', v: d.lastContactDaysAgo > 900 ? 'Never' : `${d.lastContactDaysAgo}d ago`, cls: d.lastContactDaysAgo > 30 ? 'bd' : d.lastContactDaysAgo > 14 ? 'wn' : 'ok' },
                 ]},
                 { title: 'Company', src: 'HUBSPOT', rows: [
-                  { k: 'Usage health', v: co.usageHealth ?? '—', cls: co.usageHealth === 'Good' ? 'ok' : co.usageHealth === 'None' ? 'bd' : co.usageHealth === 'Poor' ? 'wn' : undefined },
-                  { k: 'Active flows', v: co.totalActiveFlows, cls: co.totalActiveFlows <= 1 ? 'wn' : 'ok' },
-                  { k: 'Service level', v: co.serviceLevel ?? '—' },
-                  { k: 'NPS status', v: co.npsStatus ?? '—' },
+                  { k: 'Service level', v: co.serviceLevel ?? '—', cls: undefined },
+                  { k: 'NPS status', v: co.npsStatus ?? '—', cls: undefined },
                 ]},
-                { title: 'Onboarding', src: 'HUBSPOT', rows: [
-                  { k: 'Active', v: ob.active ? 'Yes' : 'No' },
-                  { k: 'Days in OB', v: ob.active ? ob.daysInOnboarding : '—', cls: ob.daysInOnboarding > 90 ? 'bd' : undefined },
-                  { k: 'Stage', v: ob.stage ?? '—' },
-                  { k: 'Open tasks', v: client.signals.openTasks, cls: client.signals.openTasks > 0 ? 'wn' : undefined },
-                ]},
+                ...(ob.active ? [{ title: 'Onboarding', src: 'HUBSPOT' as const, rows: [
+                  { k: 'Days in OB', v: ob.daysInOnboarding, cls: ob.daysInOnboarding > 90 ? 'bd' : undefined },
+                  { k: 'Stage', v: ob.stage ?? '—', cls: undefined },
+                ] }] : []),
+                // Flowbox UGC section
+                ...((client.brand === 'flowbox' || client.brand === 'both' || !client.brand) ? [{ title: 'Flowbox usage', src: 'DATABRICKS' as const, rows: [
+                  { k: 'Activity days (30d)', v: !client.flowboxPlatformId ? 'No platform ID' : usage ? (usage.activeDays30 > 0 ? `${usage.activeDays30} days` : 'None') : '…', cls: usage ? (usage.activeDays30 === 0 ? 'bd' : usage.activeDays30 < 5 ? 'wn' : 'ok') : undefined },
+                  { k: 'Flows distributed (30d)', v: !client.flowboxPlatformId ? '—' : usage ? usage.flows30d : '…', cls: usage ? (usage.flows30d === 0 ? 'bd' : usage.flows30d < 10 ? 'wn' : 'ok') : undefined },
+                  { k: 'Conversions (30d)', v: !client.flowboxPlatformId ? '—' : usage ? usage.conversions30d : '…', cls: undefined },
+                  { k: 'Orders (30d)', v: !client.flowboxPlatformId ? '—' : usage ? usage.orders30d : '…', cls: undefined },
+                  { k: 'Engagements (30d)', v: !client.flowboxPlatformId ? '—' : usage ? usage.engagements30d : '…', cls: undefined },
+                  { k: 'Last active', v: !client.flowboxPlatformId ? '—' : usage?.lastActiveDate ?? '…', cls: usage ? (usage.platformDays > 60 ? 'bd' : usage.platformDays > 30 ? 'wn' : 'ok') : undefined },
+                ]}] : []),
+                // Dreaminfluence IM section
+                ...((client.brand === 'dream' || client.brand === 'both') ? [{ title: 'Influencer Marketing', src: 'DATABRICKS' as const, rows: [
+                  { k: 'Total teams', v: usage ? usage.totalTeams : '…', cls: usage ? (usage.totalTeams === 0 ? 'bd' : 'ok') : undefined },
+                  { k: 'Total influencers', v: usage ? usage.totalInfluencers : '…', cls: usage ? (usage.totalInfluencers === 0 ? 'bd' : 'ok') : undefined },
+                  { k: 'Active campaigns', v: usage ? usage.activeCampaigns : '…', cls: usage ? (usage.activeCampaigns === 0 ? 'wn' : 'ok') : undefined },
+                  { k: 'Last activity', v: usage?.lastActivity ?? (usage ? 'None' : '…'), cls: usage && !usage.lastActivity ? 'bd' : undefined },
+                ]}] : []),
+                ...(usage?.cbStatus ? [{ title: 'Billing', src: 'DATABRICKS' as const, rows: [
+                  { k: 'Subscription', v: usage.cbStatus, cls: usage.cbStatus === 'active' ? 'ok' : usage.cbStatus === 'non_renewing' ? 'wn' : 'bd' },
+                  { k: 'Term end', v: usage.cbTermEnd ?? '—' },
+                  ...(usage.cbCancelScheduled ? [{ k: 'Cancel scheduled', v: usage.cbCancelScheduled, cls: 'bd' as const }] : []),
+                ]}] : []),
               ].map(sc => (
                 <div key={sc.title} style={{ background: 'var(--n50)', border: '1px solid var(--n100)', borderRadius: 12, padding: 12 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
                     <span style={{ fontSize: 12, fontWeight: 600 }}>{sc.title}</span>
-                    <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--n400)', letterSpacing: '.07em' }}>{sc.src}</span>
+                    <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.07em', color: sc.src === 'DATABRICKS' ? 'var(--v500)' : 'var(--n400)' }}>{sc.src}</span>
                   </div>
                   {sc.rows?.map((r, i) => <SRow key={i} k={r.k} v={r.v as string} cls={r.cls} />)}
                 </div>
               ))}
+              {/* Activity — HubSpot sentiment */}
               <div style={{ background: 'var(--n50)', border: '1px solid var(--n100)', borderRadius: 12, padding: 12 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                  <span style={{ fontSize: 12, fontWeight: 600 }}>Fathom</span>
-                  <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--n400)', letterSpacing: '.07em' }}>SENTIMENT</span>
+                  <span style={{ fontSize: 12, fontWeight: 600 }}>Activity</span>
+                  <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--n400)', letterSpacing: '.07em' }}>AI SENTIMENT</span>
                 </div>
-                <div style={{ marginTop: 8, fontSize: 11.5, color: 'var(--n800)', lineHeight: 1.65 }}>
-                  {client.signals.fathom.summaries ?? <span style={{ color: 'var(--n400)', fontStyle: 'italic' }}>No call data available</span>}
-                </div>
+                {engagementsLoading ? (
+                  <div style={{ fontSize: 11.5, color: 'var(--n400)', fontStyle: 'italic' }}>Analysing activity…</div>
+                ) : engagements && engagements.activityCount > 0 ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {engagements.sentiment && (
+                      <div style={{ fontSize: 11.5, lineHeight: 1.6, fontStyle: 'italic', color: engagements.sentimentType === 'churn' || engagements.sentimentType === 'negative' ? 'var(--d500)' : engagements.sentimentType === 'positive' ? 'var(--s500)' : 'var(--n700)' }}>
+                        &ldquo;{engagements.sentiment}&rdquo;
+                      </div>
+                    )}
+                    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: 11, color: 'var(--n500)' }}><strong style={{ color: 'var(--n800)' }}>{engagements.activityCount}</strong> activities in 6mo</span>
+                      {engagements.lastActivityDate && <span style={{ fontSize: 11, color: 'var(--n500)' }}>Last: <strong style={{ color: 'var(--n800)' }}>{engagements.lastActivityDate}</strong></span>}
+                    </div>
+                    {engagements.openActionItems.length > 0 && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                        {engagements.openActionItems.map((item, i) => (
+                          <div key={i} style={{ fontSize: 10.5, color: 'var(--n600)', display: 'flex', gap: 4 }}>
+                            <span style={{ color: 'var(--w500)', flexShrink: 0 }}>•</span><span>{item}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <span style={{ fontSize: 11.5, color: 'var(--n400)', fontStyle: 'italic' }}>{engagements ? 'No activity found in the last 6 months' : 'Activity data unavailable'}</span>
+                )}
               </div>
             </div>
           </div>
