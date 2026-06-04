@@ -8,24 +8,33 @@ function auth() { return { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'ap
 export async function GET() {
   if (!TOKEN) return NextResponse.json({ error: 'HUBSPOT_TOKEN not set' })
 
-  // Fetch 3 customer companies with all relevant owner fields
-  const res = await fetch(`${HS}/crm/v3/objects/companies/search`, {
-    method: 'POST',
-    headers: auth(),
-    cache: 'no-store',
+  // Get all unique owner IDs from the first 50 customers
+  const coRes = await fetch(`${HS}/crm/v3/objects/companies/search`, {
+    method: 'POST', headers: auth(), cache: 'no-store',
     body: JSON.stringify({
-      limit: 3,
-      properties: ['name', 'hubspot_owner_id', 'ownername', 'owneremail', 'total_contract_value'],
+      limit: 50,
+      properties: ['name', 'hubspot_owner_id'],
       filterGroups: [{ filters: [{ propertyName: 'lifecyclestage', operator: 'EQ', value: 'customer' }] }],
     }),
   })
-  const data = res.ok ? await res.json() : { error: await res.text() }
+  const coData = coRes.ok ? await coRes.json() : {}
+  const uniqueIds = Array.from(new Set(
+    (coData.results ?? []).map((c: Record<string, unknown>) => (c.properties as Record<string, string>)?.hubspot_owner_id).filter(Boolean)
+  )) as string[]
 
-  return NextResponse.json({
-    total: data.total,
-    sample: data.results?.map((c: Record<string, unknown>) => ({
-      id: c.id,
-      props: c.properties,
-    })),
-  })
+  // Fetch each owner individually
+  const owners = await Promise.all(
+    uniqueIds.map(async id => {
+      try {
+        const r = await fetch(`${HS}/crm/v3/owners/${id}`, { headers: auth(), cache: 'no-store' })
+        if (!r.ok) return { id, error: r.status }
+        const o = await r.json()
+        return { id, firstName: o.firstName, lastName: o.lastName, email: o.email }
+      } catch (e) {
+        return { id, error: String(e) }
+      }
+    })
+  )
+
+  return NextResponse.json({ uniqueOwnerIds: uniqueIds.length, owners })
 }
