@@ -1,12 +1,18 @@
 'use client'
-
 import { HealthState } from '@/lib/types'
 
 export const STATE_COLORS: Record<HealthState, string> = {
-  stable: '#639922',
-  keep_an_eye: '#EF9F27',
-  action_required: '#D85A30',
-  churn_risk: '#E24B4A',
+  stable:          '#00CC9A',
+  keep_an_eye:     '#F5783D',
+  action_required: '#F5783D',
+  churn_risk:      '#F53D52',
+}
+
+export const STATE_LABELS: Record<HealthState, string> = {
+  stable:          'Stable',
+  keep_an_eye:     'Keep an Eye',
+  action_required: 'Action Required',
+  churn_risk:      'Churn Risk',
 }
 
 interface ScoreBarProps {
@@ -15,10 +21,10 @@ interface ScoreBarProps {
   height?: number
 }
 
-export default function ScoreBar({ score, healthState, height = 2 }: ScoreBarProps) {
+export default function ScoreBar({ score, healthState, height = 3 }: ScoreBarProps) {
   return (
-    <div className="w-full rounded-full overflow-hidden" style={{ height, backgroundColor: 'rgba(255,255,255,0.08)' }}>
-      <div className="h-full rounded-full transition-all duration-500" style={{ width: `${score}%`, backgroundColor: STATE_COLORS[healthState] }} />
+    <div style={{ height, background: 'var(--fb-neutral-100)', borderRadius: 4, overflow: 'hidden' }}>
+      <div style={{ height: '100%', width: `${score}%`, background: STATE_COLORS[healthState], borderRadius: 4, transition: 'width .6s ease' }} />
     </div>
   )
 }

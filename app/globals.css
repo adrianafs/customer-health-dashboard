@@ -3,39 +3,65 @@
 @tailwind utilities;
 
 :root {
-  --font-dm-sans: 'DM Sans', system-ui, sans-serif;
-  --font-dm-mono: 'DM Mono', monospace;
+  --fb-violet-50: #F3EBFF;
+  --fb-violet-100: #E4D1FF;
+  --fb-violet-200: #CDA9FF;
+  --fb-violet-300: #AF79FE;
+  --fb-violet-400: #8A38F5;
+  --fb-violet-500: #6A00FF;
+  --fb-violet-600: #5500CC;
+  --fb-violet-700: #400099;
+  --fb-neutral-0: #FFFFFF;
+  --fb-neutral-50: #F5F5F7;
+  --fb-neutral-100: #ECECF0;
+  --fb-neutral-200: #DFDFE5;
+  --fb-neutral-300: #C5C5D1;
+  --fb-neutral-400: #A6A6B8;
+  --fb-neutral-500: #747490;
+  --fb-neutral-700: #4B4B5D;
+  --fb-neutral-800: #2D2D39;
+  --fb-neutral-900: #121217;
+  --fb-success-50: #E4F7EE;
+  --fb-success-500: #00CC9A;
+  --fb-success-600: #00A378;
+  --fb-warning-500: #F5783D;
+  --fb-danger-500: #F53D52;
+  --shadow-sm: 0 1px 3px rgba(18,18,23,.06);
+  --shadow-md: 0 4px 8px -2px rgba(18,18,23,.08), 0 2px 4px -2px rgba(18,18,23,.04);
+  --shadow-violet: 0 8px 24px -8px rgba(106,0,255,.4);
+  --r-md: 8px;
+  --r-lg: 12px;
+  --r-xl: 16px;
+  --r-pill: 999px;
+  --fg-1: #121217;
+  --fg-2: #747490;
+  --fg-3: #A6A6B8;
+  --border: #DFDFE5;
 }
 
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
-  background-color: #0d0d12;
-  color: white;
-  margin: 0;
+  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  background: #F5F5F7;
+  color: var(--fg-1);
+  font-size: 13px;
+  line-height: 1.5;
+  min-height: 100vh;
 }
 
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 4px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 2px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.15);
-}
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--fb-neutral-200); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--fb-neutral-300); }
 
-@keyframes pulse-live {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
-}
-.animate-pulse-live {
-  animation: pulse-live 2s ease-in-out infinite;
-}
+@keyframes pulse-dot { 0%,100% { opacity:1 } 50% { opacity:.3 } }
+@keyframes spin { to { transform: rotate(360deg) } }
+@keyframes slideIn { from { transform: translateX(100%) } to { transform: translateX(0) } }
+@keyframes fadeUp { from { opacity:0; transform:translateY(8px) } to { opacity:1; transform:translateY(0) } }
+
+.animate-pulse-dot { animation: pulse-dot 2s ease-in-out infinite; }
+.animate-spin-custom { animation: spin 1s linear infinite; }
+.animate-slide-in { animation: slideIn .22s cubic-bezier(.22,1,.36,1); }
+.animate-fade-up { animation: fadeUp .18s ease; }
