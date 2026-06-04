@@ -28,6 +28,10 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    // Dynamic import so Resend isn't loaded at build time
+    const { Resend } = await import('resend')
+    const resend = new Resend(process.env.RESEND_API_KEY)
+
     const { subject, body, clientName, csmName } = await req.json()
 
     const csmEmail = getCsmEmail(csmName)
