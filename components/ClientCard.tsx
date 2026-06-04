@@ -1,76 +1,83 @@
 'use client'
-
 import { Client, HealthState, SignalDriver, formatARR } from '@/lib/types'
 import ScoreBar, { STATE_COLORS } from './ScoreBar'
 
-const STATE_BG: Record<HealthState, string> = {
-  stable: 'rgba(99,153,34,0.12)',
-  keep_an_eye: 'rgba(239,159,39,0.12)',
-  action_required: 'rgba(216,90,48,0.12)',
-  churn_risk: 'rgba(226,75,74,0.12)',
+const DRIVER_ICON: Record<SignalDriver['type'], string> = { positive: '↑', neutral: '~', negative: '↓', critical: '!' }
+const DRIVER_COLOR: Record<SignalDriver['type'], string> = {
+  positive: '#00CC9A', neutral: '#F5783D', negative: '#F53D52', critical: '#F53D52',
 }
 
-function DriverIcon({ type }: { type: SignalDriver['type'] }) {
-  if (type === 'positive') return <span className="text-green-400 font-bold text-xs">↑</span>
-  if (type === 'negative') return <span className="text-orange-400 font-bold text-xs">↓</span>
-  if (type === 'critical') return <span className="text-red-400 font-bold text-xs">!</span>
-  return <span className="text-amber-400 font-bold text-xs">~</span>
-}
+interface Props { client: Client; onClick: () => void; selected?: boolean }
 
-const CSM_INITIALS: Record<string, string> = {
-  Claudia: 'CN', Cecile: 'CG', Sophia: 'SJ', Jerry: 'JW',
-  Chantal: 'CB', Frida: 'FL', Oktawia: 'OG', Jana: 'JK', David: 'DK',
-}
-
-interface ClientCardProps {
-  client: Client
-  onClick: () => void
-}
-
-export default function ClientCard({ client, onClick }: ClientCardProps) {
+export default function ClientCard({ client, onClick, selected }: Props) {
   const color = STATE_COLORS[client.healthState]
-  const topDrivers = client.scoreDrivers.slice(0, 3)
 
   return (
-    <button onClick={onClick} className="w-full text-left rounded-lg overflow-hidden transition-all duration-150 hover:brightness-110 active:scale-[0.99]"
-      style={{ backgroundColor: '#13131a', border: '1px solid rgba(255,255,255,0.07)' }}>
-      <div className="flex">
-        <div className="w-[3px] shrink-0 rounded-l-lg" style={{ backgroundColor: color }} />
-        <div className="flex-1 p-3">
-          <div className="flex items-start justify-between gap-2 mb-2">
-            <div className="flex-1 min-w-0">
-              <span className="font-semibold text-sm text-white truncate block">{client.name}</span>
-              <span className="font-mono text-[11px] text-gray-500">€{formatARR(client.arr)}</span>
-            </div>
-            <span className="shrink-0 text-xs font-bold px-2 py-0.5 rounded-full"
-              style={{ backgroundColor: STATE_BG[client.healthState], color }}>
-              {client.score}
-            </span>
-          </div>
+    <button
+      onClick={onClick}
+      style={{
+        background: '#fff',
+        borderRadius: 'var(--r-lg)',
+        border: selected ? '1.5px solid var(--fb-violet-500)' : '1px solid var(--border)',
+        padding: '14px 14px 12px',
+        cursor: 'pointer',
+        position: 'relative',
+        overflow: 'hidden',
+        textAlign: 'left',
+        width: '100%',
+        boxShadow: selected ? '0 0 0 3px rgba(106,0,255,.1)' : 'var(--shadow-sm)',
+        transition: 'all .15s',
+      }}
+      onMouseEnter={e => { if (!selected) (e.currentTarget as HTMLElement).style.boxShadow = 'var(--shadow-md)' }}
+      onMouseLeave={e => { if (!selected) (e.currentTarget as HTMLElement).style.boxShadow = 'var(--shadow-sm)' }}
+    >
+      {/* Top color bar */}
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: color, borderRadius: '12px 12px 0 0' }} />
 
-          <div className="mb-2">
-            <ScoreBar score={client.score} healthState={client.healthState} height={2} />
-          </div>
-
-          <div className="space-y-0.5 mb-2">
-            {topDrivers.map((d, i) => (
-              <div key={i} className="flex items-center gap-1.5">
-                <DriverIcon type={d.type} />
-                <span className="text-[11px] text-gray-400 truncate">{d.label}</span>
-              </div>
-            ))}
-          </div>
-
-          <div className="flex items-center justify-between pt-1.5" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-            <span className="text-[10px] px-1.5 py-0.5 rounded font-medium"
-              style={{ backgroundColor: 'rgba(255,255,255,0.06)', color: '#9ca3af' }}>
-              {CSM_INITIALS[client.csm] ?? client.csm}
-            </span>
-            <span className="text-[10px] text-gray-500">
-              {client.lastContactDaysAgo === 0 ? 'Today' : `${client.lastContactDaysAgo}d ago`}
-            </span>
-          </div>
+      {/* Onboarding tag */}
+      {client.signals.onboarding.active && (
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 10, fontWeight: 600, color: 'var(--fb-violet-600)', background: 'var(--fb-violet-50)', borderRadius: 'var(--r-pill)', padding: '1px 7px', marginBottom: 6, border: '1px solid var(--fb-violet-100)' }}>
+          ◉ Onboarding
         </div>
+      )}
+
+      {/* Row 1: name + score */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 10 }}>
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--fg-1)', lineHeight: 1.2 }}>{client.name}</div>
+          <div style={{ fontSize: 11, color: 'var(--fg-2)', fontFamily: 'monospace', marginTop: 2 }}>€{formatARR(client.arr)}</div>
+        </div>
+        <div style={{ padding: '3px 9px', borderRadius: 'var(--r-pill)', fontSize: 11, fontWeight: 700, flexShrink: 0, background: `${color}18`, color }}>
+          {client.score}
+        </div>
+      </div>
+
+      {/* Score bar */}
+      <div style={{ marginBottom: 10 }}>
+        <ScoreBar score={client.score} healthState={client.healthState} height={3} />
+      </div>
+
+      {/* Drivers */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 10 }}>
+        {client.scoreDrivers.slice(0, 3).map((d, i) => (
+          <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 6, fontSize: 11, color: 'var(--fg-2)' }}>
+            <span style={{ color: DRIVER_COLOR[d.type], fontWeight: 700, flexShrink: 0, width: 10, lineHeight: 1.4 }}>{DRIVER_ICON[d.type]}</span>
+            <span>{d.label}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Footer */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 9, borderTop: '1px solid var(--fb-neutral-100)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+          <div style={{ width: 18, height: 18, borderRadius: '50%', background: 'linear-gradient(135deg, var(--fb-violet-500), var(--fb-violet-300))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
+            {client.csm.slice(0, 2).toUpperCase()}
+          </div>
+          <span style={{ fontSize: 11, color: 'var(--fg-2)', fontWeight: 500 }}>{client.csm}</span>
+        </div>
+        <span style={{ fontSize: 10, color: 'var(--fg-3)', fontWeight: 500 }}>
+          {client.lastContactDaysAgo === 0 ? 'Today' : `${client.lastContactDaysAgo}d ago`}
+        </span>
       </div>
     </button>
   )
