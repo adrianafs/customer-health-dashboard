@@ -421,10 +421,16 @@ export async function GET(req: NextRequest) {
         deal.business_unit || ''
       ).toLowerCase()
 
+      // HubSpot multi-select fields return values separated by ; or , —
+      // a deal carrying both products should resolve to Full Suite.
+      const hasFlowbox = rawProduct.includes('visual') || rawProduct.includes('ugc')
+      const hasDream   = rawProduct.includes('influencer') || rawProduct.includes('dream') || rawProduct.includes('marketing')
+      const hasBoth    = rawProduct.includes('full') || rawProduct.includes('suite') || rawProduct.includes('both')
+
       const brand: 'flowbox' | 'dream' | 'both' | null =
-        rawProduct.includes('influencer') || rawProduct.includes('dream') ? 'dream'
-        : rawProduct.includes('visual') || rawProduct.includes('ugc') || rawProduct.includes('flowbox') ? 'flowbox'
-        : rawProduct.includes('full') || rawProduct.includes('suite') || rawProduct.includes('both') ? 'both'
+        hasBoth || (hasFlowbox && hasDream) ? 'both'
+        : hasFlowbox ? 'flowbox'
+        : hasDream   ? 'dream'
         : null
 
       const arr = parseFloat(
