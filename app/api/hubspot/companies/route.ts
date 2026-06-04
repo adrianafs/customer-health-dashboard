@@ -188,7 +188,25 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // 5. No owner API needed — ownername/owneremail are properties on the company object itself
+    // 5. Fetch each unique owner ID individually (list endpoint is scope-limited)
+    const uniqueOwnerIds = Array.from(new Set(
+      companies.map(c => (c.properties as Record<string, string>)?.hubspot_owner_id).filter(Boolean)
+    ))
+    const ownerMap: Record<string, string> = {}
+    await sleep(300)
+    await Promise.all(
+      uniqueOwnerIds.map(async id => {
+        try {
+          const r = await hsGet(`/crm/v3/owners/${id}`)
+          if (!r.ok) return
+          const o = await r.json()
+          const first = (o.firstName ?? '').trim()
+          const last  = (o.lastName  ?? '').trim()
+          const email = (o.email ?? '').split('@')[0].split('.')[0]
+          ownerMap[String(id)] = first || last || (email.charAt(0).toUpperCase() + email.slice(1)) || String(id)
+        } catch { /* skip */ }
+      })
+    )
 
     // 6. Map companies → Client objects
     const clients: Client[] = companies.map(co => {
@@ -206,11 +224,8 @@ export async function GET(req: NextRequest) {
       const deal = contractDeals[0] ?? null
       const dealId = dealIds.find(id => dealPropsMap[id] === deal) ?? coId
 
-      // ownername is a built-in HubSpot rollup property — always populated, no API call needed
       const ownerId = cp.hubspot_owner_id ?? ''
-      const rawName = (cp.ownername ?? '').trim()
-      // Use first name only for display (e.g. "Claudia Núñez" → "Claudia")
-      const csm: CSMName = rawName.split(' ')[0] || ownerId
+      const csm: CSMName = ownerMap[ownerId] ?? ownerId
 
       const stage = deal?.dealstage ?? ''
       const autoRenewal = deal?.auto_renewal === 'true'
