@@ -186,18 +186,15 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // 5. Build owner map from real HubSpot owners (match by first name to CSM_LIST)
-    const ownerMap: Record<string, CSMName> = {}
-    const realOwnerNames: Record<string, string> = {} // ownerId → full name
+    // 5. Build owner map directly from HubSpot — ownerId → first name
+    const ownerMap: Record<string, string> = {}
     await sleep(300)
     const ownersRes = await hsGet('/crm/v3/owners?limit=100')
     if (ownersRes.ok) {
       const ownersData = await ownersRes.json()
       for (const o of ownersData.results ?? []) {
-        const firstName = (o.firstName ?? '').trim().toLowerCase()
-        // Exact first name match only — avoids false positives
-        const match = CSM_LIST.find(c => c.name.toLowerCase() === firstName)
-        if (match) ownerMap[String(o.id)] = match.name
+        const name = `${o.firstName ?? ''}`.trim() || o.email?.split('@')[0] || 'Unknown'
+        ownerMap[String(o.id)] = name
       }
     }
 
@@ -219,7 +216,7 @@ export async function GET(req: NextRequest) {
 
       // Use deal owner if present, else company owner
       const ownerId = deal?.hubspot_owner_id ?? cp.hubspot_owner_id ?? ''
-      const csm: CSMName = ownerMap[ownerId] ?? 'Claudia'
+      const csm: CSMName = ownerMap[ownerId] ?? ownerId
 
       const stage = deal?.dealstage ?? ''
       const autoRenewal = deal?.auto_renewal === 'true'

@@ -6,19 +6,9 @@ export type SignalDriver = {
   direction?: 'improving' | 'stable' | 'declining'
 }
 
-export type CSMName = 'Claudia' | 'Cecile' | 'Sophia' | 'Jerry' | 'Chantal' | 'Frida' | 'Oktawia' | 'Jana' | 'David'
+export type CSMName = string
 
-export const CSM_LIST: { name: CSMName; ownerId: string }[] = [
-  { name: 'Claudia', ownerId: '64994666' },
-  { name: 'Cecile', ownerId: '69434237' },
-  { name: 'Sophia', ownerId: '75827652' },
-  { name: 'Jerry', ownerId: '90050587' },
-  { name: 'Chantal', ownerId: '46571229' },
-  { name: 'Frida', ownerId: '46571222' },
-  { name: 'Oktawia', ownerId: '7359612' },
-  { name: 'Jana', ownerId: '78103049' },
-  { name: 'David', ownerId: '81605073' },
-]
+export const CSM_LIST: { name: CSMName; ownerId: string }[] = [] // populated dynamically from HubSpot
 
 export const DEAL_STAGE_LABELS: Record<string, string> = {
   '1309169012': 'Contract not started',

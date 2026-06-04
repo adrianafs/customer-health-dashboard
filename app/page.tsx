@@ -13,7 +13,7 @@ const COLUMNS: { state: HealthState; label: string; subtitle: string; color: str
   { state: 'churn_risk',      label: 'Churn Risk',      subtitle: 'Save urgently',     color: '#E24B4A' },
 ]
 
-const DEFAULT_CSM = CSM_LIST[0] // Claudia
+const DEFAULT_CSM = { name: 'All', ownerId: 'all' }
 
 export default function Dashboard() {
   const [loading, setLoading] = useState(false)
@@ -83,7 +83,7 @@ export default function Dashboard() {
     return counts
   }, [filtered])
 
-  const activeCsm = CSM_LIST.find(c => c.ownerId === activeCsmId) ?? DEFAULT_CSM
+  const activeCsm = csmList.find(c => c.ownerId === activeCsmId) ?? DEFAULT_CSM
 
   return (
     <div className="min-h-screen flex flex-col relative" style={{ backgroundColor: '#0d0d12' }}>
