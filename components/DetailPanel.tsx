@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { Client, HealthState, SignalDriver, formatARR } from '@/lib/types'
-import type { FathomCompanyResult } from '@/lib/fathom'
+import type { EngagementResult } from '@/lib/hubspot-engagements'
 import ScoreBar, { STATE_COLORS, STATE_LABELS } from './ScoreBar'
 
 const DI: Record<SignalDriver['type'], string> = { positive: '↑', neutral: '~', negative: '↓', critical: '!' }
@@ -27,22 +27,21 @@ export default function DetailPanel({ client, onClose, onRescore }: Props) {
   const [editedBody, setEditedBody] = useState('')
   const [sending, setSending] = useState(false)
   const [sentTo, setSentTo] = useState<string | null>(null)
-  const [fathom, setFathom] = useState<FathomCompanyResult | null>(null)
-  const [fathomLoading, setFathomLoading] = useState(false)
+  const [engagements, setEngagements] = useState<EngagementResult | null>(null)
+  const [engagementsLoading, setEngagementsLoading] = useState(false)
 
-  // Load Fathom data when panel opens
+  // Load HubSpot engagement data when panel opens
   useEffect(() => {
     if (!client.companyId) return
-    setFathom(null)
-    setFathomLoading(true)
-    const params = new URLSearchParams({ name: client.name, id: client.companyId })
-    if (client.csm) params.set('csm', `${client.csm.toLowerCase()}@getflowbox.com`)
-    fetch(`/api/fathom?${params}`)
+    setEngagements(null)
+    setEngagementsLoading(true)
+    const params = new URLSearchParams({ id: client.companyId, name: client.name })
+    fetch(`/api/engagements?${params}`)
       .then(r => r.ok ? r.json() : null)
-      .then(data => { if (data && !data.error) setFathom(data) })
+      .then(data => { if (data && !data.error) setEngagements(data) })
       .catch(() => {})
-      .finally(() => setFathomLoading(false))
-  }, [client.companyId, client.name, client.csm])
+      .finally(() => setEngagementsLoading(false))
+  }, [client.companyId, client.name])
 
   const color = STATE_COLORS[client.healthState]
   const daysToRenewal = client.contract.renewal
@@ -189,72 +188,78 @@ export default function DetailPanel({ client, onClose, onRescore }: Props) {
                   {sc.rows?.map((r, i) => <SRow key={i} k={r.k} v={r.v as string} cls={r.cls} />)}
                 </div>
               ))}
-              {/* Fathom — live data */}
+              {/* HubSpot Activity — live sentiment */}
               <div style={{ background: 'var(--n50)', border: '1px solid var(--n100)', borderRadius: 12, padding: 12 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                  <span style={{ fontSize: 12, fontWeight: 600 }}>Fathom</span>
-                  <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--n400)', letterSpacing: '.07em' }}>MEETING SENTIMENT</span>
+                  <span style={{ fontSize: 12, fontWeight: 600 }}>Activity</span>
+                  <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--n400)', letterSpacing: '.07em' }}>AI SENTIMENT</span>
                 </div>
 
-                {fathomLoading ? (
+                {engagementsLoading ? (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 0', color: 'var(--n400)', fontSize: 11.5 }}>
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" style={{ animation: 'spin 1s linear infinite', flexShrink: 0 }}>
                       <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="40 20" />
                     </svg>
-                    Fetching call data…
+                    Analysing activity…
                   </div>
-                ) : fathom && fathom.callCount > 0 ? (
+                ) : engagements && engagements.activityCount > 0 ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {fathom.sentiment && (
+                    {/* Sentiment sentence */}
+                    {engagements.sentiment && (
                       <div style={{
                         fontSize: 11.5, lineHeight: 1.6, fontStyle: 'italic',
-                        color: fathom.sentimentType === 'churn' || fathom.sentimentType === 'negative'
+                        color: engagements.sentimentType === 'churn' || engagements.sentimentType === 'negative'
                           ? 'var(--d500)'
-                          : fathom.sentimentType === 'positive' ? 'var(--s500)' : 'var(--n700)',
+                          : engagements.sentimentType === 'positive' ? 'var(--s500)' : 'var(--n700)',
                       }}>
-                        &ldquo;{fathom.sentiment}&rdquo;
+                        &ldquo;{engagements.sentiment}&rdquo;
                       </div>
                     )}
+                    {/* Stats */}
                     <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
                       <span style={{ fontSize: 11, color: 'var(--n500)' }}>
-                        <strong style={{ color: 'var(--n800)' }}>{fathom.callCount}</strong> call{fathom.callCount !== 1 ? 's' : ''} in 90d
+                        <strong style={{ color: 'var(--n800)' }}>{engagements.activityCount}</strong> activities in 90d
                       </span>
-                      {fathom.lastCallDate && (
+                      {engagements.lastActivityDate && (
                         <span style={{ fontSize: 11, color: 'var(--n500)' }}>
-                          Last: <strong style={{ color: 'var(--n800)' }}>{fathom.lastCallDate}</strong>
+                          Last: <strong style={{ color: 'var(--n800)' }}>{engagements.lastActivityDate}</strong>
                         </span>
                       )}
-                      {fathom.openActionItems > 0 && (
+                      {engagements.openActionItems.length > 0 && (
                         <span style={{ fontSize: 11, color: 'var(--w500)', fontWeight: 600 }}>
-                          {fathom.openActionItems} open action{fathom.openActionItems !== 1 ? 's' : ''}
+                          {engagements.openActionItems.length} pending action{engagements.openActionItems.length !== 1 ? 's' : ''}
                         </span>
                       )}
                     </div>
-                    {fathom.openActionItemsForCsm.length > 0 && (
+                    {/* Open action items */}
+                    {engagements.openActionItems.length > 0 && (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                        {fathom.openActionItemsForCsm.slice(0, 3).map((item, i) => (
+                        {engagements.openActionItems.map((item, i) => (
                           <div key={i} style={{ fontSize: 10.5, color: 'var(--n600)', display: 'flex', gap: 4 }}>
                             <span style={{ color: 'var(--w500)', flexShrink: 0 }}>•</span>
-                            <span>{item.text}</span>
+                            <span>{item}</span>
                           </div>
                         ))}
                       </div>
                     )}
-                    {fathom.meetings.length > 0 && (
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                        {fathom.meetings.slice(0, 4).map((m, i) => (
-                          <a key={m.id} href={m.share_url ?? m.url} target="_blank" rel="noopener noreferrer"
-                            style={{ fontSize: 10, padding: '2px 7px', background: 'var(--n100)', color: 'var(--v500)', borderRadius: 5, textDecoration: 'none', fontWeight: 500, whiteSpace: 'nowrap' }}>
-                            ▶ {m.created_at?.split('T')[0] ?? `Call ${i + 1}`}
-                          </a>
-                        ))}
-                      </div>
-                    )}
+                    {/* Activity type breakdown */}
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                      {(['EMAIL', 'MEETING', 'CALL', 'NOTE'] as const).map(type => {
+                        const count = engagements.engagements.filter(e => e.type === type).length
+                        if (!count) return null
+                        const labels = { EMAIL: '✉', MEETING: '📅', CALL: '📞', NOTE: '📝' }
+                        return (
+                          <span key={type} style={{ fontSize: 10, padding: '2px 7px', background: 'var(--n100)', color: 'var(--n600)', borderRadius: 5, fontWeight: 500 }}>
+                            {labels[type]} {count} {type.toLowerCase()}{count !== 1 ? 's' : ''}
+                          </span>
+                        )
+                      })}
+                    </div>
                   </div>
-                ) : fathom && fathom.callCount === 0 ? (
-                  <span style={{ fontSize: 11.5, color: 'var(--n400)', fontStyle: 'italic' }}>No calls found in the last 90 days</span>
+                ) : engagements && engagements.activityCount === 0 ? (
+                  <span style={{ fontSize: 11.5, color: 'var(--n400)', fontStyle: 'italic' }}>No activity found in the last 90 days</span>
                 ) : (
-                  <span style={{ fontSize: 11.5, color: 'var(--n400)', fontStyle: 'italic' }}>Call data unavailable</span>
+                  <span style={{ fontSize: 11.5, color: 'var(--n400)', fontStyle: 'italic' }}>Activity data unavailable</span>
                 )}
               </div>
             </div>
