@@ -89,6 +89,9 @@ export type Client = {
   lastContactDaysAgo: number
   hubspotDealUrl: string
   childCompanies?: string[]
+  demoChurnSignals?: string[]
+  communicatedChurn: boolean
+  winbackStatus: 'in_winback' | 'lost_case' | null
 }
 
 export function formatARR(n: number): string {

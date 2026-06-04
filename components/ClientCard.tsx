@@ -56,8 +56,8 @@ function renewalBadge(renewal: string | null) {
   )
 }
 
-export default function ClientCard({ client, onClick, selected }: { client: Client; onClick: () => void; selected?: boolean }) {
-  const col   = STATE_COLORS[client.healthState]
+export default function ClientCard({ client, onClick, selected, grayscale }: { client: Client; onClick: () => void; selected?: boolean; grayscale?: boolean }) {
+  const col   = grayscale ? 'var(--n400)' : STATE_COLORS[client.healthState]
   const brand = client.brand ?? null
   const ren   = renewalBadge(client.contract.renewal)
 
@@ -80,9 +80,19 @@ export default function ClientCard({ client, onClick, selected }: { client: Clie
       onMouseEnter={e => { if (!selected) { (e.currentTarget as HTMLElement).style.boxShadow = 'var(--sm)'; (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)'; (e.currentTarget as HTMLElement).style.borderColor = 'var(--n300)' } }}
       onMouseLeave={e => { if (!selected) { (e.currentTarget as HTMLElement).style.boxShadow = 'var(--ss)'; (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.borderColor = 'var(--n200)' } }}
     >
-      {/* Tags row: Onboarding · Brand · Renewal */}
-      {(client.signals.onboarding.active || brand || ren) && (
+      {/* Tags row: Winback status · Onboarding · Brand · Renewal */}
+      {(client.winbackStatus || client.signals.onboarding.active || brand || ren) && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 7, flexWrap: 'wrap' }}>
+          {client.winbackStatus === 'in_winback' && (
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 700, color: '#B45309', background: '#FFF8E6', border: '1px solid #FDE68A', borderRadius: 999, padding: '2px 8px' }}>
+              ↩ In Winback
+            </div>
+          )}
+          {client.winbackStatus === 'lost_case' && (
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 700, color: 'var(--n0)', background: 'var(--n500)', border: '1px solid var(--n400)', borderRadius: 999, padding: '2px 8px' }}>
+              ✕ Lost Case
+            </div>
+          )}
           {client.signals.onboarding.active && (
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 600, color: 'var(--v600)', background: 'var(--v50)', border: '1px solid var(--v100)', borderRadius: 999, padding: '2px 8px' }}>
               ◉ Onboarding
