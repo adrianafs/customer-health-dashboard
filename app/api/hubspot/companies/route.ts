@@ -226,58 +226,53 @@ export async function GET(req: NextRequest) {
 
     const coIds = companies.map(c => String(c.id))
 
-    // ── 2. Company → Deal associations (chunked, limit 100 per request) ─────
-    const coDealIds: Record<string, string[]> = {}
-    for (let i = 0; i < coIds.length; i += 100) {
-      const chunk = coIds.slice(i, i + 100)
+    // ── 2 & 3. Fetch Contracts pipeline deals directly (much faster than
+    //           loading all deals and filtering) ────────────────────────────
+    // dealPropsMap: dealId → properties
+    // coFromDeal:   dealId → companyId (reverse lookup for matching)
+    const dealPropsMap: Record<string, Record<string, string>> = {}
+    const coFromDeal:  Record<string, string> = {}
+
+    const contractDealsRaw = await searchAll('/crm/v3/objects/deals/search', {
+      limit: 100,
+      properties: [
+        'dealname', 'dealstage', 'pipeline', 'amount', 'hs_acv', 'hs_arr',
+        'auto_renewal', 'subscription_end_date', 'pause_end_date',
+        'churn_date', 'communicated_churn_date', 'reason_for_churn', 'closedate',
+        'hubspot_owner_id', 'deal_closed_owner',
+        'notes_last_contacted', 'notes_last_updated', 'hs_notes_last_activity',
+        'hs_sales_email_last_replied', 'createdate',
+      ],
+      filterGroups: [{
+        filters: [{ propertyName: 'pipeline', operator: 'EQ', value: CONTRACTS_PIPELINE }],
+      }],
+    })
+
+    for (const d of contractDealsRaw) {
+      dealPropsMap[String(d.id)] = (d.properties as Record<string, string>) ?? {}
+    }
+
+    // Associate those deals back to companies (chunked, 100 per request)
+    const contractDealIds = Object.keys(dealPropsMap)
+    const coDealIds: Record<string, string[]> = {} // companyId → dealIds
+
+    for (let i = 0; i < contractDealIds.length; i += 100) {
+      const chunk = contractDealIds.slice(i, i + 100)
       await sleep(300)
-      const assocRes = await hsPost('/crm/v4/associations/company/deal/batch/read', {
+      const assocRes = await hsPost('/crm/v4/associations/deal/company/batch/read', {
         inputs: chunk.map(id => ({ id })),
       })
       if (assocRes.ok) {
         const assocData = await assocRes.json()
         for (const r of assocData.results ?? []) {
-          const fromId = String(r.from?.id ?? '')
-          // HubSpot v4 associations API uses `toObjectId`, not `id`
-          const toIds = (r.to ?? []).map((t: Record<string, unknown>) =>
-            String(t.toObjectId ?? t.id ?? '')
-          ).filter(Boolean)
-          if (fromId && toIds.length > 0) coDealIds[fromId] = toIds
+          const dealId = String(r.from?.id ?? '')
+          const toObj  = r.to?.[0] as Record<string, unknown> | undefined
+          const coId   = String(toObj?.toObjectId ?? toObj?.id ?? '')
+          if (dealId && coId) {
+            coFromDeal[dealId] = coId
+            coDealIds[coId] = [...(coDealIds[coId] ?? []), dealId]
+          }
         }
-      }
-    }
-
-    // ── 3. Batch-read all deals ───────────────────────────────────────────────
-    const allDealIds = Array.from(new Set(Object.values(coDealIds).flat()))
-    const dealPropsMap: Record<string, Record<string, string>> = {}
-
-    // HubSpot batch read limit = 100 IDs per request — chunk accordingly
-    const DEAL_PROPS = [
-      'dealname', 'dealstage', 'pipeline', 'amount', 'hs_acv', 'hs_arr',
-      'auto_renewal', 'subscription_end_date', 'pause_end_date',
-      'churn_date', 'communicated_churn_date', 'reason_for_churn', 'closedate',
-      'hubspot_owner_id', 'deal_closed_owner',
-      'notes_last_contacted', 'notes_last_updated', 'hs_notes_last_activity',
-      'hs_sales_email_last_replied', 'createdate',
-    ]
-
-    // Only fetch deals from the Contracts pipeline to reduce volume
-    // We do this by first filtering deal IDs to only those associated with our companies,
-    // then chunking into batches of 100
-    for (let i = 0; i < allDealIds.length; i += 100) {
-      const chunk = allDealIds.slice(i, i + 100)
-      await sleep(300)
-      const dealsRes = await hsPost('/crm/v3/objects/deals/batch/read', {
-        inputs: chunk.map(id => ({ id })),
-        properties: DEAL_PROPS,
-      })
-      if (dealsRes.ok) {
-        const dealsData = await dealsRes.json()
-        for (const d of dealsData.results ?? []) {
-          dealPropsMap[String(d.id)] = d.properties ?? {}
-        }
-      } else {
-        console.error(`Deal batch read chunk ${i}–${i + 100} failed:`, await dealsRes.text())
       }
     }
 
