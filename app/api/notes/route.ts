@@ -19,6 +19,26 @@ function auth() {
   return { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' }
 }
 
+// HubSpot stores note bodies as HTML — strip tags/entities to readable plain text,
+// collapse whitespace, and cap length so the panel stays compact.
+function cleanNote(html: string, maxLen = 280): string {
+  const text = (html || '')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/(p|div|li|ul|ol)>/gi, '\n')
+    .replace(/<li[^>]*>/gi, '• ')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&#39;|&apos;/gi, "'")
+    .replace(/&quot;/gi, '"')
+    .replace(/[ \t]+/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
+    .replace(/^\s+|\s+$/g, '')
+  return text.length > maxLen ? text.slice(0, maxLen).trimEnd() + '…' : text
+}
+
 // ── Save a note ───────────────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
   if (!TOKEN) return NextResponse.json({ error: 'HUBSPOT_TOKEN not set' }, { status: 503 })
@@ -108,7 +128,7 @@ export async function GET(req: NextRequest) {
       const ms = ts ? new Date(ts).getTime() : 0
       return {
         id: n.id,
-        body: n.properties?.hs_note_body ?? '',
+        body: cleanNote(n.properties?.hs_note_body ?? ''),
         timestamp: ms,
         date: ms
           ? new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
