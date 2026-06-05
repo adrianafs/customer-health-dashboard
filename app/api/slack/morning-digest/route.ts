@@ -75,34 +75,32 @@ async function generateMessage(csmName: string, accounts: any[]): Promise<string
   const totalARR   = accounts.reduce((s: number, a: any) => s + (a.arr ?? 0), 0)
   const atRiskARR  = urgent.reduce((s: number, a: any) => s + (a.arr ?? 0), 0)
 
-  // Only describe urgent accounts to Claude so it never names keep-an-eye / stable ones
-  const accountSummary = urgent.map((a: any) => {
+  // Churn risk first (most urgent), then action required — cap at top 3
+  const topUrgent = [...churnRisk, ...actionRequired].slice(0, 3)
+  const accountSummary = topUrgent.map((a: any) => {
     const dtr = a.contract?.renewal
       ? Math.ceil((new Date(a.contract.renewal).getTime() - Date.now()) / 86400000)
       : null
-    return `- ${a.name} (${STATE_LABEL[a.healthState] ?? a.healthState}, €${(a.arr ?? 0).toLocaleString()}, last contact ${a.lastContactDaysAgo}d ago${dtr && dtr > 0 && dtr < 90 ? `, renewal in ${dtr}d` : ''}): ${a.whyThisScore}`
+    return `- ${a.name} (${STATE_LABEL[a.healthState] ?? a.healthState}${dtr && dtr > 0 && dtr < 90 ? `, renewal in ${dtr}d` : ''}): ${a.whyThisScore}`
   }).join('\n') || '(no urgent accounts today)'
 
   const prompt = `You are writing a warm, friendly morning reminder to ${firstName}, a Customer Success Manager at Flowbox.
 
 Today is ${today}.
 
-Their portfolio summary:
-- Total accounts: ${accounts.length} (${urgent.length} need attention today)
-- At-risk ARR: €${atRiskARR.toLocaleString()}
-
-Urgent accounts (churn risk + action required) — the ONLY accounts you may name:
+Their most critical accounts right now (churn risk listed first, then action required):
 ${accountSummary}
 
 Write a SHORT (2-3 sentences) good morning message for ${firstName}.
 
 Rules:
 - Start with a warm "Good morning" greeting
-- If there are no urgent accounts: wish them a great day, nothing needs urgent attention
-- If there are urgent accounts: briefly remind them which accounts need their attention today — keep it light but clear, mention up to 2 account names
+- If no urgent accounts: wish them a great day
+- If there are churn risk accounts: name them first — these are the most urgent, make it clear they need immediate attention
+- If there are action required accounts (but no churn risk): briefly remind them 1-2 names that need attention today
+- Never mention more than 2 account names
 - Feel like a friendly nudge from a colleague, not a corporate report
-- Do NOT use bullet points — natural conversational sentences only
-- Do NOT list metrics, ARR figures, or percentages
+- Natural conversational sentences only — no bullet points, no metrics, no ARR figures
 - Keep it under 60 words`
 
   const response = await anthropic.messages.create({
