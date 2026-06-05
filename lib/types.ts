@@ -95,5 +95,6 @@ export type Client = {
 }
 
 export function formatARR(n: number): string {
-  return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+  if (n >= 1000) return `${(n / 1000).toFixed(n % 1000 === 0 ? 0 : 1)}K`
+  return n.toString()
 }
