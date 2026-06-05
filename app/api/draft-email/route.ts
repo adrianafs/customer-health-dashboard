@@ -34,7 +34,7 @@ Recommended action: ${clientData.recommendedAction}
 Fathom context: ${clientData.signals.fathom.summaries ?? 'No recent call data'}`
 
     const response = await client.messages.create({
-      model: 'claude-sonnet-4-5',
+      model: 'claude-sonnet-4-6',
       max_tokens: 600,
       system: SYSTEM_PROMPT,
       messages: [{ role: 'user', content: `Draft a retention email for this client:\n${context}` }],

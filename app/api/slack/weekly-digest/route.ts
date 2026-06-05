@@ -132,7 +132,7 @@ async function analyse(firstName: string, m: any, diff: any): Promise<string> {
 State: ${m.total} accounts, €${m.totalARR.toLocaleString()} ARR, ${m.churn} churn-risk, ${m.action} action-required, €${m.atRiskARR.toLocaleString()} at risk. ${diff.newChurn.length ? 'New churn risks: ' + diff.newChurn.join(', ') + '.' : ''} ${trend}
 Be specific and motivating; name 1 account if relevant. No greeting, no sign-off, no emoji.`
   try {
-    const r = await anthropic.messages.create({ model: 'claude-sonnet-4-20250514', max_tokens: 120, messages: [{ role: 'user', content: prompt }] })
+    const r = await anthropic.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 120, messages: [{ role: 'user', content: prompt }] })
     return r.content.find(b => b.type === 'text')?.text?.trim() ?? ''
   } catch { return `${m.urgent} accounts need attention; €${m.atRiskARR.toLocaleString()} at risk.` }
 }
