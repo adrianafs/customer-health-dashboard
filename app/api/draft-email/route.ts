@@ -14,31 +14,31 @@ function getDraftInstruction(type: DraftType, c: Client): string {
 
   switch (type) {
     case 'schedule_meeting':
-      return `The CSM has not had a completed meeting with this client in over 90 days and there is no next meeting scheduled. Write a short, friendly email to re-establish contact and propose booking a call. Don't be pushy — frame it as a regular check-in to see how things are going and share any updates.`
+      return `Write a very short, casual email — 2-3 sentences max. Just say you'd love to jump on a quick call to catch up and see how things are going. Keep it light and human, no corporate language, no bullet points, no long intros.`
 
     case 'low_usage':
-      return `This client has very low or zero platform activity recently. Write an email offering to help them get more value out of Flowbox. Acknowledge that things get busy, offer a quick call to review their setup, share tips or a success story relevant to their industry. Be helpful, not accusatory.`
+      return `Write a short, casual email — no intro, they already know who you are. Mention that you've noticed they haven't been moderating content lately. Remind them that content in the inbox expires after 30 days, so it's worth checking regularly to avoid losing good content. Also mention the importance of keeping their flows updated with fresh content. End by offering help if there's anything blocking them — keep it friendly and brief, no corporate tone.`
 
     case 'renewal_outreach':
-      return `The client's contract is up for renewal (renewal date: ${c.contract.renewal ?? 'soon'}) and auto-renewal is off. Write an email to open the renewal conversation. Reference the value they've gotten, express enthusiasm about continuing the partnership, and propose a call to discuss next steps.`
-
-    case 'meeting_followup':
-      return `Write a follow-up email after a recent meeting. Thank them for their time, summarise the key points discussed (use the context below as a guide), confirm any action items, and set clear next steps.`
+      return `Write a short, casual email letting the client know that their contract end date is approaching (${c.contract.renewal ?? 'soon'}) and that it's time to start the conversation about signing a new agreement. Keep it simple and friendly — just flag the date, mention you'd love to get a quick call in to kick things off, and leave it open. No corporate language.`
 
     case 'churn_save':
-      return `This client is at risk of churning${c.communicatedChurn ? ' and has communicated churn intent' : ''}. ${d.reasonForChurn ? `Stated reason: ${d.reasonForChurn}.` : ''} Write a genuine, empathetic save-play email. Acknowledge their concerns, offer concrete solutions or alternatives, and propose an urgent call with a senior CSM or decision-maker. Do not be defensive.`
+      return `Write a short, genuine email saying you'd love to connect for a quick call to understand how things are going and see if there's anything we can do to help. Keep it warm and low-pressure — no drama, no assumptions about why they might be leaving. The CSM will personalise the details themselves. Max 3-4 sentences.`
 
     case 'onboarding_checkin':
-      return `This client has been in onboarding for ${ob.daysInOnboarding} days (stage: ${ob.stage ?? 'unknown'}) and progress seems slow. Write a proactive check-in email. Express that you want to make sure they're on track, offer additional support, and propose a call to unblock any issues or review the implementation plan.`
+      return `Write a short, casual email — no intro. Just check in on how the onboarding is going, ask if there's anything blocking their progress, and offer help to move things forward. Keep it simple and friendly, 2-3 sentences max.`
 
     case 'reengagement_pause':
-      return `The client's contract is currently paused${c.contract.renewal ? ` and is set to resume around ${c.contract.renewal}` : ''}. Write a warm re-engagement email ahead of the pause ending. Check in on how things are going, express excitement about restarting, and offer support to make the comeback smooth.`
+      return `Write a short, casual email — no intro. Mention that the pause is ending${c.contract.renewal ? ` on ${c.contract.renewal}` : ' soon'} and that it's time to get things moving again. Propose scheduling a call to kick off the reactivation — reconnect accounts, run a training session if needed, and align on next steps. Keep it friendly and practical.`
 
     case 'qbr':
-      return `This client is healthy and stable but hasn't had a formal business review recently and has no next meeting scheduled. Write an email proposing a Quarterly Business Review (QBR). Frame it as an opportunity to review results, share the roadmap, and plan for the next quarter together. Keep it light and easy to say yes to.`
+      return `Write a short, casual email — no intro. Mention that you don't have the next QBR scheduled yet and you'd love to lock in a date. Explain that the goal would be to review metrics so far, follow up on any open topics or questions, and align on next steps together. Keep it friendly and to the point.`
 
     case 'upsell_followup':
-      return `A proposal or upsell offer (new contract, additional features, or expanded service) has been sent to this client. Write a polite follow-up email to check if they've had a chance to review it, offer to answer any questions, and propose a call to discuss. Don't be pushy — keep it conversational.`
+      return `Write a short, casual email — no intro. Just ask if they've had a chance to look at the proposal or offer you sent over, and suggest getting a quick call in to go through the details together. Keep it light, 2-3 sentences max.`
+
+    case 'account_closure':
+      return `Write a clear, professional but friendly email informing the client that their account will be closed on ${d.churnDate ?? 'the agreed date'}. Let them know they should make sure to remove any Flowbox widgets from their site and download any content and analytics they want to keep before that date. Keep it factual and helpful, no drama.`
   }
 }
 
@@ -73,6 +73,7 @@ Recommended action: ${clientData.recommendedAction}`
       max_tokens: 600,
       system: `You are a Customer Success Manager writing a personalized, human-sounding email to a client.
 Write in English unless signals clearly suggest another language.
+Never introduce yourself — the client already knows who you are.
 The email should feel personal, not templated. Reference specific signals from their account when relevant.
 Do not mention health scores, dashboards, or automated systems.
 Keep it concise — maximum 150 words in the body.
