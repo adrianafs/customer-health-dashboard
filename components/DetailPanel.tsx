@@ -2,6 +2,8 @@
 import { useState, useEffect } from 'react'
 import { Client, HealthState, SignalDriver, formatARR } from '@/lib/types'
 import type { EngagementResult } from '@/lib/hubspot-engagements'
+import type { DraftType } from '@/app/api/draft-email/route'
+import { DRAFT_TYPE_LABELS } from '@/app/api/draft-email/route'
 import ScoreBar, { STATE_COLORS, STATE_LABELS } from './ScoreBar'
 
 const DI: Record<SignalDriver['type'], string> = { positive: '↑', neutral: '~', negative: '↓', critical: '!' }
@@ -159,11 +161,11 @@ interface Props { client: Client; onClose: () => void; onRescore: (c: Client) =>
 export default function DetailPanel({ client, onClose, onRescore }: Props) {
   const [drafting, setDrafting] = useState(false)
   const [rescoring, setRescoring] = useState(false)
-  const [emailModal, setEmailModal] = useState<{ subject: string; body: string } | null>(null)
+  const [emailModal, setEmailModal] = useState<{ subject: string; body: string; draftType: DraftType } | null>(null)
   const [editedSubject, setEditedSubject] = useState('')
   const [editedBody, setEditedBody] = useState('')
-  const [sending, setSending] = useState(false)
-  const [sentTo, setSentTo] = useState<string | null>(null)
+  const [selectedDraftType, setSelectedDraftType] = useState<DraftType | null>(null)
+  const [copied, setCopied] = useState(false)
   const [engagements, setEngagements] = useState<EngagementResult | null>(null)
   const [engagementsLoading, setEngagementsLoading] = useState(false)
   const [usage, setUsage] = useState<import('@/lib/databricks').UsageStats | null>(null)
@@ -201,12 +203,14 @@ export default function DetailPanel({ client, onClose, onRescore }: Props) {
   const daysToRenewal = client.contract.renewal
     ? Math.ceil((new Date(client.contract.renewal).getTime() - Date.now()) / 86400000) : null
 
-  async function handleDraftEmail() {
+  async function handleDraftEmail(overrideType?: DraftType) {
     setDrafting(true)
     try {
-      const res = await fetch('/api/draft-email', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ client }) })
+      const draftType = overrideType ?? selectedDraftType ?? undefined
+      const res = await fetch('/api/draft-email', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ client, draftType }) })
       const data = await res.json()
-      setEmailModal(data); setEditedSubject(data.subject); setEditedBody(data.body); setSentTo(null)
+      setEmailModal(data); setEditedSubject(data.subject); setEditedBody(data.body)
+      if (data.draftType) setSelectedDraftType(data.draftType)
     } catch { alert('Failed. Check ANTHROPIC_API_KEY.') }
     finally { setDrafting(false) }
   }
@@ -425,10 +429,26 @@ export default function DetailPanel({ client, onClose, onRescore }: Props) {
           {/* Actions */}
           <div style={{ padding: '18px 20px 28px' }}>
             <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--n500)', letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: 12 }}>Actions</div>
-            <button onClick={handleDraftEmail} disabled={drafting}
+
+            {/* Draft type selector */}
+            <div style={{ marginBottom: 8 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--n600)', marginBottom: 5 }}>Email type</div>
+              <select
+                value={selectedDraftType ?? ''}
+                onChange={e => setSelectedDraftType(e.target.value as DraftType || null)}
+                style={{ width: '100%', padding: '7px 10px', borderRadius: 8, border: '1px solid var(--n200)', fontFamily: 'var(--font)', fontSize: 12, color: 'var(--n900)', background: 'var(--n0)', outline: 'none', cursor: 'pointer' }}
+              >
+                <option value=''>Auto-select based on context</option>
+                {(Object.entries(DRAFT_TYPE_LABELS) as [DraftType, string][]).map(([key, label]) => (
+                  <option key={key} value={key}>{label}</option>
+                ))}
+              </select>
+            </div>
+
+            <button onClick={() => handleDraftEmail()} disabled={drafting}
               style={{ width: '100%', padding: '11px 16px', borderRadius: 8, background: 'var(--v500)', color: '#fff', border: 'none', cursor: 'pointer', fontFamily: 'var(--font)', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 8, boxShadow: 'var(--sv)', letterSpacing: '-.01em', opacity: drafting ? .6 : 1 }}>
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1.5" y="3" width="11" height="8.5" rx="1.5" stroke="white" strokeWidth="1.3"/><path d="M1.5 5.5l5 3 5-3" stroke="white" strokeWidth="1.3" strokeLinecap="round"/></svg>
-              {drafting ? 'Drafting…' : 'Draft & send retention email'}
+              {drafting ? 'Drafting…' : 'Draft email'}
             </button>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
               <a href={client.hubspotDealUrl} target="_blank" rel="noopener noreferrer"
@@ -447,7 +467,7 @@ export default function DetailPanel({ client, onClose, onRescore }: Props) {
       {/* Email modal */}
       {emailModal && (
         <>
-          <div onClick={() => { setEmailModal(null); setSentTo(null) }} className="animate-fi" style={{ position: 'fixed', inset: 0, background: 'rgba(7,15,34,.65)', zIndex: 200, backdropFilter: 'blur(5px)' }} />
+          <div onClick={() => { setEmailModal(null); setCopied(false) }} className="animate-fi" style={{ position: 'fixed', inset: 0, background: 'rgba(7,15,34,.65)', zIndex: 200, backdropFilter: 'blur(5px)' }} />
           <div className="animate-modal" style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 'min(640px,95vw)', maxHeight: '90vh', background: 'var(--n0)', borderRadius: 16, zIndex: 201, display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 24px 64px -12px rgba(18,18,23,.25)' }}>
             <div style={{ height: 3, background: `linear-gradient(90deg,var(--v500),var(--v300))`, flexShrink: 0 }} />
             <div style={{ padding: '18px 22px', borderBottom: '1px solid var(--n100)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
@@ -456,61 +476,59 @@ export default function DetailPanel({ client, onClose, onRescore }: Props) {
                   <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="4" width="14" height="10" rx="2" stroke={color} strokeWidth="1.4"/><path d="M2 6.5l7 4.5 7-4.5" stroke={color} strokeWidth="1.4" strokeLinecap="round"/></svg>
                 </div>
                 <div>
-                  <div style={{ fontSize: 15, fontWeight: 800, letterSpacing: '-.02em' }}>Draft retention email</div>
-                  <div style={{ fontSize: 12, color: 'var(--n500)', marginTop: 1 }}>{client.name} · from {client.csm}</div>
+                  <div style={{ fontSize: 15, fontWeight: 800, letterSpacing: '-.02em' }}>
+                    {emailModal.draftType ? DRAFT_TYPE_LABELS[emailModal.draftType] : 'Draft email'}
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--n500)', marginTop: 1 }}>{client.name} · {client.csm}</div>
                 </div>
               </div>
-              <button onClick={() => { setEmailModal(null); setSentTo(null) }} style={{ width: 30, height: 30, borderRadius: 8, border: '1px solid var(--n200)', background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--n500)' }}>×</button>
+              <button onClick={() => { setEmailModal(null); setCopied(false) }} style={{ width: 30, height: 30, borderRadius: 8, border: '1px solid var(--n200)', background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--n500)' }}>×</button>
             </div>
-            {sentTo ? (
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 32px', gap: 16, textAlign: 'center' }}>
-                <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--s50)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M20 7L9 16l-5-5" stroke="var(--s500)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+
+            <div style={{ flex: 1, overflowY: 'auto', padding: '20px 22px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 999, background: 'var(--v50)', border: '1px solid var(--v100)', fontSize: 10, fontWeight: 700, color: 'var(--v600)', letterSpacing: '.05em' }}>
+                  ✦ AI-drafted · review before sending
                 </div>
-                <div>
-                  <div style={{ fontSize: 18, fontWeight: 800, letterSpacing: '-.02em', marginBottom: 5 }}>Saved to HubSpot ✓</div>
-                  <div style={{ fontSize: 13, color: 'var(--n500)', lineHeight: 1.6 }}>The draft is saved as a note on <strong>{client.name}</strong> in HubSpot.<br/>Open it, copy subject + body, and send the email from there.</div>
-                </div>
-                <a href={sentTo} target="_blank" rel="noopener noreferrer"
-                  style={{ padding: '10px 20px', borderRadius: 8, background: 'var(--v500)', color: '#fff', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
-                  Open in HubSpot ↗
-                </a>
-                <button onClick={() => { setEmailModal(null); setSentTo(null) }}
-                  style={{ marginTop: 8, padding: '10px 24px', borderRadius: 8, background: 'var(--v500)', color: '#fff', border: 'none', fontSize: 13, fontWeight: 700, cursor: 'pointer', boxShadow: 'var(--sv)' }}>Done</button>
+                {/* Redraft as different type */}
+                <select
+                  onChange={e => { if (e.target.value) handleDraftEmail(e.target.value as DraftType) }}
+                  value=''
+                  style={{ fontSize: 11, padding: '3px 8px', borderRadius: 6, border: '1px solid var(--n200)', background: 'var(--n0)', color: 'var(--n600)', fontFamily: 'var(--font)', cursor: 'pointer', outline: 'none' }}
+                >
+                  <option value=''>↺ Redraft as…</option>
+                  {(Object.entries(DRAFT_TYPE_LABELS) as [DraftType, string][]).map(([key, label]) => (
+                    <option key={key} value={key}>{label}</option>
+                  ))}
+                </select>
               </div>
-            ) : (
-              <>
-                <div style={{ flex: 1, overflowY: 'auto', padding: '20px 22px' }}>
-                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 999, background: 'var(--v50)', border: '1px solid var(--v100)', fontSize: 10, fontWeight: 700, color: 'var(--v600)', letterSpacing: '.05em', marginBottom: 16 }}>
-                    ✦ AI-drafted · review before sending
-                  </div>
-                  <div style={{ marginBottom: 14 }}>
-                    <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--n700)', marginBottom: 5, letterSpacing: '.02em' }}>Subject</div>
-                    <input value={editedSubject} onChange={e => setEditedSubject(e.target.value)}
-                      style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid var(--n200)', fontFamily: 'var(--font)', fontSize: 13, color: 'var(--n900)', background: 'var(--n0)', outline: 'none' }} />
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--n700)', marginBottom: 5, letterSpacing: '.02em' }}>Body</div>
-                    <textarea value={editedBody} onChange={e => setEditedBody(e.target.value)} rows={10}
-                      style={{ width: '100%', padding: 12, borderRadius: 8, border: '1px solid var(--n200)', fontFamily: 'var(--font)', fontSize: 13, color: 'var(--n900)', background: 'var(--n0)', outline: 'none', resize: 'vertical', lineHeight: 1.7 }} />
-                  </div>
-                </div>
-                <div style={{ padding: '14px 22px', borderTop: '1px solid var(--n100)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--n50)', flexShrink: 0 }}>
-                  <button onClick={() => navigator.clipboard.writeText(`Subject: ${editedSubject}\n\n${editedBody}`)}
-                    style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid var(--n200)', background: 'var(--n0)', fontSize: 12, fontWeight: 500, cursor: 'pointer', color: 'var(--n500)', fontFamily: 'var(--font)' }}>
-                    Copy
-                  </button>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <button onClick={() => { setEmailModal(null); setSentTo(null) }}
-                      style={{ padding: '9px 18px', borderRadius: 8, border: '1px solid var(--n200)', background: 'var(--n0)', fontSize: 13, fontWeight: 600, cursor: 'pointer', color: 'var(--n900)', fontFamily: 'var(--font)' }}>Cancel</button>
-                    <button onClick={handleSendEmail} disabled={sending}
-                      style={{ padding: '9px 18px', borderRadius: 8, background: 'var(--v500)', color: '#fff', border: 'none', fontSize: 13, fontWeight: 700, cursor: 'pointer', boxShadow: 'var(--sv)', opacity: sending ? .6 : 1, display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'var(--font)' }}>
-                      {sending ? <span className="animate-spin-cls">↻</span> : '📌'} {sending ? 'Saving…' : 'Save to HubSpot'}
-                    </button>
-                  </div>
-                </div>
-              </>
-            )}
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--n700)', marginBottom: 5, letterSpacing: '.02em' }}>Subject</div>
+                <input value={editedSubject} onChange={e => setEditedSubject(e.target.value)}
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid var(--n200)', fontFamily: 'var(--font)', fontSize: 13, color: 'var(--n900)', background: 'var(--n0)', outline: 'none', boxSizing: 'border-box' }} />
+              </div>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--n700)', marginBottom: 5, letterSpacing: '.02em' }}>Body</div>
+                <textarea value={editedBody} onChange={e => setEditedBody(e.target.value)} rows={10}
+                  style={{ width: '100%', padding: 12, borderRadius: 8, border: '1px solid var(--n200)', fontFamily: 'var(--font)', fontSize: 13, color: 'var(--n900)', background: 'var(--n0)', outline: 'none', resize: 'vertical', lineHeight: 1.7, boxSizing: 'border-box' }} />
+              </div>
+            </div>
+
+            <div style={{ padding: '14px 22px', borderTop: '1px solid var(--n100)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--n50)', flexShrink: 0 }}>
+              <button onClick={() => { setEmailModal(null); setCopied(false) }}
+                style={{ padding: '9px 18px', borderRadius: 8, border: '1px solid var(--n200)', background: 'var(--n0)', fontSize: 13, fontWeight: 600, cursor: 'pointer', color: 'var(--n900)', fontFamily: 'var(--font)' }}>
+                Close
+              </button>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(`Subject: ${editedSubject}\n\n${editedBody}`)
+                  setCopied(true)
+                  setTimeout(() => setCopied(false), 2500)
+                }}
+                style={{ padding: '9px 20px', borderRadius: 8, background: copied ? 'var(--s500)' : 'var(--v500)', color: '#fff', border: 'none', fontSize: 13, fontWeight: 700, cursor: 'pointer', boxShadow: 'var(--sv)', display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'var(--font)', transition: 'background .2s' }}>
+                {copied ? '✓ Copied!' : '⎘ Copy to clipboard'}
+              </button>
+            </div>
           </div>
         </>
       )}
