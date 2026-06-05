@@ -83,34 +83,27 @@ async function generateMessage(csmName: string, accounts: any[]): Promise<string
     return `- ${a.name} (${STATE_LABEL[a.healthState] ?? a.healthState}, €${(a.arr ?? 0).toLocaleString()}, last contact ${a.lastContactDaysAgo}d ago${dtr && dtr > 0 && dtr < 90 ? `, renewal in ${dtr}d` : ''}): ${a.whyThisScore}`
   }).join('\n') || '(no urgent accounts today)'
 
-  const prompt = `You are writing a personalised morning Slack message to ${firstName}, a Customer Success Manager at Flowbox.
+  const prompt = `You are writing a warm, friendly morning reminder to ${firstName}, a Customer Success Manager at Flowbox.
 
 Today is ${today}.
 
-Their portfolio:
-- Total accounts: ${accounts.length}
-- Stable: ${stable.length}
-- Keep an Eye: ${keepAnEye.length}  
-- Action Required: ${actionRequired.length}
-- Churn Risk: ${churnRisk.length}
-- Total ARR: €${totalARR.toLocaleString()}
+Their portfolio summary:
+- Total accounts: ${accounts.length} (${urgent.length} need attention today)
 - At-risk ARR: €${atRiskARR.toLocaleString()}
 
-Urgent accounts (churn risk + action required) — these are the ONLY accounts you may name:
+Urgent accounts (churn risk + action required) — the ONLY accounts you may name:
 ${accountSummary}
 
-Write a SHORT (max 3 sentences), warm, direct morning message for ${firstName}.
+Write a SHORT (2-3 sentences) good morning message for ${firstName}.
 
 Rules:
-- If there are no urgent accounts: congratulate them warmly that nothing needs urgent attention today
-- If there are urgent accounts: be direct about what needs attention today, mention 1-2 specific client names
-- If there is churn risk: be clear this needs immediate action, name the accounts
-- ONLY mention churn-risk or action-required accounts by name. Never mention keep-an-eye or stable accounts.
-- Always feel personal, never robotic or templated
-- Do NOT use bullet points — write in natural conversational sentences
-- Do NOT say "Good morning" — start differently each day
-- Keep it under 60 words
-- Sign off with something encouraging`
+- Start with a warm "Good morning" greeting
+- If there are no urgent accounts: wish them a great day, nothing needs urgent attention
+- If there are urgent accounts: briefly remind them which accounts need their attention today — keep it light but clear, mention up to 2 account names
+- Feel like a friendly nudge from a colleague, not a corporate report
+- Do NOT use bullet points — natural conversational sentences only
+- Do NOT list metrics, ARR figures, or percentages
+- Keep it under 60 words`
 
   const response = await anthropic.messages.create({
     model: 'claude-sonnet-4-6',
@@ -123,74 +116,26 @@ Rules:
 
 // ─── Send Slack DM ────────────────────────────────────────────────────────────
 async function sendDM(slackId: string, csmName: string, accounts: any[], personalMessage: string) {
-  const urgent     = accounts.filter(a => ['churn_risk', 'action_required'].includes(a.healthState))
-
-  // Only list churn-risk and action-required accounts (skip keep-an-eye and stable)
-  const accountsToShow = urgent
-
-  const accountLines = accountsToShow.map((a: any) => {
-    const emoji = STATE_EMOJI[a.healthState] ?? '⚪'
-    const label = STATE_LABEL[a.healthState] ?? a.healthState
-    const arr   = `€${(a.arr ?? 0).toLocaleString()}`
-    const dtr   = a.contract?.renewal
-      ? Math.ceil((new Date(a.contract.renewal).getTime() - Date.now()) / 86400000)
-      : null
-    const ren   = dtr && dtr > 0 && dtr <= 90 ? ` · renews in ${dtr}d` : ''
-    return `${emoji} *${a.name}* (${label} · ${arr}${ren})\n  _${a.whyThisScore}_`
-  }).join('\n\n')
-
-  const today    = new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })
-  const allGood  = urgent.length === 0
+  const urgent  = accounts.filter(a => ['churn_risk', 'action_required'].includes(a.healthState))
 
   const blocks: any[] = [
-    {
-      type: 'header',
-      text: {
-        type: 'plain_text',
-        text: allGood
-          ? `☀️ Good news — ${today}`
-          : `📋 Your briefing — ${today}`,
-        emoji: true,
-      },
-    },
     {
       type: 'section',
       text: { type: 'mrkdwn', text: personalMessage },
     },
+    { type: 'divider' },
+    {
+      type: 'actions',
+      elements: [
+        {
+          type: 'button',
+          text: { type: 'plain_text', text: '📊 Open dashboard', emoji: true },
+          url: APP_URL,
+          style: urgent.length > 0 ? 'danger' : 'primary',
+        },
+      ],
+    },
   ]
-
-  if (accountsToShow.length > 0) {
-    blocks.push({ type: 'divider' })
-    blocks.push({
-      type: 'section',
-      text: {
-        type: 'mrkdwn',
-        text: `*Accounts needing attention (${urgent.length}/${accounts.length}):*\n\n${accountLines}`,
-      },
-    })
-  }
-
-  blocks.push({ type: 'divider' })
-  blocks.push({
-    type: 'context',
-    elements: [
-      {
-        type: 'mrkdwn',
-        text: `${accounts.length} accounts · ${urgent.length} urgent · Generated by Claude`,
-      },
-    ],
-  })
-  blocks.push({
-    type: 'actions',
-    elements: [
-      {
-        type: 'button',
-        text: { type: 'plain_text', text: '📊 Open dashboard', emoji: true },
-        url: APP_URL,
-        style: urgent.length > 0 ? 'danger' : 'primary',
-      },
-    ],
-  })
 
   const res = await fetch('https://slack.com/api/chat.postMessage', {
     method: 'POST',
