@@ -233,11 +233,14 @@ function toScore(
 
   if (state === 'churn_risk') {
     // Differentiate churn risk accounts (range: 1–30)
-    if (opts.communicatedChurn)                                   s -= 10  // worst: told us they're leaving
-    if (lastDays > 60)                                            s -= 6   // gone dark
-    else if (lastDays > 30)                                       s -= 3   // no recent contact
-    else if (lastDays < 7)                                        s += 4   // actively working it
-    if (!opts.autoRenewal && (opts.daysToRenewal ?? 999) < 30)   s -= 6   // renewal imminent, no auto
+    if (opts.communicatedChurn)                                     s -= 10 // worst: told us they're leaving
+    if      (lastDays > 60)                                         s -= 7  // gone completely dark
+    else if (lastDays > 45)                                         s -= 5
+    else if (lastDays > 30)                                         s -= 3
+    else if (lastDays > 14)                                         s -= 1
+    else if (lastDays < 7)                                          s += 5  // actively working it
+    else if (lastDays < 14)                                         s += 2
+    if (!opts.autoRenewal && (opts.daysToRenewal ?? 999) < 30)     s -= 6  // renewal imminent, no auto
     else if (!opts.autoRenewal && (opts.daysToRenewal ?? 999) < 60) s -= 3
     s = Math.max(1, Math.min(30, Math.round(s)))
   } else {
@@ -694,7 +697,7 @@ export async function GET(req: NextRequest) {
     for (const c of clients) {
       if (c.demoChurnSignals && c.demoChurnSignals.length > 0 && c.healthState !== 'churn_risk') {
         c.healthState = 'churn_risk'
-        c.score = 14
+        c.score = toScore('churn_risk', c.lastContactDaysAgo)
         c.whyThisScore = `AI-detected risk signals: ${c.demoChurnSignals.map(s => DEMO_LABELS[s] ?? s).join('; ')}.`
       }
     }
