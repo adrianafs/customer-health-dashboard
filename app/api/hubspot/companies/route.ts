@@ -387,7 +387,7 @@ export async function GET(req: NextRequest) {
     }
 
     // 5b. Batch-read meeting properties
-    const allMeetingIds = [...new Set(Object.values(coMeetingIds).flat())]
+    const allMeetingIds = Array.from(new Set(Object.values(coMeetingIds).flat()))
     const meetingPropsMap: Record<string, { timestamp: string; outcome: string }> = {}
     for (let i = 0; i < allMeetingIds.length; i += 100) {
       const chunk = allMeetingIds.slice(i, i + 100)
