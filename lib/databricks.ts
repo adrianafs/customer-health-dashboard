@@ -4,10 +4,14 @@ const WH_ID = process.env.DATABRICKS_WAREHOUSE_ID
 
 export interface UsageStats {
   // Platform usage — Flowbox UGC (ugc_company_level_usage)
-  lastActiveDate:     string | null
-  activeDays30:       number
-  flows30d:           number
-  platformDays:       number
+  lastActiveDate:        string | null
+  activeDays30:          number
+  flows30d:              number
+  platformDays:          number
+  approvedPosts30d:      number
+  productsAdded30d:      number
+  rightsRequestsSent30d: number
+  tagsAdded30d:          number
   // KPIs — Flowbox UGC (ugc_company_level_kpis)
   conversions30d:     number
   orders30d:          number
@@ -94,7 +98,11 @@ export async function getUsageStats(
           OR added_tag_to_a_post > 0
           OR created_publish_post > 0
         ) THEN 1 ELSE 0 END) AS active_days_30,
-        SUM(distributed_post_to_a_flow) AS flows_30d
+        SUM(distributed_post_to_a_flow)                                          AS flows_30d,
+        SUM(approved_posts)                                                       AS approved_posts_30d,
+        SUM(COALESCE(added_product_to_a_post, 0))                                AS products_added_30d,
+        SUM(rights_request_sent_by_comment + rights_request_sent_by_dm)          AS rights_requests_sent_30d,
+        SUM(added_tag_to_a_post)                                                  AS tags_added_30d
       FROM core.main.ugc_company_level_usage
       WHERE ugc_company_id = ${id}
         AND date_day >= DATEADD(DAY, -30, CURRENT_DATE)
@@ -166,10 +174,14 @@ export async function getUsageStats(
 
   // Parse UGC usage
   const u = usageRows?.[0]
-  const lastActive   = u?.[0] as string | null ?? null
-  const activeDays30 = parseInt(String(u?.[1] ?? '0'), 10) || 0
-  const flows30d     = parseInt(String(u?.[2] ?? '0'), 10) || 0
-  const platformDays = lastActive
+  const lastActive          = u?.[0] as string | null ?? null
+  const activeDays30        = parseInt(String(u?.[1] ?? '0'), 10) || 0
+  const flows30d            = parseInt(String(u?.[2] ?? '0'), 10) || 0
+  const approvedPosts30d    = parseInt(String(u?.[3] ?? '0'), 10) || 0
+  const productsAdded30d    = parseInt(String(u?.[4] ?? '0'), 10) || 0
+  const rightsRequestsSent30d = parseInt(String(u?.[5] ?? '0'), 10) || 0
+  const tagsAdded30d        = parseInt(String(u?.[6] ?? '0'), 10) || 0
+  const platformDays        = lastActive
     ? Math.max(0, Math.floor((Date.now() - new Date(lastActive).getTime()) / 86400000))
     : 999
 
@@ -197,6 +209,10 @@ export async function getUsageStats(
     activeDays30,
     flows30d,
     platformDays,
+    approvedPosts30d,
+    productsAdded30d,
+    rightsRequestsSent30d,
+    tagsAdded30d,
     conversions30d,
     orders30d,
     engagements30d,

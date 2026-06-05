@@ -361,12 +361,13 @@ export default function DetailPanel({ client, onClose, onRescore }: Props) {
                 ] }] : []),
                 // Flowbox UGC section
                 ...((client.brand === 'flowbox' || client.brand === 'both' || !client.brand) ? [{ title: 'Flowbox usage', src: 'DATABRICKS' as const, rows: [
-                  { k: 'Activity days (30d)', v: !client.flowboxPlatformId ? 'No platform ID' : usage ? (usage.activeDays30 > 0 ? `${usage.activeDays30} days` : 'None') : '…', cls: usage ? (usage.activeDays30 === 0 ? 'bd' : usage.activeDays30 < 5 ? 'wn' : 'ok') : undefined },
-                  { k: 'Flows distributed (30d)', v: !client.flowboxPlatformId ? '—' : usage ? usage.flows30d : '…', cls: usage ? (usage.flows30d === 0 ? 'bd' : usage.flows30d < 10 ? 'wn' : 'ok') : undefined },
-                  { k: 'Conversions (30d)', v: !client.flowboxPlatformId ? '—' : usage ? usage.conversions30d : '…', cls: undefined },
-                  { k: 'Orders (30d)', v: !client.flowboxPlatformId ? '—' : usage ? usage.orders30d : '…', cls: undefined },
-                  { k: 'Engagements (30d)', v: !client.flowboxPlatformId ? '—' : usage ? usage.engagements30d : '…', cls: undefined },
+                  { k: 'Activity days (30d)', v: !client.flowboxPlatformId ? 'No platform ID' : usage ? (usage.activeDays30 > 0 ? `${usage.activeDays30}d` : 'None') : '…', cls: usage ? (usage.activeDays30 === 0 ? 'bd' : usage.activeDays30 < 5 ? 'wn' : 'ok') : undefined },
                   { k: 'Last active', v: !client.flowboxPlatformId ? '—' : usage?.lastActiveDate ?? '…', cls: usage ? (usage.platformDays > 60 ? 'bd' : usage.platformDays > 30 ? 'wn' : 'ok') : undefined },
+                  { k: 'Approved posts (30d)', v: !client.flowboxPlatformId ? '—' : usage ? usage.approvedPosts30d : '…', cls: usage ? (usage.approvedPosts30d === 0 ? 'bd' : 'ok') : undefined },
+                  { k: 'Products added (30d)', v: !client.flowboxPlatformId ? '—' : usage ? usage.productsAdded30d : '…', cls: undefined },
+                  { k: 'Rights requests (30d)', v: !client.flowboxPlatformId ? '—' : usage ? usage.rightsRequestsSent30d : '…', cls: usage ? (usage.rightsRequestsSent30d === 0 ? 'wn' : 'ok') : undefined },
+                  { k: 'Tags added (30d)', v: !client.flowboxPlatformId ? '—' : usage ? usage.tagsAdded30d : '…', cls: undefined },
+                  { k: 'Distributed to flows (30d)', v: !client.flowboxPlatformId ? '—' : usage ? usage.flows30d : '…', cls: usage ? (usage.flows30d === 0 ? 'bd' : usage.flows30d < 10 ? 'wn' : 'ok') : undefined },
                 ]}] : []),
                 // Dreaminfluence IM section
                 ...((client.brand === 'dream' || client.brand === 'both') ? [{ title: 'Influencer Marketing', src: 'DATABRICKS' as const, rows: [
