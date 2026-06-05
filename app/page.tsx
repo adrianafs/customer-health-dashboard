@@ -103,23 +103,24 @@ function AiSidebar({
 
   return (
     <aside style={{ width: open ? 360 : 52, flexShrink: 0, background: 'var(--n0)', borderLeft: '1px solid var(--n200)', display: 'flex', flexDirection: 'column', overflow: 'hidden', transition: 'width .28s cubic-bezier(.4,0,.2,1)' }}>
-      <div style={{ height: 56, borderBottom: '1px solid var(--n100)', display: 'flex', alignItems: 'center', padding: open ? '0 14px' : 0, gap: 10, flexShrink: 0, justifyContent: open ? 'flex-start' : 'center' }}>
-        <div style={{ width: 28, height: 28, borderRadius: 999, background: 'linear-gradient(135deg,var(--v500),var(--v300))', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          <svg width="13" height="13" viewBox="0 0 12 12" fill="none"><path d="M6 .75l1.5 3.5 3.5 1.5-3.5 1.5L6 10.75 4.5 7.25 1 5.75l3.5-1.5L6 .75z" fill="white"/></svg>
+      <div style={{ background: open ? 'linear-gradient(145deg,var(--v800) 0%,var(--v500) 100%)' : 'var(--v800)', padding: open ? '14px 16px' : '14px 0', display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0, justifyContent: open ? 'flex-start' : 'center' }}>
+        <div style={{ width: 32, height: 32, borderRadius: 999, background: 'rgba(255,255,255,.15)', border: '1px solid rgba(255,255,255,.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <svg width="14" height="14" viewBox="0 0 12 12" fill="none"><path d="M6 .75l1.5 3.5 3.5 1.5-3.5 1.5L6 10.75 4.5 7.25 1 5.75l3.5-1.5L6 .75z" fill="white"/></svg>
         </div>
         {open && (
           <>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--n900)', whiteSpace: 'nowrap', overflow: 'hidden', letterSpacing: '-.01em' }}>Claude AI</div>
-              <div style={{ fontSize: 10, color: 'var(--n500)', whiteSpace: 'nowrap', marginTop: 1 }}>{activeCsmName ? `${activeCsmName.split(' ')[0]}'s assistant` : 'CS intelligence'}</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', letterSpacing: '-.01em' }}>Claude AI</div>
+              <div style={{ fontSize: 10, color: 'var(--v300)', whiteSpace: 'nowrap', marginTop: 1 }}>{activeCsmName ? `${activeCsmName.split(' ')[0]}'s assistant` : 'CS intelligence'}</div>
             </div>
-            <button onClick={onToggle} style={{ width: 28, height: 28, borderRadius: 6, border: '1px solid var(--n200)', background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--n500)', flexShrink: 0 }}>
+            <div style={{ width: 7, height: 7, borderRadius: 999, background: '#00CC9A', boxShadow: '0 0 8px rgba(0,204,154,.7)', flexShrink: 0 }} className="animate-pulse-dot" />
+            <button onClick={onToggle} style={{ width: 28, height: 28, borderRadius: 6, border: '1px solid rgba(255,255,255,.2)', background: 'rgba(255,255,255,.1)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,.7)', flexShrink: 0 }}>
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 3l4 4-4 4M1 7h12" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg>
             </button>
           </>
         )}
         {!open && (
-          <button onClick={onToggle} style={{ width: 28, height: 28, borderRadius: 6, border: 'none', background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--n500)' }}>
+          <button onClick={onToggle} style={{ width: 28, height: 28, borderRadius: 6, border: 'none', background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,.6)' }}>
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M5 3l-4 4 4 4M13 7H1" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg>
           </button>
         )}
@@ -297,32 +298,36 @@ export default function Dashboard() {
       )}
 
       {/* Header */}
-      <header style={{ height: 56, background: 'var(--n0)', borderBottom: '1px solid var(--n200)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px', flexShrink: 0, boxShadow: 'var(--ss)', zIndex: 50 }}>
+      <header style={{ height: 56, background: 'var(--v800)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px', flexShrink: 0, boxShadow: '0 1px 0 rgba(255,255,255,.08),0 2px 8px rgba(0,0,0,.25)', zIndex: 50, position: 'relative' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <svg width="34" height="34" viewBox="0 0 34 34" fill="none">
-              <path d="M17 3.103l12.6 7.277v14.554L17 32.21 4.4 24.934V10.38L17 3.103z" fill="#F3EBFF" stroke="#6A00FF" strokeWidth="1.6"/>
-              <path d="M17 10l5.5 3.175v6.35L17 22.5l-5.5-3.175V12.5L17 10z" fill="#6A00FF"/>
-              <path d="M17 13.5l2.5 1.443v2.886L17 19.5l-2.5-1.443V14.5L17 13.5z" fill="white" opacity=".75"/>
-            </svg>
+            <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--v500)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 0 0 1px rgba(255,255,255,.15),0 4px 12px rgba(106,0,255,.5)' }}>
+              <svg width="16" height="16" viewBox="0 0 14 14" fill="none">
+                <rect x="1" y="1" width="5" height="5" rx="1.2" fill="white" opacity=".9"/>
+                <rect x="8" y="1" width="5" height="5" rx="1.2" fill="white" opacity=".55"/>
+                <rect x="1" y="8" width="5" height="5" rx="1.2" fill="white" opacity=".55"/>
+                <rect x="8" y="8" width="5" height="5" rx="1.2" fill="white" opacity=".3"/>
+              </svg>
+            </div>
             <div>
-              <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--n900)', letterSpacing: '-.025em', lineHeight: 1 }}>Customer Health</div>
-              <div style={{ fontSize: 10, fontWeight: 500, color: 'var(--n500)', letterSpacing: '.05em', textTransform: 'uppercase', marginTop: 1 }}>Flowbox CS · Internal</div>
+              <div style={{ fontSize: 14, fontWeight: 800, color: '#fff', letterSpacing: '-.025em', lineHeight: 1 }}>Customer Health</div>
+              <div style={{ fontSize: 10, fontWeight: 500, color: 'var(--v300)', letterSpacing: '.05em', textTransform: 'uppercase', marginTop: 2 }}>Flowbox CS · Internal</div>
             </div>
           </div>
-          <div style={{ width: 1, height: 20, background: 'var(--n200)' }} />
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 999, fontSize: 10, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', background: dataSource === 'hubspot' ? 'var(--s50)' : 'var(--v50)', border: `1px solid ${dataSource === 'hubspot' ? '#00CC9A' : 'var(--v200)'}`, color: dataSource === 'hubspot' ? 'var(--s600)' : 'var(--v600)' }}>
-            <div style={{ width: 6, height: 6, borderRadius: '50%', background: dataSource === 'hubspot' ? '#00CC9A' : 'var(--v500)' }} className="animate-pulse-dot" />
+          <div style={{ width: 1, height: 20, background: 'rgba(255,255,255,.15)' }} />
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 999, fontSize: 10, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', background: dataSource === 'hubspot' ? 'rgba(0,204,154,.12)' : 'rgba(175,121,254,.15)', border: `1px solid ${dataSource === 'hubspot' ? 'rgba(0,204,154,.3)' : 'rgba(175,121,254,.3)'}`, color: dataSource === 'hubspot' ? '#00CC9A' : 'var(--v300)' }}>
+            <div style={{ width: 6, height: 6, borderRadius: '50%', background: dataSource === 'hubspot' ? '#00CC9A' : 'var(--v300)' }} className="animate-pulse-dot" />
             {dataSource === 'hubspot' ? 'HubSpot live' : 'Mock data'}
           </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          {lastSync && <span style={{ fontSize: 11, color: 'var(--n400)' }}>Updated {lastSync}</span>}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {lastSync && <span style={{ fontSize: 11, color: 'rgba(255,255,255,.4)' }}>Updated {lastSync}</span>}
           <button onClick={loadData} disabled={loading}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, borderRadius: 8, fontFamily: 'var(--font)', fontWeight: 500, cursor: 'pointer', fontSize: 12, padding: '6px 12px', background: 'var(--n0)', color: 'var(--n900)', border: '1px solid var(--n200)', boxShadow: 'var(--ss)', opacity: loading ? .6 : 1 }}>
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, borderRadius: 8, fontFamily: 'var(--font)', fontWeight: 500, cursor: 'pointer', fontSize: 12, padding: '6px 12px', background: 'rgba(255,255,255,.1)', color: 'rgba(255,255,255,.85)', border: '1px solid rgba(255,255,255,.15)', opacity: loading ? .6 : 1, transition: 'background .15s' }}>
             {loading ? <span className="animate-spin-cls">↻</span> : <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M10.5 6A4.5 4.5 0 111.5 6M10.5 2.5V6H7" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg>}
             {loading ? 'Syncing…' : 'Refresh'}
           </button>
+          <div style={{ width: 30, height: 30, borderRadius: 999, background: 'var(--v500)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 800, color: '#fff', boxShadow: '0 0 0 2px rgba(255,255,255,.2)', flexShrink: 0 }}>CS</div>
         </div>
       </header>
 
@@ -406,7 +411,8 @@ export default function Dashboard() {
           </div>
 
           {/* Board */}
-          <div style={{ flex: 1, overflowY: 'auto', padding: '18px 24px 32px', display: 'flex', gap: 14, alignItems: 'start' }}>
+          <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+          <div style={{ flex: 1, display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', overflow: 'hidden' }}>
 
             {/* Regular columns */}
             {COLUMNS.map(col => {
@@ -414,26 +420,28 @@ export default function Dashboard() {
                 c.healthState === col.state &&
                 (col.state !== 'churn_risk' || !c.communicatedChurn)
               )
-              const colARR = col.state === 'churn_risk'
-                ? colClients.reduce((s, c) => s + c.arr, 0)
-                : null
+              const colARR = colClients.reduce((s, c) => s + c.arr, 0)
+
+              const colTheme: Record<string, { bg: string; border: string; title: string; countBg: string; arr: string }> = {
+                stable:          { bg: '#E4F7EE', border: 'rgba(0,204,154,.2)',   title: '#005F45', countBg: 'var(--s500)', arr: '#005F45' },
+                keep_an_eye:     { bg: '#FEF9C3', border: 'rgba(234,179,8,.2)',   title: '#7A5C00', countBg: 'var(--w500)', arr: '#7A5C00' },
+                action_required: { bg: '#FFF4EE', border: 'rgba(245,120,61,.2)', title: '#922800', countBg: 'var(--a500)', arr: '#922800' },
+                churn_risk:      { bg: '#FFF0F1', border: 'rgba(245,61,82,.2)',   title: '#8B0000', countBg: 'var(--d500)', arr: '#8B0000' },
+              }
+              const theme = colTheme[col.state]
 
               return (
-                <div key={col.state} style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 10 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
-                      <div style={{ width: 8, height: 8, borderRadius: '50%', background: STATE_COLORS[col.state], flexShrink: 0 }} />
-                      <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.01em' }}>{STATE_LABELS[col.state]}</span>
-                      <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--n500)', background: 'var(--n100)', borderRadius: 999, padding: '1px 7px' }}>{colClients.length}</span>
-                      {colARR !== null && colARR > 0 && (
-                        <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--d500)', background: 'var(--d50)', border: '1px solid var(--d200)', borderRadius: 999, padding: '1px 7px', fontFamily: 'var(--mono)' }}>
-                          €{formatARR(colARR)}
-                        </span>
-                      )}
+                <div key={col.state} style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', borderRight: '1px solid var(--n200)' }}>
+                  {/* Column header */}
+                  <div style={{ padding: '10px 14px 8px', flexShrink: 0, background: theme.bg, borderBottom: `1px solid ${theme.border}` }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: theme.title }}>{STATE_LABELS[col.state]}</span>
+                      <span style={{ width: 20, height: 20, borderRadius: 999, background: theme.countBg, fontSize: 10, fontWeight: 800, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{colClients.length}</span>
                     </div>
-                    <span style={{ fontSize: 10, color: 'var(--n400)', fontWeight: 500 }}>{col.subtitle}</span>
+                    <div style={{ fontSize: 12, fontWeight: 800, color: theme.arr }}>€{formatARR(colARR)} <span style={{ fontSize: 9, fontWeight: 500, opacity: .6 }}>ARR</span></div>
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {/* Cards */}
+                  <div style={{ flex: 1, overflowY: 'auto', padding: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {colClients.length === 0
                       ? <div style={{ padding: '28px 16px', borderRadius: 12, border: '1.5px dashed var(--n200)', fontSize: 12, color: 'var(--n400)', textAlign: 'center' }}>No accounts</div>
                       : colClients.map((c, i) => (
@@ -447,17 +455,19 @@ export default function Dashboard() {
               )
             })}
 
+          </div>{/* end 4-col grid */}
+
             {/* Communicated Churn column — collapsible */}
             {(() => {
               const churnClients = clients.filter(c => c.communicatedChurn)
               const churnARR = churnClients.reduce((s, c) => s + c.arr, 0)
               return (
-                <div style={{ width: churnColOpen ? 220 : 40, flexShrink: 0, transition: 'width .25s cubic-bezier(.4,0,.2,1)', overflow: 'hidden' }}>
+                <div style={{ width: churnColOpen ? 220 : 40, flexShrink: 0, transition: 'width .25s cubic-bezier(.4,0,.2,1)', overflow: 'hidden', borderLeft: '1px solid var(--n200)', display: 'flex', flexDirection: 'column' }}>
                   {/* Header */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, paddingBottom: 10, minWidth: 220 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 10px 8px', minWidth: 220, flexShrink: 0, background: 'var(--n50)', borderBottom: '1px solid var(--n200)' }}>
                     <button
                       onClick={() => setChurnColOpen(v => !v)}
-                      style={{ width: 22, height: 22, borderRadius: 6, border: '1px solid var(--n200)', background: 'var(--n50)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: 'var(--n500)' }}
+                      style={{ width: 22, height: 22, borderRadius: 6, border: '1px solid var(--n200)', background: 'var(--n0)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: 'var(--n500)' }}
                     >
                       <svg width="10" height="10" viewBox="0 0 10 10" fill="none" style={{ transform: churnColOpen ? 'rotate(0deg)' : 'rotate(180deg)', transition: 'transform .25s' }}>
                         <path d="M2 3.5l3 3 3-3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
@@ -468,18 +478,13 @@ export default function Dashboard() {
                         <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--n400)', flexShrink: 0 }} />
                         <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--n500)', letterSpacing: '.01em', whiteSpace: 'nowrap' }}>Communicated Churn</span>
                         <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--n400)', background: 'var(--n100)', borderRadius: 999, padding: '1px 7px' }}>{churnClients.length}</span>
-                        {churnARR > 0 && (
-                          <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--n500)', background: 'var(--n100)', border: '1px solid var(--n200)', borderRadius: 999, padding: '1px 7px', fontFamily: 'var(--mono)' }}>
-                            €{formatARR(churnARR)}
-                          </span>
-                        )}
                       </>
                     )}
                   </div>
 
                   {/* Cards */}
                   {churnColOpen && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <div style={{ flex: 1, overflowY: 'auto', padding: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
                       {churnClients.length === 0
                         ? <div style={{ padding: '28px 16px', borderRadius: 12, border: '1.5px dashed var(--n200)', fontSize: 12, color: 'var(--n400)', textAlign: 'center' }}>No accounts</div>
                         : churnClients.map((c, i) => (
@@ -493,7 +498,7 @@ export default function Dashboard() {
                 </div>
               )
             })()}
-          </div>
+          </div>{/* end board flex */}
         </div>
 
         {/* AI Sidebar */}
