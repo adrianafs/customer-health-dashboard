@@ -112,23 +112,24 @@ function AiSidebar({
   return (
     <aside style={{ width: open ? 360 : 52, flexShrink: 0, background: 'var(--n0)', borderLeft: '1px solid var(--n200)', display: 'flex', flexDirection: 'column', overflow: 'hidden', transition: 'width .28s cubic-bezier(.4,0,.2,1)' }}>
       <div style={{ height: 56, background: open ? 'linear-gradient(145deg,var(--v800) 0%,var(--v500) 100%)' : 'var(--n0)', borderBottom: open ? 'none' : '1px solid var(--n100)', display: 'flex', alignItems: 'center', padding: open ? '0 14px' : 0, gap: 10, flexShrink: 0, justifyContent: open ? 'flex-start' : 'center' }}>
-        <div style={{ width: 28, height: 28, borderRadius: 999, background: open ? 'rgba(255,255,255,.15)' : 'linear-gradient(135deg,var(--v500),var(--v300))', border: open ? '1px solid rgba(255,255,255,.2)' : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          <svg width="13" height="13" viewBox="0 0 12 12" fill="none"><path d="M6 .75l1.5 3.5 3.5 1.5-3.5 1.5L6 10.75 4.5 7.25 1 5.75l3.5-1.5L6 .75z" fill="white"/></svg>
-        </div>
-        {open && (
+        {open ? (
           <>
+            <div style={{ width: 28, height: 28, borderRadius: 999, background: 'rgba(255,255,255,.15)', border: '1px solid rgba(255,255,255,.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <svg width="13" height="13" viewBox="0 0 12 12" fill="none"><path d="M6 .75l1.5 3.5 3.5 1.5-3.5 1.5L6 10.75 4.5 7.25 1 5.75l3.5-1.5L6 .75z" fill="white"/></svg>
+            </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', letterSpacing: '-.01em' }}>Claude AI</div>
               <div style={{ fontSize: 10, color: 'var(--v300)', whiteSpace: 'nowrap', marginTop: 1 }}>{activeCsmName ? `${activeCsmName.split(' ')[0]}'s assistant` : 'CS intelligence'}</div>
             </div>
-            <button onClick={onToggle} style={{ width: 28, height: 28, borderRadius: 6, border: '1px solid rgba(255,255,255,.25)', background: 'rgba(255,255,255,.1)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', flexShrink: 0 }}>
+            <button onClick={onToggle} title="Hide assistant" style={{ width: 28, height: 28, borderRadius: 6, border: '1px solid rgba(255,255,255,.25)', background: 'rgba(255,255,255,.1)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', flexShrink: 0 }}>
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 3l4 4-4 4M1 7h12" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg>
             </button>
           </>
-        )}
-        {!open && (
-          <button onClick={onToggle} style={{ width: 28, height: 28, borderRadius: 6, border: 'none', background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--n500)' }}>
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M5 3l-4 4 4 4M13 7H1" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg>
+        ) : (
+          /* Collapsed: the Claude icon itself reopens the panel */
+          <button onClick={onToggle} title="Open Claude assistant"
+            style={{ width: 32, height: 32, borderRadius: 999, background: 'linear-gradient(135deg,var(--v500),var(--v300))', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 8px rgba(106,0,255,.3)' }}>
+            <svg width="14" height="14" viewBox="0 0 12 12" fill="none"><path d="M6 .75l1.5 3.5 3.5 1.5-3.5 1.5L6 10.75 4.5 7.25 1 5.75l3.5-1.5L6 .75z" fill="white"/></svg>
           </button>
         )}
       </div>
