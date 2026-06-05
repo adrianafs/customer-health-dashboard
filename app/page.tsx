@@ -243,7 +243,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     loadData()
-    const t = setInterval(loadData, 5 * 60 * 1000)
+    const t = setInterval(loadData, 180 * 60 * 1000) // 3h — paused for demo
     return () => clearInterval(t)
   }, [loadData])
 
