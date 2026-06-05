@@ -177,18 +177,12 @@ export async function GET(req: NextRequest) {
       byCsm[name].push(account)
     }
 
-    const results: { csm: string; status: string; error?: string }[] = []
-
-    // Jean Bouaziz is a test account — send all accounts as a preview
-    if (targetCsm === 'Jean Bouaziz') {
-      const slackId = CSM_SLACK_IDS['Jean Bouaziz']
-      if (slackId) {
-        const message = await generateMessage('Jean Bouaziz', allAccounts)
-        await sendDM(slackId, 'Jean Bouaziz', allAccounts, message)
-        results.push({ csm: 'Jean Bouaziz', status: 'sent ✓ (test — all accounts)' })
-      }
-      return NextResponse.json({ success: true, date: new Date().toISOString(), results, totalSent: 1, totalFailed: 0 })
+    // Jean Bouaziz is a test account — give him all accounts as a preview
+    if (!byCsm['Jean Bouaziz'] && CSM_SLACK_IDS['Jean Bouaziz']) {
+      byCsm['Jean Bouaziz'] = allAccounts
     }
+
+    const results: { csm: string; status: string; error?: string }[] = []
 
     // 3. For each CSM with a Slack ID, generate and send
     for (const [csmName, accounts] of Object.entries(byCsm)) {
