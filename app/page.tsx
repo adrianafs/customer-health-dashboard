@@ -32,6 +32,14 @@ const STAT_ICONS: Record<HealthState, { bg: string; icon: JSX.Element }> = {
   },
 }
 
+// Colored column-header tints (redesign)
+const COL_HEADER: Record<HealthState, { bg: string; border: string; text: string }> = {
+  stable:          { bg: '#E4F7EE', border: 'rgba(0,204,154,.2)',  text: '#005F45' },
+  keep_an_eye:     { bg: '#FEF9C3', border: 'rgba(234,179,8,.2)',  text: '#7A5C00' },
+  action_required: { bg: '#FFF4EE', border: 'rgba(245,120,61,.2)', text: '#922800' },
+  churn_risk:      { bg: '#FFF0F1', border: 'rgba(245,61,82,.2)',  text: '#8B0000' },
+}
+
 type BrandFilter = 'all' | 'flowbox' | 'dream' | 'both'
 
 // ── AI Sidebar ────────────────────────────────────────────────────────────────
@@ -103,17 +111,17 @@ function AiSidebar({
 
   return (
     <aside style={{ width: open ? 360 : 52, flexShrink: 0, background: 'var(--n0)', borderLeft: '1px solid var(--n200)', display: 'flex', flexDirection: 'column', overflow: 'hidden', transition: 'width .28s cubic-bezier(.4,0,.2,1)' }}>
-      <div style={{ height: 56, borderBottom: '1px solid var(--n100)', display: 'flex', alignItems: 'center', padding: open ? '0 14px' : 0, gap: 10, flexShrink: 0, justifyContent: open ? 'flex-start' : 'center' }}>
-        <div style={{ width: 28, height: 28, borderRadius: 999, background: 'linear-gradient(135deg,var(--v500),var(--v300))', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+      <div style={{ height: 56, background: open ? 'linear-gradient(145deg,var(--v800) 0%,var(--v500) 100%)' : 'var(--n0)', borderBottom: open ? 'none' : '1px solid var(--n100)', display: 'flex', alignItems: 'center', padding: open ? '0 14px' : 0, gap: 10, flexShrink: 0, justifyContent: open ? 'flex-start' : 'center' }}>
+        <div style={{ width: 28, height: 28, borderRadius: 999, background: open ? 'rgba(255,255,255,.15)' : 'linear-gradient(135deg,var(--v500),var(--v300))', border: open ? '1px solid rgba(255,255,255,.2)' : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           <svg width="13" height="13" viewBox="0 0 12 12" fill="none"><path d="M6 .75l1.5 3.5 3.5 1.5-3.5 1.5L6 10.75 4.5 7.25 1 5.75l3.5-1.5L6 .75z" fill="white"/></svg>
         </div>
         {open && (
           <>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--n900)', whiteSpace: 'nowrap', overflow: 'hidden', letterSpacing: '-.01em' }}>Claude AI</div>
-              <div style={{ fontSize: 10, color: 'var(--n500)', whiteSpace: 'nowrap', marginTop: 1 }}>{activeCsmName ? `${activeCsmName.split(' ')[0]}'s assistant` : 'CS intelligence'}</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', letterSpacing: '-.01em' }}>Claude AI</div>
+              <div style={{ fontSize: 10, color: 'var(--v300)', whiteSpace: 'nowrap', marginTop: 1 }}>{activeCsmName ? `${activeCsmName.split(' ')[0]}'s assistant` : 'CS intelligence'}</div>
             </div>
-            <button onClick={onToggle} style={{ width: 28, height: 28, borderRadius: 6, border: '1px solid var(--n200)', background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--n500)', flexShrink: 0 }}>
+            <button onClick={onToggle} style={{ width: 28, height: 28, borderRadius: 6, border: '1px solid rgba(255,255,255,.25)', background: 'rgba(255,255,255,.1)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', flexShrink: 0 }}>
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 3l4 4-4 4M1 7h12" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg>
             </button>
           </>
@@ -297,7 +305,7 @@ export default function Dashboard() {
       )}
 
       {/* Header */}
-      <header style={{ height: 56, background: 'var(--n0)', borderBottom: '1px solid var(--n200)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px', flexShrink: 0, boxShadow: 'var(--ss)', zIndex: 50 }}>
+      <header style={{ height: 56, background: 'var(--v50)', borderBottom: '1px solid var(--v100)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px', flexShrink: 0, zIndex: 50 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <svg width="34" height="34" viewBox="0 0 34 34" fill="none">
@@ -307,10 +315,10 @@ export default function Dashboard() {
             </svg>
             <div>
               <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--n900)', letterSpacing: '-.025em', lineHeight: 1 }}>Customer Health</div>
-              <div style={{ fontSize: 10, fontWeight: 500, color: 'var(--n500)', letterSpacing: '.05em', textTransform: 'uppercase', marginTop: 1 }}>Flowbox CS · Internal</div>
+              <div style={{ fontSize: 10, fontWeight: 500, color: 'var(--v500)', letterSpacing: '.05em', textTransform: 'uppercase', marginTop: 1 }}>Flowbox CS · Internal</div>
             </div>
           </div>
-          <div style={{ width: 1, height: 20, background: 'var(--n200)' }} />
+          <div style={{ width: 1, height: 20, background: 'var(--v100)' }} />
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 999, fontSize: 10, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', background: dataSource === 'hubspot' ? 'var(--s50)' : 'var(--v50)', border: `1px solid ${dataSource === 'hubspot' ? '#00CC9A' : 'var(--v200)'}`, color: dataSource === 'hubspot' ? 'var(--s600)' : 'var(--v600)' }}>
             <div style={{ width: 6, height: 6, borderRadius: '50%', background: dataSource === 'hubspot' ? '#00CC9A' : 'var(--v500)' }} className="animate-pulse-dot" />
             {dataSource === 'hubspot' ? 'HubSpot live' : 'Mock data'}
@@ -319,7 +327,7 @@ export default function Dashboard() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {lastSync && <span style={{ fontSize: 11, color: 'var(--n400)' }}>Updated {lastSync}</span>}
           <button onClick={loadData} disabled={loading}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, borderRadius: 8, fontFamily: 'var(--font)', fontWeight: 500, cursor: 'pointer', fontSize: 12, padding: '6px 12px', background: 'var(--n0)', color: 'var(--n900)', border: '1px solid var(--n200)', boxShadow: 'var(--ss)', opacity: loading ? .6 : 1 }}>
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, borderRadius: 8, fontFamily: 'var(--font)', fontWeight: 500, cursor: 'pointer', fontSize: 12, padding: '6px 12px', background: 'var(--n0)', color: 'var(--n900)', border: '1px solid var(--v100)', boxShadow: 'var(--ss)', opacity: loading ? .6 : 1 }}>
             {loading ? <span className="animate-spin-cls">↻</span> : <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M10.5 6A4.5 4.5 0 111.5 6M10.5 2.5V6H7" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg>}
             {loading ? 'Syncing…' : 'Refresh'}
           </button>
@@ -414,24 +422,23 @@ export default function Dashboard() {
                 c.healthState === col.state &&
                 (col.state !== 'churn_risk' || !c.communicatedChurn)
               )
-              const colARR = col.state === 'churn_risk'
-                ? colClients.reduce((s, c) => s + c.arr, 0)
-                : null
+              const colARR = colClients.reduce((s, c) => s + c.arr, 0)
+              const hue = COL_HEADER[col.state]
 
               return (
                 <div key={col.state} style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 10 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
-                      <div style={{ width: 8, height: 8, borderRadius: '50%', background: STATE_COLORS[col.state], flexShrink: 0 }} />
-                      <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.01em' }}>{STATE_LABELS[col.state]}</span>
-                      <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--n500)', background: 'var(--n100)', borderRadius: 999, padding: '1px 7px' }}>{colClients.length}</span>
-                      {colARR !== null && colARR > 0 && (
-                        <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--d500)', background: 'var(--d50)', border: '1px solid var(--d200)', borderRadius: 999, padding: '1px 7px', fontFamily: 'var(--mono)' }}>
-                          €{formatARR(colARR)}
-                        </span>
-                      )}
+                  {/* Colored column header */}
+                  <div style={{ background: hue.bg, border: `1px solid ${hue.border}`, borderRadius: 12, padding: '10px 12px', marginBottom: 10 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: hue.text }}>{STATE_LABELS[col.state]}</span>
+                        <span style={{ minWidth: 20, height: 20, padding: '0 6px', borderRadius: 999, fontSize: 10, fontWeight: 800, color: '#fff', background: STATE_COLORS[col.state], display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{colClients.length}</span>
+                      </div>
+                      <span style={{ fontSize: 10, color: hue.text, opacity: .7, fontWeight: 500 }}>{col.subtitle}</span>
                     </div>
-                    <span style={{ fontSize: 10, color: 'var(--n400)', fontWeight: 500 }}>{col.subtitle}</span>
+                    <div style={{ fontSize: 12, fontWeight: 800, color: hue.text, fontFamily: 'var(--mono)' }}>
+                      €{formatARR(colARR)} <span style={{ fontSize: 9, fontWeight: 500, opacity: .6 }}>ARR</span>
+                    </div>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {colClients.length === 0
