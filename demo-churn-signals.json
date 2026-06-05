@@ -1,56 +1,21 @@
 {
-  "31691268407": {
-    "signals": [
-      "stakeholder"
-    ],
-    "name": "Pierre Fabre Nordic"
-  },
-  "6179504754": {
-    "signals": [
-      "resources",
-      "stakeholder"
-    ],
-    "name": "JP/Politikens Hus"
-  },
   "6266161756": {
     "signals": [
-      "product",
-      "content"
+      "product"
     ],
     "name": "Core Hospitality A/S"
   },
   "6670721315": {
     "signals": [
-      "stakeholder",
       "competitor"
     ],
     "name": "Nøie"
   },
-  "6670732580": {
-    "signals": [
-      "content"
-    ],
-    "name": "WOW PARK"
-  },
-  "6670732585": {
-    "signals": [
-      "stakeholder"
-    ],
-    "name": "Carletti A/S"
-  },
   "53320410942": {
     "signals": [
-      "resources",
-      "stakeholder",
       "competitor"
     ],
     "name": "Nordic Bites Group"
-  },
-  "6670721340": {
-    "signals": [
-      "resources"
-    ],
-    "name": "SF FILM A/S"
   },
   "54170423171": {
     "signals": [
@@ -58,46 +23,23 @@
     ],
     "name": "NORDISK FILM DK"
   },
-  "10207877187": {
-    "signals": [
-      "stakeholder"
-    ],
-    "name": "Estée Lauder Nordics"
-  },
   "6685647783": {
     "signals": [
       "product"
     ],
     "name": "ILVA Danmark"
   },
-  "6685599157": {
-    "signals": [
-      "resources",
-      "stakeholder"
-    ],
-    "name": "MOFIBO BOOKS ApS"
-  },
   "6685685657": {
     "signals": [
-      "resources",
-      "stakeholder",
       "product",
-      "strategy",
-      "content"
+      "strategy"
     ],
     "name": "Telenor Danmark"
-  },
-  "53077559571": {
-    "signals": [
-      "resources"
-    ],
-    "name": "Rosendahl"
   },
   "52129859119": {
     "signals": [
       "product",
-      "strategy",
-      "content"
+      "strategy"
     ],
     "name": "DK Company"
   },
@@ -107,17 +49,9 @@
     ],
     "name": "A/S DYREHAVSBAKKEN"
   },
-  "6763993658": {
-    "signals": [
-      "resources",
-      "stakeholder"
-    ],
-    "name": "The Whole Company Food A/S"
-  },
   "30934620211": {
     "signals": [
       "economic",
-      "stakeholder",
       "competitor"
     ],
     "name": "Bæchs Conditori A/S"
@@ -130,7 +64,6 @@
   },
   "52881916323": {
     "signals": [
-      "stakeholder",
       "product"
     ],
     "name": "DUFFBEAUTY"
@@ -147,18 +80,9 @@
     ],
     "name": "Ferm Living"
   },
-  "51219871840": {
-    "signals": [
-      "stakeholder"
-    ],
-    "name": "Lampemesteren"
-  },
   "55399603565": {
     "signals": [
-      "resources",
-      "stakeholder",
-      "strategy",
-      "content"
+      "strategy"
     ],
     "name": "Lollys Laundry ApS"
   },
@@ -170,7 +94,6 @@
   },
   "8302244781": {
     "signals": [
-      "resources",
       "strategy"
     ],
     "name": "Kenny Anker Brows All rights reserved Info@kennyankerbrows.dk CVR:"
@@ -178,19 +101,9 @@
   "8302263616": {
     "signals": [
       "economic",
-      "resources",
-      "stakeholder",
-      "strategy",
-      "content"
+      "strategy"
     ],
     "name": "Xplora"
-  },
-  "28975884307": {
-    "signals": [
-      "resources",
-      "stakeholder"
-    ],
-    "name": "Naardic"
   },
   "9125938185": {
     "signals": [
@@ -200,8 +113,7 @@
   },
   "9247007133": {
     "signals": [
-      "product",
-      "content"
+      "product"
     ],
     "name": "RevitalTrax"
   },
@@ -213,23 +125,9 @@
   },
   "53323122951": {
     "signals": [
-      "economic",
-      "resources"
+      "economic"
     ],
     "name": "Mollys Collective"
-  },
-  "36445303060": {
-    "signals": [
-      "stakeholder"
-    ],
-    "name": "Sofie Schnoor"
-  },
-  "9411508763": {
-    "signals": [
-      "resources",
-      "stakeholder"
-    ],
-    "name": "Wellvita"
   },
   "9460989025": {
     "signals": [
@@ -251,7 +149,6 @@
   },
   "9572199035": {
     "signals": [
-      "stakeholder",
       "product",
       "competitor"
     ],
@@ -263,79 +160,45 @@
     ],
     "name": "Hudoteket"
   },
-  "9618517048": {
-    "signals": [
-      "resources"
-    ],
-    "name": "Homeroom"
-  },
-  "9618841988": {
-    "signals": [
-      "resources"
-    ],
-    "name": "D-COR"
-  },
   "9636480789": {
     "signals": [
-      "resources",
-      "stakeholder",
       "strategy"
     ],
     "name": "Eva Trio"
   },
   "52448431266": {
     "signals": [
-      "resources",
-      "stakeholder",
       "strategy"
     ],
     "name": "Pixiform"
   },
-  "9664259501": {
-    "signals": [
-      "resources",
-      "stakeholder",
-      "content"
-    ],
-    "name": "Sibelia Lob Nobs "
-  },
   "9665213027": {
     "signals": [
-      "resources",
-      "stakeholder",
-      "product",
-      "content"
+      "product"
     ],
     "name": "Sinnerup"
   },
   "9690011189": {
     "signals": [
-      "economic",
-      "resources",
-      "content"
+      "economic"
     ],
     "name": "Luksusbaby"
   },
   "9691285390": {
     "signals": [
-      "economic",
-      "stakeholder"
+      "economic"
     ],
     "name": "SE Möbler"
   },
   "9691347261": {
     "signals": [
-      "economic",
-      "resources"
+      "economic"
     ],
     "name": "Algorize"
   },
   "30662698841": {
     "signals": [
-      "resources",
-      "stakeholder",
-      "strategy",
-      "content"
+      "strategy"
     ],
     "name": "Brynild Gruppen AS"
   },
@@ -348,17 +211,9 @@
   "9893236332": {
     "signals": [
       "economic",
-      "resources",
-      "stakeholder",
       "strategy"
     ],
     "name": "Baxt AS"
-  },
-  "54711723876": {
-    "signals": [
-      "stakeholder"
-    ],
-    "name": "Synnøve Finden"
   },
   "9954462305": {
     "signals": [
@@ -366,23 +221,14 @@
     ],
     "name": "vidaXL"
   },
-  "10053222673": {
-    "signals": [
-      "resources",
-      "stakeholder"
-    ],
-    "name": "Jotex"
-  },
   "10090914180": {
     "signals": [
-      "economic",
-      "resources"
+      "economic"
     ],
     "name": "Sushilovers"
   },
   "10120127302": {
     "signals": [
-      "stakeholder",
       "competitor"
     ],
     "name": "Rabatta"
@@ -393,68 +239,29 @@
     ],
     "name": "Cocoon Company"
   },
-  "10179879780": {
-    "signals": [
-      "stakeholder"
-    ],
-    "name": "LUXKIDS"
-  },
-  "10179937893": {
-    "signals": [
-      "resources",
-      "content"
-    ],
-    "name": "Fiddle's"
-  },
   "53284801680": {
     "signals": [
-      "economic",
-      "resources"
+      "economic"
     ],
     "name": "AIVIQ"
   },
-  "49572592450": {
-    "signals": [
-      "resources",
-      "content"
-    ],
-    "name": "Fly Chicken AS"
-  },
   "10257961592": {
     "signals": [
-      "resources",
       "strategy"
     ],
     "name": "Sindico Retail Group"
   },
   "10266723735": {
     "signals": [
-      "resources",
-      "stakeholder",
       "strategy"
     ],
     "name": "Scanbox Entertainment"
   },
-  "10294373417": {
-    "signals": [
-      "stakeholder"
-    ],
-    "name": "Maxi Zoo Denmark"
-  },
   "10356919959": {
     "signals": [
-      "economic",
-      "stakeholder"
+      "economic"
     ],
     "name": "FLOOFERS"
-  },
-  "53320349561": {
-    "signals": [
-      "resources",
-      "stakeholder",
-      "content"
-    ],
-    "name": "PALÆO"
   },
   "10573955188": {
     "signals": [
@@ -470,30 +277,9 @@
   },
   "10680789589": {
     "signals": [
-      "resources",
-      "stakeholder",
       "strategy"
     ],
     "name": "Horde"
-  },
-  "10727510405": {
-    "signals": [
-      "resources",
-      "stakeholder"
-    ],
-    "name": "Done By Deer"
-  },
-  "10727146312": {
-    "signals": [
-      "resources"
-    ],
-    "name": "Coze Aarhus"
-  },
-  "51213125936": {
-    "signals": [
-      "stakeholder"
-    ],
-    "name": "Non-stop dogwear"
   },
   "10944782672": {
     "signals": [
@@ -501,13 +287,6 @@
       "strategy"
     ],
     "name": "Lidl Danmark"
-  },
-  "53320286814": {
-    "signals": [
-      "stakeholder",
-      "content"
-    ],
-    "name": "Burger King Scandinavia"
   },
   "14964664676": {
     "signals": [
@@ -517,20 +296,12 @@
   },
   "15019300682": {
     "signals": [
-      "economic",
-      "resources"
+      "economic"
     ],
     "name": "Nani A/S"
   },
-  "15057282427": {
-    "signals": [
-      "stakeholder"
-    ],
-    "name": "CO-RO"
-  },
   "15054832685": {
     "signals": [
-      "resources",
       "product"
     ],
     "name": "VELUX"
@@ -541,16 +312,9 @@
     ],
     "name": "SANDGAARD A/S"
   },
-  "15059328175": {
-    "signals": [
-      "stakeholder"
-    ],
-    "name": "Sommerland Sjælland"
-  },
   "23056560165": {
     "signals": [
       "economic",
-      "stakeholder",
       "product"
     ],
     "name": "Fiskars Group"
@@ -561,44 +325,11 @@
     ],
     "name": "HimmerLand"
   },
-  "15130840225": {
-    "signals": [
-      "stakeholder",
-      "content"
-    ],
-    "name": "Dyberg Larsen"
-  },
   "15165546105": {
     "signals": [
-      "resources",
-      "stakeholder",
       "product"
     ],
     "name": "Sol og Strand"
-  },
-  "15165133876": {
-    "signals": [
-      "resources"
-    ],
-    "name": "Kaffekapslen"
-  },
-  "15187156627": {
-    "signals": [
-      "stakeholder"
-    ],
-    "name": "Leander"
-  },
-  "53957368709": {
-    "signals": [
-      "stakeholder"
-    ],
-    "name": "JDE Peet's Nordics"
-  },
-  "15390265521": {
-    "signals": [
-      "stakeholder"
-    ],
-    "name": "Frank Dandy"
   },
   "29648064270": {
     "signals": [
@@ -608,43 +339,12 @@
   },
   "52234428833": {
     "signals": [
-      "resources",
-      "stakeholder",
       "product"
     ],
     "name": "Zizzi"
   },
-  "31570875732": {
-    "signals": [
-      "resources",
-      "stakeholder"
-    ],
-    "name": "Varner"
-  },
-  "15505693090": {
-    "signals": [
-      "resources"
-    ],
-    "name": "Gudrun Sjödén"
-  },
-  "15528947552": {
-    "signals": [
-      "stakeholder",
-      "content"
-    ],
-    "name": "Carriwell"
-  },
-  "15579490374": {
-    "signals": [
-      "resources",
-      "stakeholder",
-      "content"
-    ],
-    "name": "Byhappyme"
-  },
   "15624164411": {
     "signals": [
-      "stakeholder",
       "product"
     ],
     "name": "VetZoo"
@@ -657,29 +357,13 @@
   },
   "15682118948": {
     "signals": [
-      "resources",
-      "stakeholder",
       "strategy"
     ],
     "name": "VITA"
   },
-  "31388084639": {
-    "signals": [
-      "resources",
-      "content"
-    ],
-    "name": "Musti Group"
-  },
-  "28902074519": {
-    "signals": [
-      "stakeholder"
-    ],
-    "name": "Junkyard"
-  },
   "15745006675": {
     "signals": [
       "economic",
-      "resources",
       "product"
     ],
     "name": "Kick Collection"
@@ -687,60 +371,28 @@
   "15796758153": {
     "signals": [
       "economic",
-      "resources",
       "product"
     ],
     "name": "Zuiver"
   },
   "51266221830": {
     "signals": [
-      "economic",
-      "resources"
+      "economic"
     ],
     "name": "haar-shop.ch"
   },
   "16133629754": {
     "signals": [
       "economic",
-      "resources",
-      "stakeholder",
       "strategy"
     ],
     "name": "fonQ"
   },
-  "16242226516": {
-    "signals": [
-      "resources"
-    ],
-    "name": "Mentellow AS"
-  },
-  "16314849806": {
-    "signals": [
-      "resources",
-      "stakeholder"
-    ],
-    "name": "Ellos"
-  },
-  "53471696746": {
-    "signals": [
-      "resources"
-    ],
-    "name": "Dogman"
-  },
   "16314991684": {
     "signals": [
-      "resources",
-      "stakeholder",
-      "product",
-      "content"
+      "product"
     ],
     "name": "REF Stockholm"
-  },
-  "51219853675": {
-    "signals": [
-      "stakeholder"
-    ],
-    "name": "Gina Tricot"
   },
   "16877441451": {
     "signals": [
@@ -754,37 +406,14 @@
     ],
     "name": "Fenix Outdoor"
   },
-  "16959870288": {
-    "signals": [
-      "stakeholder",
-      "content"
-    ],
-    "name": "House of SAKI"
-  },
-  "51224356940": {
-    "signals": [
-      "content"
-    ],
-    "name": "Jula"
-  },
   "17069872688": {
     "signals": [
-      "product",
-      "content"
+      "product"
     ],
     "name": "BIANCO FOOTWEAR A/S"
   },
-  "17071319942": {
-    "signals": [
-      "resources",
-      "content"
-    ],
-    "name": "Löfbergs"
-  },
   "53284547654": {
     "signals": [
-      "resources",
-      "stakeholder",
       "strategy"
     ],
     "name": "Ecooking"
@@ -798,7 +427,6 @@
   },
   "17367105167": {
     "signals": [
-      "resources",
       "product"
     ],
     "name": "Gebenna ApS"
@@ -815,19 +443,6 @@
     ],
     "name": "Holdit"
   },
-  "17612227907": {
-    "signals": [
-      "stakeholder"
-    ],
-    "name": "G-STAR"
-  },
-  "20476468997": {
-    "signals": [
-      "resources",
-      "stakeholder"
-    ],
-    "name": "Most Wanted"
-  },
   "17699615587": {
     "signals": [
       "product"
@@ -836,16 +451,13 @@
   },
   "17864734595": {
     "signals": [
-      "stakeholder",
       "strategy"
     ],
     "name": "Renessence"
   },
   "17864878374": {
     "signals": [
-      "resources",
-      "product",
-      "content"
+      "product"
     ],
     "name": "TrainMore"
   },
@@ -861,45 +473,26 @@
     ],
     "name": "My Jewellery"
   },
-  "18276979458": {
-    "signals": [
-      "stakeholder"
-    ],
-    "name": "Home Brands AS"
-  },
   "18612275791": {
     "signals": [
-      "stakeholder",
       "competitor"
     ],
     "name": "Swiss Sense"
   },
   "18684229148": {
     "signals": [
-      "resources",
-      "product",
-      "content"
+      "product"
     ],
     "name": "RLVNZ"
   },
-  "18734863365": {
-    "signals": [
-      "resources",
-      "stakeholder"
-    ],
-    "name": "KOST1 KOSTTILSKUDD AS"
-  },
   "52807576336": {
     "signals": [
-      "resources",
-      "stakeholder",
       "product"
     ],
     "name": "Semler Mobility"
   },
   "18925813784": {
     "signals": [
-      "stakeholder",
       "product",
       "competitor"
     ],
@@ -907,203 +500,58 @@
   },
   "19020621414": {
     "signals": [
-      "stakeholder",
       "product"
     ],
     "name": "Grenade"
   },
   "19268335430": {
     "signals": [
-      "economic",
-      "stakeholder"
+      "economic"
     ],
     "name": "Skoringen"
   },
   "19321539432": {
     "signals": [
-      "resources",
-      "stakeholder",
       "product",
       "strategy"
     ],
     "name": "Fritz Hansen"
   },
-  "53021411177": {
-    "signals": [
-      "resources",
-      "stakeholder",
-      "content"
-    ],
-    "name": "Morgenlevering AS"
-  },
-  "19579752498": {
-    "signals": [
-      "resources",
-      "stakeholder",
-      "content"
-    ],
-    "name": "Doing Goods"
-  },
-  "19579670832": {
-    "signals": [
-      "resources",
-      "stakeholder"
-    ],
-    "name": "Leen Bakker"
-  },
-  "19579851600": {
-    "signals": [
-      "stakeholder"
-    ],
-    "name": "Basic-Fit"
-  },
-  "52360513683": {
-    "signals": [
-      "resources",
-      "stakeholder"
-    ],
-    "name": "Verstegen"
-  },
-  "31388103739": {
-    "signals": [
-      "resources",
-      "stakeholder"
-    ],
-    "name": "Scandinavian Cosmetics Denmark"
-  },
   "20167164576": {
     "signals": [
       "economic",
-      "resources",
       "product"
     ],
     "name": "Merz b. Schwanen"
   },
-  "20175873318": {
-    "signals": [
-      "resources",
-      "stakeholder"
-    ],
-    "name": "Zeeman"
-  },
-  "20175761844": {
-    "signals": [
-      "resources"
-    ],
-    "name": "Intratuin"
-  },
   "20174886234": {
     "signals": [
-      "stakeholder",
-      "product",
-      "content"
+      "product"
     ],
     "name": "Buddha to Buddha"
   },
-  "20175794186": {
-    "signals": [
-      "stakeholder"
-    ],
-    "name": "Petite Amélie"
-  },
-  "20174953489": {
-    "signals": [
-      "content"
-    ],
-    "name": "Basiclabel (WOOOD)"
-  },
-  "20191809316": {
-    "signals": [
-      "resources",
-      "stakeholder"
-    ],
-    "name": "Forlaget Alvilda"
-  },
-  "20203300724": {
-    "signals": [
-      "stakeholder"
-    ],
-    "name": "Action"
-  },
-  "20222573369": {
-    "signals": [
-      "resources",
-      "stakeholder",
-      "content"
-    ],
-    "name": "Supersox ApS"
-  },
   "20591647076": {
     "signals": [
-      "resources",
-      "stakeholder",
       "product",
-      "strategy",
-      "content"
+      "strategy"
     ],
     "name": "Spar Kjøp"
   },
-  "20650238493": {
-    "signals": [
-      "resources",
-      "stakeholder"
-    ],
-    "name": "Vitalkost"
-  },
-  "28823132681": {
-    "signals": [
-      "stakeholder"
-    ],
-    "name": "Diplom Is AS"
-  },
-  "53077607800": {
-    "signals": [
-      "resources"
-    ],
-    "name": "Skeidar"
-  },
   "20780611641": {
     "signals": [
-      "resources",
-      "stakeholder",
-      "product",
-      "content"
+      "product"
     ],
     "name": "Selfmade"
   },
   "21219560301": {
     "signals": [
-      "resources",
-      "stakeholder",
       "strategy"
     ],
     "name": "Vitakraft Danmark A/S "
   },
-  "21296398934": {
-    "signals": [
-      "resources"
-    ],
-    "name": "Fabel Lyd AS"
-  },
-  "22259829777": {
-    "signals": [
-      "stakeholder"
-    ],
-    "name": "Sebra"
-  },
-  "36370243475": {
-    "signals": [
-      "resources",
-      "stakeholder"
-    ],
-    "name": "Lene Bjerre "
-  },
   "22284189359": {
     "signals": [
-      "resources",
-      "stakeholder",
-      "product",
-      "content"
+      "product"
     ],
     "name": "Audo Copenhagen"
   },
@@ -1113,58 +561,12 @@
     ],
     "name": "Hello Shopping ApS (Boligcenter.dk)"
   },
-  "22284492605": {
-    "signals": [
-      "stakeholder"
-    ],
-    "name": "Fynbo"
-  },
-  "22350705198": {
-    "signals": [
-      "resources"
-    ],
-    "name": "Perfect Home Holding AS"
-  },
   "22350508598": {
     "signals": [
       "economic",
-      "stakeholder",
       "product"
     ],
     "name": "ALFA"
-  },
-  "22403327539": {
-    "signals": [
-      "resources",
-      "stakeholder"
-    ],
-    "name": "Elico"
-  },
-  "22441819242": {
-    "signals": [
-      "stakeholder"
-    ],
-    "name": "Reform"
-  },
-  "22441938204": {
-    "signals": [
-      "stakeholder"
-    ],
-    "name": "OBJECT"
-  },
-  "36087952781": {
-    "signals": [
-      "stakeholder"
-    ],
-    "name": "aida"
-  },
-  "22441995437": {
-    "signals": [
-      "resources",
-      "stakeholder",
-      "content"
-    ],
-    "name": "Ase Selvstændig"
   },
   "22441973942": {
     "signals": [
@@ -1178,51 +580,15 @@
     ],
     "name": "VERO MODA"
   },
-  "37052366755": {
-    "signals": [
-      "content"
-    ],
-    "name": "Vitacreme B12"
-  },
-  "22874022477": {
-    "signals": [
-      "resources"
-    ],
-    "name": "ZOO.se"
-  },
   "31378465971": {
     "signals": [
-      "resources",
-      "stakeholder",
       "strategy"
     ],
     "name": "Allente Nordic"
   },
-  "23602426964": {
-    "signals": [
-      "stakeholder",
-      "content"
-    ],
-    "name": "Norrein AS"
-  },
-  "23709101637": {
-    "signals": [
-      "resources",
-      "stakeholder"
-    ],
-    "name": "Bad.no"
-  },
-  "23756432434": {
-    "signals": [
-      "resources",
-      "stakeholder"
-    ],
-    "name": "Smood Social"
-  },
   "23793638230": {
     "signals": [
-      "economic",
-      "stakeholder"
+      "economic"
     ],
     "name": "Fest4all"
   },
@@ -1234,76 +600,36 @@
   },
   "25433738393": {
     "signals": [
-      "economic",
-      "resources",
-      "stakeholder"
+      "economic"
     ],
     "name": "Jærfjøla AS"
   },
   "52881918208": {
     "signals": [
-      "product",
-      "content"
+      "product"
     ],
     "name": "Vorn Equipment"
   },
   "30613790779": {
     "signals": [
-      "product",
-      "content"
+      "product"
     ],
     "name": "Select Service Partner AS"
   },
   "31207704329": {
     "signals": [
-      "resources",
-      "stakeholder",
       "strategy"
     ],
     "name": "Blåkläder"
   },
   "31262286760": {
     "signals": [
-      "resources",
       "product"
     ],
     "name": "Noppies"
   },
-  "31261675057": {
-    "signals": [
-      "stakeholder"
-    ],
-    "name": "Kave Home"
-  },
-  "31333352453": {
-    "signals": [
-      "resources",
-      "stakeholder"
-    ],
-    "name": "American Tourister Europe"
-  },
-  "31419470660": {
-    "signals": [
-      "stakeholder"
-    ],
-    "name": "Lorena Canals"
-  },
-  "31416347939": {
-    "signals": [
-      "stakeholder"
-    ],
-    "name": "Ejner Hessel"
-  },
-  "31668487463": {
-    "signals": [
-      "resources",
-      "stakeholder"
-    ],
-    "name": "Mizuno Norge"
-  },
   "51288139064": {
     "signals": [
-      "resources",
       "product"
     ],
     "name": "Naturkompaniet"
@@ -1314,13 +640,6 @@
     ],
     "name": "Bonava"
   },
-  "31713659251": {
-    "signals": [
-      "resources",
-      "stakeholder"
-    ],
-    "name": "Suunto"
-  },
   "51862865001": {
     "signals": [
       "economic",
@@ -1330,67 +649,34 @@
   },
   "31816156217": {
     "signals": [
-      "economic",
-      "stakeholder"
+      "economic"
     ],
     "name": "HUMLUM A/S"
   },
   "53077543588": {
     "signals": [
-      "economic",
-      "resources"
+      "economic"
     ],
     "name": "G4S"
   },
-  "31963141146": {
-    "signals": [
-      "resources",
-      "stakeholder"
-    ],
-    "name": "Markslöjd"
-  },
   "31975426963": {
     "signals": [
-      "resources",
-      "stakeholder",
       "product"
     ],
     "name": "Pip Studio"
   },
-  "32018296454": {
-    "signals": [
-      "stakeholder"
-    ],
-    "name": "Musik i Gentofte"
-  },
   "32030088524": {
     "signals": [
-      "resources",
       "product"
     ],
     "name": "Hedgren"
   },
-  "32329096470": {
-    "signals": [
-      "resources",
-      "content"
-    ],
-    "name": "DENCON FOODS A/S"
-  },
   "52913109155": {
     "signals": [
       "economic",
-      "resources",
-      "stakeholder",
       "product"
     ],
     "name": "Fjällräven"
-  },
-  "51855070559": {
-    "signals": [
-      "resources"
-    ],
-    "name": "Eckerö Linjen"
   },
   "33697540974": {
     "signals": [
@@ -1400,56 +686,31 @@
   },
   "52980721280": {
     "signals": [
-      "resources",
       "product",
       "competitor"
     ],
     "name": "Bobochic"
   },
-  "52911002247": {
-    "signals": [
-      "resources"
-    ],
-    "name": "Hultafors Group"
-  },
   "34270276196": {
     "signals": [
-      "resources",
-      "stakeholder",
       "product"
     ],
     "name": "Destination Gotland"
   },
   "49265339486": {
     "signals": [
-      "stakeholder",
-      "product",
-      "content"
+      "product"
     ],
     "name": "XPeng Motors Denmark ApS"
   },
   "34743099204": {
     "signals": [
-      "strategy",
-      "content"
+      "strategy"
     ],
     "name": "Kaffehuset"
   },
-  "35362841098": {
-    "signals": [
-      "resources"
-    ],
-    "name": "Willab Garden"
-  },
-  "35473223834": {
-    "signals": [
-      "stakeholder"
-    ],
-    "name": "Nordic Game Supply"
-  },
   "36382130273": {
     "signals": [
-      "resources",
       "product"
     ],
     "name": "Alpha Brands AS"
@@ -1460,51 +721,21 @@
     ],
     "name": "Bonprix"
   },
-  "36677262006": {
-    "signals": [
-      "stakeholder"
-    ],
-    "name": "Scan Style"
-  },
   "51219743763": {
     "signals": [
-      "resources",
-      "stakeholder",
       "product"
     ],
     "name": "Naturitas"
   },
-  "39264645035": {
-    "signals": [
-      "stakeholder"
-    ],
-    "name": "Familjetapeter"
-  },
-  "39367078518": {
-    "signals": [
-      "stakeholder"
-    ],
-    "name": "Trivselhus"
-  },
   "39429949233": {
     "signals": [
-      "economic",
-      "stakeholder",
-      "content"
+      "economic"
     ],
     "name": "ShopLondon"
-  },
-  "39565197866": {
-    "signals": [
-      "stakeholder"
-    ],
-    "name": "Arken Zoo"
   },
   "39545268393": {
     "signals": [
       "economic",
-      "resources",
-      "stakeholder",
       "competitor"
     ],
     "name": "Sunweb Group"
@@ -1512,33 +743,18 @@
   "39593509388": {
     "signals": [
       "economic",
-      "product",
-      "content"
+      "product"
     ],
     "name": "SkinClub"
   },
-  "39629146495": {
-    "signals": [
-      "resources"
-    ],
-    "name": "Destination Järvsö"
-  },
   "40188668485": {
     "signals": [
-      "resources",
       "product"
     ],
     "name": "FM Mattsson Group"
   },
-  "40193439912": {
-    "signals": [
-      "stakeholder"
-    ],
-    "name": "Veneta"
-  },
   "40768271116": {
     "signals": [
-      "resources",
       "product"
     ],
     "name": "Las Tijeras Mágicas"
@@ -1556,80 +772,29 @@
     ],
     "name": "Vintage Jewellery"
   },
-  "43252644516": {
-    "signals": [
-      "stakeholder"
-    ],
-    "name": "Lampenwelt"
-  },
   "43830702707": {
     "signals": [
-      "resources",
       "product"
     ],
     "name": "Table du Sud"
   },
-  "44026262568": {
-    "signals": [
-      "resources"
-    ],
-    "name": "Slipper AS"
-  },
   "44398193249": {
     "signals": [
-      "economic",
-      "content"
+      "economic"
     ],
     "name": "Voordelig Design Sanitair"
   },
-  "44449576598": {
-    "signals": [
-      "resources",
-      "stakeholder",
-      "content"
-    ],
-    "name": "Cortinadecor"
-  },
-  "44388555093": {
-    "signals": [
-      "resources",
-      "stakeholder"
-    ],
-    "name": "Impermo"
-  },
-  "45009687389": {
-    "signals": [
-      "resources",
-      "content"
-    ],
-    "name": "Sportstech"
-  },
   "45626351426": {
     "signals": [
-      "stakeholder",
       "strategy"
     ],
     "name": "Habufa"
   },
   "45882786819": {
     "signals": [
-      "resources",
       "strategy"
     ],
     "name": "Baleària"
-  },
-  "45879208193": {
-    "signals": [
-      "resources"
-    ],
-    "name": "CREATE"
-  },
-  "45927046284": {
-    "signals": [
-      "resources",
-      "content"
-    ],
-    "name": "Gosbi"
   },
   "46774951973": {
     "signals": [
@@ -1640,27 +805,18 @@
   },
   "46765446796": {
     "signals": [
-      "stakeholder",
       "product"
     ],
     "name": "Lottusse"
   },
   "46924939066": {
     "signals": [
-      "stakeholder",
       "product"
     ],
     "name": "Tuinmeubelshop"
   },
-  "46939836291": {
-    "signals": [
-      "stakeholder"
-    ],
-    "name": "Royal Belgian Institute of Natural Sciences"
-  },
   "46913339958": {
     "signals": [
-      "resources",
       "product"
     ],
     "name": "Salsa Jeans"
@@ -1668,23 +824,19 @@
   "47308869748": {
     "signals": [
       "economic",
-      "stakeholder",
       "product"
     ],
     "name": "The Mercer Brand"
   },
   "53764922128": {
     "signals": [
-      "resources",
-      "stakeholder",
       "product"
     ],
     "name": "Markedsmateriell Gruppen AS"
   },
   "47522502424": {
     "signals": [
-      "product",
-      "content"
+      "product"
     ],
     "name": "MISAKO"
   },
@@ -1696,9 +848,7 @@
   },
   "48525769561": {
     "signals": [
-      "resources",
-      "product",
-      "content"
+      "product"
     ],
     "name": "BOKKIE"
   },
@@ -1710,39 +860,26 @@
   },
   "49106382231": {
     "signals": [
-      "resources",
       "product"
     ],
     "name": "Kentucky Horsewear"
   },
   "49313005136": {
     "signals": [
-      "resources",
-      "product",
-      "content"
+      "product"
     ],
     "name": "Lana Grossa"
   },
-  "50737628002": {
-    "signals": [
-      "content"
-    ],
-    "name": "New Classic Toys"
-  },
   "51811024453": {
     "signals": [
-      "economic",
-      "resources"
+      "economic"
     ],
     "name": "Carmina Shoemaker"
   },
   "51811024459": {
     "signals": [
-      "resources",
-      "stakeholder",
       "product",
-      "strategy",
-      "content"
+      "strategy"
     ],
     "name": "MUNICH"
   },
@@ -1752,13 +889,6 @@
       "strategy"
     ],
     "name": "Ecoalf"
-  },
-  "51811024446": {
-    "signals": [
-      "resources",
-      "stakeholder"
-    ],
-    "name": "Kenay Home"
   },
   "51858453941": {
     "signals": [
@@ -1774,9 +904,7 @@
   },
   "51864825705": {
     "signals": [
-      "resources",
-      "strategy",
-      "content"
+      "strategy"
     ],
     "name": "Muc-Off "
   },
@@ -1788,14 +916,6 @@
     ],
     "name": "Crew Clothing"
   },
-  "51800084615": {
-    "signals": [
-      "resources",
-      "stakeholder",
-      "content"
-    ],
-    "name": "Bompard"
-  },
   "51800084609": {
     "signals": [
       "product"
@@ -1804,7 +924,6 @@
   },
   "51872101293": {
     "signals": [
-      "resources",
       "strategy"
     ],
     "name": "La Redoute"
@@ -1812,16 +931,9 @@
   "51798691486": {
     "signals": [
       "economic",
-      "resources",
       "product"
     ],
     "name": "Unisa"
-  },
-  "51798691455": {
-    "signals": [
-      "resources"
-    ],
-    "name": "Minitials"
   },
   "51870089899": {
     "signals": [
@@ -1829,30 +941,21 @@
     ],
     "name": "Silbon"
   },
-  "51870089879": {
-    "signals": [
-      "resources"
-    ],
-    "name": "Natural World Eco"
-  },
   "51870089883": {
     "signals": [
-      "resources",
       "product"
     ],
     "name": "Camif"
   },
   "51870090008": {
     "signals": [
-      "product",
-      "content"
+      "product"
     ],
     "name": "Grain de Malice"
   },
   "51811643730": {
     "signals": [
-      "economic",
-      "resources"
+      "economic"
     ],
     "name": "Little Soho"
   },
@@ -1865,21 +968,12 @@
   "51814895113": {
     "signals": [
       "product",
-      "competitor",
-      "content"
+      "competitor"
     ],
     "name": "Rubber B"
   },
-  "51814894986": {
-    "signals": [
-      "resources"
-    ],
-    "name": "Artelioni"
-  },
   "51867922553": {
     "signals": [
-      "resources",
-      "stakeholder",
       "strategy"
     ],
     "name": "SIGG"
@@ -1894,42 +988,19 @@
   },
   "51859229233": {
     "signals": [
-      "resources",
-      "product",
-      "content"
+      "product"
     ],
     "name": "Artcrafts International "
   },
-  "51797453474": {
-    "signals": [
-      "stakeholder"
-    ],
-    "name": "Rascol"
-  },
-  "51868696590": {
-    "signals": [
-      "content"
-    ],
-    "name": "EVOC"
-  },
-  "51868696471": {
-    "signals": [
-      "stakeholder"
-    ],
-    "name": "Porcelanosa"
-  },
   "51818918547": {
     "signals": [
-      "resources",
-      "stakeholder",
       "product"
     ],
     "name": "Pampling"
   },
   "51818918558": {
     "signals": [
-      "economic",
-      "stakeholder"
+      "economic"
     ],
     "name": "Ternua"
   },
@@ -1938,26 +1009,6 @@
       "product"
     ],
     "name": "Centrakor"
-  },
-  "51813037409": {
-    "signals": [
-      "resources",
-      "stakeholder"
-    ],
-    "name": "CMP"
-  },
-  "51813037373": {
-    "signals": [
-      "resources",
-      "stakeholder"
-    ],
-    "name": "ellesse Spain"
-  },
-  "51813037468": {
-    "signals": [
-      "resources"
-    ],
-    "name": "Globetrotter"
   },
   "51857216072": {
     "signals": [
@@ -1979,18 +1030,9 @@
   },
   "51857216151": {
     "signals": [
-      "resources",
-      "competitor",
-      "content"
+      "competitor"
     ],
     "name": "Redskins"
-  },
-  "51799930666": {
-    "signals": [
-      "resources",
-      "stakeholder"
-    ],
-    "name": "Jennifer Taylor Home"
   },
   "51799930526": {
     "signals": [
@@ -2002,7 +1044,6 @@
   },
   "51812881714": {
     "signals": [
-      "stakeholder",
       "strategy"
     ],
     "name": "AC Milan"
@@ -2013,77 +1054,27 @@
     ],
     "name": "BIKE24"
   },
-  "51858454096": {
-    "signals": [
-      "stakeholder"
-    ],
-    "name": "Buster + Punch"
-  },
-  "51858454099": {
-    "signals": [
-      "resources",
-      "stakeholder"
-    ],
-    "name": "Kwantum"
-  },
-  "51858454171": {
-    "signals": [
-      "resources"
-    ],
-    "name": "Agata"
-  },
   "51858454163": {
     "signals": [
-      "resources",
       "product"
     ],
     "name": "Torfs"
   },
-  "51855357314": {
-    "signals": [
-      "resources",
-      "stakeholder"
-    ],
-    "name": "Xenos"
-  },
-  "51855357253": {
-    "signals": [
-      "resources",
-      "stakeholder"
-    ],
-    "name": "Loberon"
-  },
   "51855357258": {
     "signals": [
-      "resources",
       "product"
     ],
     "name": "WETSTYLE"
   },
-  "51870090089": {
-    "signals": [
-      "resources",
-      "stakeholder"
-    ],
-    "name": "Base"
-  },
   "51870090120": {
     "signals": [
-      "stakeholder",
       "product"
     ],
     "name": "Eijerkamp"
   },
-  "51813192077": {
-    "signals": [
-      "resources"
-    ],
-    "name": "Cienta"
-  },
   "51813192088": {
     "signals": [
       "economic",
-      "resources",
       "strategy"
     ],
     "name": "Denby Pottery"
@@ -2096,15 +1087,13 @@
   },
   "51860776498": {
     "signals": [
-      "resources",
       "strategy"
     ],
     "name": "ScS"
   },
   "51860776499": {
     "signals": [
-      "strategy",
-      "content"
+      "strategy"
     ],
     "name": "Timberland Poland"
   },
@@ -2129,42 +1118,9 @@
     ],
     "name": "Stanton Carpet"
   },
-  "51859229323": {
-    "signals": [
-      "resources"
-    ],
-    "name": "Friendly Planet Travel"
-  },
-  "51819691879": {
-    "signals": [
-      "content"
-    ],
-    "name": "Eminza"
-  },
-  "51872874075": {
-    "signals": [
-      "resources",
-      "stakeholder"
-    ],
-    "name": "Crocs Spain"
-  },
-  "51872874025": {
-    "signals": [
-      "resources",
-      "stakeholder"
-    ],
-    "name": "Obsessive"
-  },
-  "51872873990": {
-    "signals": [
-      "resources"
-    ],
-    "name": "Dekoratorium"
-  },
   "51855201838": {
     "signals": [
-      "economic",
-      "resources"
+      "economic"
     ],
     "name": "Promees"
   },
@@ -2175,21 +1131,6 @@
     ],
     "name": "Scicon Sports"
   },
-  "51856905783": {
-    "signals": [
-      "resources",
-      "stakeholder",
-      "content"
-    ],
-    "name": "Dicaltex"
-  },
-  "51872101426": {
-    "signals": [
-      "resources",
-      "stakeholder"
-    ],
-    "name": "Internationale Meubel Groep"
-  },
   "51858609316": {
     "signals": [
       "product"
@@ -2199,23 +1140,15 @@
   "51817063041": {
     "signals": [
       "product",
-      "competitor",
-      "content"
+      "competitor"
     ],
     "name": "Sodimac"
   },
   "51817062997": {
     "signals": [
-      "resources",
       "product"
     ],
     "name": "PELL"
-  },
-  "51817063023": {
-    "signals": [
-      "resources"
-    ],
-    "name": "Taurus Group"
   },
   "51817063004": {
     "signals": [
@@ -2231,38 +1164,15 @@
   },
   "51857216259": {
     "signals": [
-      "resources",
       "product"
     ],
     "name": "Kratki"
   },
   "51801168409": {
     "signals": [
-      "resources",
-      "stakeholder",
       "product"
     ],
     "name": "Vision Express"
-  },
-  "51801168404": {
-    "signals": [
-      "resources",
-      "content"
-    ],
-    "name": "Salgar"
-  },
-  "51801168439": {
-    "signals": [
-      "content"
-    ],
-    "name": "Tikamoon"
-  },
-  "51801168446": {
-    "signals": [
-      "resources",
-      "stakeholder"
-    ],
-    "name": "Mark Hill Hair"
   },
   "51811024544": {
     "signals": [
@@ -2288,39 +1198,11 @@
     ],
     "name": "Claybrook Studio"
   },
-  "51871482963": {
-    "signals": [
-      "resources",
-      "stakeholder"
-    ],
-    "name": "Mellerware"
-  },
-  "51871482994": {
-    "signals": [
-      "stakeholder"
-    ],
-    "name": "De Mandemakers Groep"
-  },
-  "51814430805": {
-    "signals": [
-      "stakeholder"
-    ],
-    "name": "New Era Cap Mexico"
-  },
   "51814430808": {
     "signals": [
-      "economic",
-      "resources",
-      "stakeholder"
+      "economic"
     ],
     "name": "Agua Bendita"
-  },
-  "51814430873": {
-    "signals": [
-      "resources",
-      "stakeholder"
-    ],
-    "name": "Berghaus Spain"
   },
   "51870708531": {
     "signals": [
@@ -2331,7 +1213,6 @@
   },
   "51870708548": {
     "signals": [
-      "stakeholder",
       "product"
     ],
     "name": "Saniweb"
@@ -2342,17 +1223,9 @@
     ],
     "name": "HASH"
   },
-  "51812881974": {
-    "signals": [
-      "resources",
-      "content"
-    ],
-    "name": "Woox"
-  },
   "51812881939": {
     "signals": [
       "economic",
-      "resources",
       "strategy"
     ],
     "name": "Di Mano in Mano"
@@ -2371,59 +1244,22 @@
     ],
     "name": "Lapeyre"
   },
-  "51810095545": {
-    "signals": [
-      "resources"
-    ],
-    "name": "Franklin"
-  },
-  "51810095470": {
-    "signals": [
-      "resources"
-    ],
-    "name": "Time4Sleep"
-  },
-  "51867767704": {
-    "signals": [
-      "content"
-    ],
-    "name": "Wovenhill"
-  },
-  "51799775404": {
-    "signals": [
-      "stakeholder"
-    ],
-    "name": "Esade"
-  },
   "51799775491": {
     "signals": [
       "economic",
-      "resources",
       "product"
     ],
     "name": "Creaciones Nadar"
   },
-  "51799775509": {
-    "signals": [
-      "resources",
-      "stakeholder",
-      "content"
-    ],
-    "name": "DUUO SHOP"
-  },
   "51811952692": {
     "signals": [
-      "economic",
-      "stakeholder"
+      "economic"
     ],
     "name": "Project X Paris"
   },
   "51811952757": {
     "signals": [
-      "resources",
-      "stakeholder",
-      "product",
-      "content"
+      "product"
     ],
     "name": "TOMS Spain"
   },
@@ -2434,73 +1270,18 @@
     ],
     "name": "Smileat"
   },
-  "51811952708": {
-    "signals": [
-      "resources",
-      "stakeholder"
-    ],
-    "name": "Weekamp Deuren"
-  },
-  "51811952764": {
-    "signals": [
-      "resources"
-    ],
-    "name": "Petco Mexico"
-  },
   "51799000718": {
     "signals": [
       "economic",
-      "resources",
       "product"
     ],
     "name": "Compagnie du Mont Blanc"
   },
-  "51799000711": {
-    "signals": [
-      "stakeholder"
-    ],
-    "name": "POLSPOTTEN"
-  },
-  "51799000710": {
-    "signals": [
-      "resources"
-    ],
-    "name": "Norfloor"
-  },
-  "51799000707": {
-    "signals": [
-      "resources",
-      "stakeholder"
-    ],
-    "name": "Société des Bains de Mer"
-  },
   "51865135212": {
     "signals": [
-      "resources",
       "strategy"
     ],
     "name": "FOCUS Bikes"
-  },
-  "51865135198": {
-    "signals": [
-      "resources",
-      "content"
-    ],
-    "name": "BERG Toys"
-  },
-  "51865135224": {
-    "signals": [
-      "resources",
-      "stakeholder"
-    ],
-    "name": "Kanton Aargau"
-  },
-  "51866838660": {
-    "signals": [
-      "resources",
-      "stakeholder"
-    ],
-    "name": "Vulkanresor"
   },
   "51866838701": {
     "signals": [
@@ -2520,59 +1301,20 @@
     ],
     "name": "Café du Cycliste"
   },
-  "51866838654": {
-    "signals": [
-      "resources",
-      "content"
-    ],
-    "name": "Koninklijke Burger's Zoo "
-  },
   "51866838687": {
     "signals": [
-      "resources",
-      "stakeholder",
-      "product",
-      "content"
+      "product"
     ],
     "name": "Petenkoiratarvike"
   },
-  "51810249781": {
-    "signals": [
-      "content"
-    ],
-    "name": "FG-Groep"
-  },
   "51810249820": {
     "signals": [
-      "resources",
-      "stakeholder",
-      "product",
-      "content"
+      "product"
     ],
     "name": "Bieze Food Group"
   },
-  "51810249843": {
-    "signals": [
-      "resources",
-      "stakeholder"
-    ],
-    "name": "Buienradar"
-  },
-  "51810249849": {
-    "signals": [
-      "resources"
-    ],
-    "name": "Boels Rental"
-  },
-  "51810249840": {
-    "signals": [
-      "stakeholder"
-    ],
-    "name": "Gstaad Saanenland Tourismus"
-  },
   "51810249800": {
     "signals": [
-      "stakeholder",
       "competitor"
     ],
     "name": "Eliza was Here"
@@ -2584,95 +1326,36 @@
     ],
     "name": "VårgårdaHus"
   },
-  "51810249847": {
-    "signals": [
-      "resources",
-      "stakeholder"
-    ],
-    "name": "FWO"
-  },
-  "51799775612": {
-    "signals": [
-      "stakeholder"
-    ],
-    "name": "Dr. Oetker Nederland"
-  },
   "51799775628": {
     "signals": [
       "economic"
     ],
     "name": "Hanwag"
   },
-  "51799775658": {
-    "signals": [
-      "resources",
-      "stakeholder"
-    ],
-    "name": "GALERIA"
-  },
-  "51797297742": {
-    "signals": [
-      "resources",
-      "stakeholder"
-    ],
-    "name": "Räckesbutiken"
-  },
   "51797297835": {
     "signals": [
-      "economic",
-      "stakeholder"
+      "economic"
     ],
     "name": "Anders Reizen"
-  },
-  "51867922697": {
-    "signals": [
-      "resources",
-      "stakeholder"
-    ],
-    "name": "Plieger"
   },
   "51867922718": {
     "signals": [
       "economic",
-      "resources",
-      "stakeholder",
       "strategy"
     ],
     "name": "Paracord"
   },
-  "51867922582": {
-    "signals": [
-      "resources",
-      "stakeholder"
-    ],
-    "name": "Obelink"
-  },
   "51867922616": {
     "signals": [
-      "resources",
-      "stakeholder",
       "strategy"
     ],
     "name": "Bruynzeel Keukens"
   },
-  "51867922579": {
-    "signals": [
-      "resources"
-    ],
-    "name": "Keukenstunter"
-  },
   "51867922594": {
     "signals": [
-      "resources",
       "product"
     ],
     "name": "Hogeschool VIVES"
-  },
-  "51871172918": {
-    "signals": [
-      "stakeholder"
-    ],
-    "name": "NLW Tourism Marketing"
   },
   "51871172971": {
     "signals": [
@@ -2683,51 +1366,25 @@
   },
   "51871172942": {
     "signals": [
-      "resources",
-      "stakeholder",
       "product"
     ],
     "name": "Fontys University of Applied Sciences"
   },
-  "51871172946": {
-    "signals": [
-      "resources"
-    ],
-    "name": "Visit Wörthersee"
-  },
-  "51817063327": {
-    "signals": [
-      "resources",
-      "stakeholder"
-    ],
-    "name": "Uittokalusto"
-  },
-  "51817063315": {
-    "signals": [
-      "resources"
-    ],
-    "name": "FLEX tools"
-  },
   "51865909601": {
     "signals": [
-      "economic",
-      "stakeholder"
+      "economic"
     ],
     "name": "Esuals"
   },
   "51865909602": {
     "signals": [
-      "resources",
-      "stakeholder",
       "product"
     ],
     "name": "Martinelli Luce"
   },
   "51865909659": {
     "signals": [
-      "resources",
-      "strategy",
-      "content"
+      "strategy"
     ],
     "name": "Tatonka"
   },
@@ -2743,117 +1400,54 @@
     ],
     "name": "Wooden Amsterdam"
   },
-  "51865909658": {
-    "signals": [
-      "stakeholder"
-    ],
-    "name": "QSTA"
-  },
   "51865909652": {
     "signals": [
-      "stakeholder",
       "product"
     ],
     "name": "Urban Arrow"
   },
   "51865909605": {
     "signals": [
-      "resources",
-      "stakeholder",
       "product"
     ],
     "name": "Xandres"
   },
   "51865909770": {
     "signals": [
-      "stakeholder",
       "product"
     ],
     "name": "Orac"
   },
   "51865909775": {
     "signals": [
-      "resources",
       "product"
     ],
     "name": "Ellie Cashman Design"
   },
-  "51865909840": {
-    "signals": [
-      "resources",
-      "stakeholder"
-    ],
-    "name": "SoCoo'c"
-  },
   "51865909797": {
     "signals": [
-      "resources",
       "competitor"
     ],
     "name": "Sunweb"
   },
-  "51865909789": {
-    "signals": [
-      "stakeholder"
-    ],
-    "name": "Westin Fishing"
-  },
   "51865909799": {
     "signals": [
-      "resources",
-      "product",
-      "content"
+      "product"
     ],
     "name": "IKEA Switzerland"
   },
-  "51865909816": {
-    "signals": [
-      "resources"
-    ],
-    "name": "Chimay"
-  },
-  "51797762353": {
-    "signals": [
-      "resources"
-    ],
-    "name": "BENT"
-  },
   "51797762413": {
     "signals": [
-      "resources",
-      "stakeholder",
-      "competitor",
-      "content"
+      "competitor"
     ],
     "name": "Hornbach Switzerland"
-  },
-  "51797762419": {
-    "signals": [
-      "resources"
-    ],
-    "name": "Intersport Finland"
   },
   "51797762452": {
     "signals": [
       "product",
-      "strategy",
-      "content"
+      "strategy"
     ],
     "name": "Nijhof"
-  },
-  "51797762373": {
-    "signals": [
-      "resources",
-      "stakeholder"
-    ],
-    "name": "Basel Tourismus"
-  },
-  "51797762380": {
-    "signals": [
-      "resources",
-      "stakeholder"
-    ],
-    "name": "Vivafloors"
   },
   "51797762397": {
     "signals": [
@@ -2861,37 +1455,11 @@
     ],
     "name": "ICI PARIS XL"
   },
-  "51797762401": {
-    "signals": [
-      "resources"
-    ],
-    "name": "Sanistunter"
-  },
-  "51797762438": {
-    "signals": [
-      "resources",
-      "stakeholder"
-    ],
-    "name": "LB-Hus"
-  },
-  "51797762364": {
-    "signals": [
-      "content"
-    ],
-    "name": "Sanitairwinkel"
-  },
   "51797762415": {
     "signals": [
       "product"
     ],
     "name": "The Beautiful Bride Shop"
-  },
-  "51797762417": {
-    "signals": [
-      "resources",
-      "stakeholder"
-    ],
-    "name": "Roobol"
   },
   "51813037481": {
     "signals": [
@@ -2911,12 +1479,6 @@
     ],
     "name": "Rapala Canada"
   },
-  "51813037593": {
-    "signals": [
-      "stakeholder"
-    ],
-    "name": "Rijn IJssel"
-  },
   "51813037617": {
     "signals": [
       "product"
@@ -2925,45 +1487,30 @@
   },
   "51813037476": {
     "signals": [
-      "resources",
-      "stakeholder",
-      "product",
-      "content"
+      "product"
     ],
     "name": "GHOST Bikes"
   },
-  "51866375058": {
-    "signals": [
-      "resources"
-    ],
-    "name": "DKG Group"
-  },
   "51866375017": {
     "signals": [
-      "resources",
-      "stakeholder",
       "product"
     ],
     "name": "Alias"
   },
   "51866375033": {
     "signals": [
-      "stakeholder",
       "strategy"
     ],
     "name": "SQlab"
   },
   "51801633063": {
     "signals": [
-      "resources",
-      "product",
-      "content"
+      "product"
     ],
     "name": "Hornbach Sweden"
   },
   "51801633097": {
     "signals": [
-      "stakeholder",
       "strategy"
     ],
     "name": "Altra Running EMEA"
@@ -2971,24 +1518,19 @@
   "51801633144": {
     "signals": [
       "economic",
-      "resources",
-      "stakeholder",
       "product",
-      "strategy",
-      "content"
+      "strategy"
     ],
     "name": "Exterioo"
   },
   "51801633051": {
     "signals": [
-      "economic",
-      "resources"
+      "economic"
     ],
     "name": "Zen Lifestyle"
   },
   "51801633084": {
     "signals": [
-      "stakeholder",
       "product",
       "strategy"
     ],
@@ -3002,14 +1544,12 @@
   },
   "51818299565": {
     "signals": [
-      "economic",
-      "resources"
+      "economic"
     ],
     "name": "Decorceramica"
   },
   "51818299513": {
     "signals": [
-      "stakeholder",
       "product"
     ],
     "name": "Trendhopper"
@@ -3022,17 +1562,9 @@
   },
   "51816443261": {
     "signals": [
-      "resources",
       "product"
     ],
     "name": "Nortene"
-  },
-  "51816443315": {
-    "signals": [
-      "resources",
-      "stakeholder"
-    ],
-    "name": "Taurus"
   },
   "51872101559": {
     "signals": [
@@ -3042,23 +1574,18 @@
   },
   "51811488268": {
     "signals": [
-      "stakeholder",
       "competitor"
     ],
     "name": "RIU Hotels & Resorts"
   },
   "51811488291": {
     "signals": [
-      "economic",
-      "resources",
-      "stakeholder"
+      "economic"
     ],
     "name": "Schalins"
   },
   "51814431004": {
     "signals": [
-      "resources",
-      "stakeholder",
       "product",
       "strategy"
     ],
@@ -3073,7 +1600,6 @@
   },
   "51814430988": {
     "signals": [
-      "stakeholder",
       "competitor",
       "strategy"
     ],
@@ -3081,29 +1607,13 @@
   },
   "51867613184": {
     "signals": [
-      "stakeholder",
       "competitor",
       "strategy"
     ],
     "name": "Franck Provost"
   },
-  "51867613100": {
-    "signals": [
-      "resources",
-      "stakeholder"
-    ],
-    "name": "By June"
-  },
-  "51801479096": {
-    "signals": [
-      "resources",
-      "stakeholder"
-    ],
-    "name": "Cloud Nine"
-  },
   "51801479211": {
     "signals": [
-      "stakeholder",
       "product",
       "strategy"
     ],
@@ -3119,38 +1629,16 @@
   },
   "51801479229": {
     "signals": [
-      "stakeholder",
       "strategy"
     ],
     "name": "Xooon"
   },
-  "51814275928": {
-    "signals": [
-      "stakeholder"
-    ],
-    "name": "it luggage"
-  },
   "51814275937": {
     "signals": [
-      "stakeholder",
       "competitor",
       "strategy"
     ],
     "name": "Miléade"
-  },
-  "51814276015": {
-    "signals": [
-      "resources",
-      "stakeholder"
-    ],
-    "name": "Lenk-Simmental Tourismus"
-  },
-  "51870399081": {
-    "signals": [
-      "resources",
-      "stakeholder"
-    ],
-    "name": "DBX Bushido"
   },
   "51870399040": {
     "signals": [
@@ -3161,47 +1649,31 @@
   "51870399070": {
     "signals": [
       "economic",
-      "resources",
-      "stakeholder",
       "product"
     ],
     "name": "Wituka"
   },
-  "51868387252": {
-    "signals": [
-      "resources",
-      "content"
-    ],
-    "name": "Megadump"
-  },
   "51868387188": {
     "signals": [
-      "resources",
       "product"
     ],
     "name": "De Eekhoorn"
   },
   "51868387225": {
     "signals": [
-      "resources",
       "product"
     ],
     "name": "Topgolf Oberhausen"
   },
   "51818609313": {
     "signals": [
-      "resources",
-      "stakeholder",
       "strategy"
     ],
     "name": "Attendo"
   },
   "51872101702": {
     "signals": [
-      "resources",
-      "stakeholder",
-      "competitor",
-      "content"
+      "competitor"
     ],
     "name": "Ca'​ Pietra"
   },
@@ -3217,13 +1689,6 @@
       "product"
     ],
     "name": "Travel Department"
-  },
-  "51860776603": {
-    "signals": [
-      "resources",
-      "stakeholder"
-    ],
-    "name": "Vanden Borre Kitchen"
   },
   "51869934512": {
     "signals": [
@@ -3243,7 +1708,6 @@
   "51869934506": {
     "signals": [
       "economic",
-      "resources",
       "strategy"
     ],
     "name": "Decorette"
@@ -3257,63 +1721,21 @@
   },
   "51857216342": {
     "signals": [
-      "resources",
-      "stakeholder",
       "product"
     ],
     "name": "Mora Armatur"
   },
-  "51857216410": {
-    "signals": [
-      "content"
-    ],
-    "name": "Hug at Home"
-  },
-  "51858609457": {
-    "signals": [
-      "resources",
-      "content"
-    ],
-    "name": "Elite Supplements"
-  },
-  "51858609452": {
-    "signals": [
-      "stakeholder"
-    ],
-    "name": "Tuiss Japan"
-  },
-  "51859229584": {
-    "signals": [
-      "stakeholder"
-    ],
-    "name": "Rapid"
-  },
   "51855202080": {
     "signals": [
-      "resources",
-      "stakeholder",
       "product"
     ],
     "name": "Shine"
   },
-  "51855201961": {
-    "signals": [
-      "resources"
-    ],
-    "name": "VTech Electronics France"
-  },
   "51855202105": {
     "signals": [
-      "product",
-      "content"
+      "product"
     ],
     "name": "Gerflor"
-  },
-  "51872719277": {
-    "signals": [
-      "stakeholder"
-    ],
-    "name": "PROPAIN"
   },
   "51811798315": {
     "signals": [
@@ -3324,53 +1746,16 @@
   },
   "51816443471": {
     "signals": [
-      "stakeholder",
       "product",
-      "strategy",
-      "content"
+      "strategy"
     ],
     "name": "DERTOUR Czech - E-EU"
   },
-  "51811952799": {
-    "signals": [
-      "resources",
-      "stakeholder"
-    ],
-    "name": "Raindoor"
-  },
-  "51816598419": {
-    "signals": [
-      "resources"
-    ],
-    "name": "Moulinex Iberia"
-  },
-  "51870090298": {
-    "signals": [
-      "resources",
-      "stakeholder"
-    ],
-    "name": "Hornbach Austria"
-  },
   "51870090264": {
     "signals": [
-      "resources",
-      "product",
-      "content"
+      "product"
     ],
     "name": "Arno"
-  },
-  "51870090157": {
-    "signals": [
-      "resources",
-      "stakeholder"
-    ],
-    "name": "BOOA"
-  },
-  "51854861485": {
-    "signals": [
-      "content"
-    ],
-    "name": "Tuinmeubelland"
   },
   "51854861582": {
     "signals": [
@@ -3404,27 +1789,6 @@
     ],
     "name": "Ulla Popken"
   },
-  "51858299043": {
-    "signals": [
-      "resources",
-      "stakeholder",
-      "content"
-    ],
-    "name": "Plumbs"
-  },
-  "51858299183": {
-    "signals": [
-      "resources"
-    ],
-    "name": "Mamita Botanical"
-  },
-  "51858764834": {
-    "signals": [
-      "resources",
-      "stakeholder"
-    ],
-    "name": "Newscience"
-  },
   "51798846351": {
     "signals": [
       "product"
@@ -3433,16 +1797,9 @@
   },
   "51798846347": {
     "signals": [
-      "stakeholder",
       "product"
     ],
     "name": "Las Torres Patagonia"
-  },
-  "51798846368": {
-    "signals": [
-      "stakeholder"
-    ],
-    "name": "Potamy"
   },
   "51818609501": {
     "signals": [
@@ -3450,22 +1807,14 @@
     ],
     "name": "Takomo Golf"
   },
-  "51818609554": {
-    "signals": [
-      "resources"
-    ],
-    "name": "Discac"
-  },
   "51817216560": {
     "signals": [
-      "resources",
       "product"
     ],
     "name": "Ziaja España"
   },
   "51817216586": {
     "signals": [
-      "resources",
       "product"
     ],
     "name": "Manicura PRO"
@@ -3473,9 +1822,7 @@
   "51817216535": {
     "signals": [
       "economic",
-      "resources",
-      "product",
-      "content"
+      "product"
     ],
     "name": "IBKBike"
   },
@@ -3488,14 +1835,12 @@
   "51817216593": {
     "signals": [
       "economic",
-      "resources",
       "strategy"
     ],
     "name": "Suitical"
   },
   "51797762610": {
     "signals": [
-      "resources",
       "product"
     ],
     "name": "Gymbox"
@@ -3506,12 +1851,6 @@
     ],
     "name": "Perfumería Laura"
   },
-  "51814431146": {
-    "signals": [
-      "stakeholder"
-    ],
-    "name": "Inntravel"
-  },
   "51814431070": {
     "signals": [
       "product"
@@ -3520,49 +1859,27 @@
   },
   "51814431081": {
     "signals": [
-      "economic",
-      "resources"
+      "economic"
     ],
     "name": "Gottfried Schultz"
   },
   "51857370368": {
     "signals": [
-      "resources",
-      "product",
-      "content"
+      "product"
     ],
     "name": "Yamaha Motorsports"
   },
   "51857370251": {
     "signals": [
-      "resources",
-      "stakeholder",
       "product"
     ],
     "name": "Volero"
   },
   "51857216547": {
     "signals": [
-      "stakeholder",
-      "product",
-      "content"
+      "product"
     ],
     "name": "CanDo"
-  },
-  "51800704102": {
-    "signals": [
-      "resources",
-      "stakeholder"
-    ],
-    "name": "Oak Furniture Superstore"
-  },
-  "51800704031": {
-    "signals": [
-      "resources",
-      "stakeholder",
-      "content"
-    ],
-    "name": "Divani.Store"
   },
   "51800704091": {
     "signals": [
@@ -3584,15 +1901,12 @@
   },
   "51861085866": {
     "signals": [
-      "economic",
-      "stakeholder"
+      "economic"
     ],
     "name": "TentBox"
   },
   "51798382109": {
     "signals": [
-      "resources",
-      "stakeholder",
       "product"
     ],
     "name": "Collective [of] Moving People"
@@ -3605,7 +1919,6 @@
   },
   "51861396494": {
     "signals": [
-      "stakeholder",
       "product",
       "strategy"
     ],
@@ -3614,37 +1927,16 @@
   "53213612450": {
     "signals": [
       "economic",
-      "stakeholder",
       "product",
       "strategy"
     ],
     "name": "Goodwoods Saddlery"
   },
-  "51860312482": {
-    "signals": [
-      "stakeholder"
-    ],
-    "name": "VME Nederland"
-  },
   "51861396525": {
     "signals": [
-      "product",
-      "content"
+      "product"
     ],
     "name": "Beep"
-  },
-  "51861396527": {
-    "signals": [
-      "resources",
-      "content"
-    ],
-    "name": "PCBox"
-  },
-  "51812417817": {
-    "signals": [
-      "resources"
-    ],
-    "name": "MOM to MOM"
   },
   "51869471246": {
     "signals": [
@@ -3654,8 +1946,6 @@
   },
   "51869471113": {
     "signals": [
-      "resources",
-      "stakeholder",
       "product"
     ],
     "name": "Kazar"
@@ -3668,53 +1958,27 @@
   },
   "51868542619": {
     "signals": [
-      "stakeholder",
       "product"
     ],
     "name": "The Brownie Box"
   },
   "51868542591": {
     "signals": [
-      "resources",
-      "product",
-      "content"
+      "product"
     ],
     "name": "AgfaPhoto Print"
   },
   "51868542593": {
     "signals": [
-      "resources",
-      "product",
-      "content"
+      "product"
     ],
     "name": "AgfaPhoto Europe"
   },
   "51868542720": {
     "signals": [
-      "resources",
-      "product",
-      "content"
+      "product"
     ],
     "name": "Kodak Europe"
-  },
-  "51795597214": {
-    "signals": [
-      "resources"
-    ],
-    "name": "Filipinos"
-  },
-  "51795597166": {
-    "signals": [
-      "resources",
-      "content"
-    ],
-    "name": "My TostaRica"
-  },
-  "51819073101": {
-    "signals": [
-      "content"
-    ],
-    "name": "Brouwerij De Brabandere"
   },
   "51818918674": {
     "signals": [
@@ -3730,7 +1994,6 @@
   },
   "51861312909": {
     "signals": [
-      "resources",
       "product"
     ],
     "name": "Groupe SEB Greece"
@@ -3743,21 +2006,18 @@
   },
   "52784129114": {
     "signals": [
-      "resources",
       "product"
     ],
     "name": "Tefal Belgium"
   },
   "52784499107": {
     "signals": [
-      "resources",
       "product"
     ],
     "name": "Rowenta Belgium"
   },
   "52706736161": {
     "signals": [
-      "resources",
       "product"
     ],
     "name": "Moulinex Belgium"
@@ -3765,16 +2025,9 @@
   "53388474512": {
     "signals": [
       "economic",
-      "product",
-      "content"
+      "product"
     ],
     "name": "Haarshop.nl"
-  },
-  "54591020726": {
-    "signals": [
-      "resources"
-    ],
-    "name": "Artze Wall Art"
   },
   "54899061656": {
     "signals": [
