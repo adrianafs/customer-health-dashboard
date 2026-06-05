@@ -332,6 +332,12 @@ export default function Dashboard() {
             {loading ? <span className="animate-spin-cls">↻</span> : <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M10.5 6A4.5 4.5 0 111.5 6M10.5 2.5V6H7" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg>}
             {loading ? 'Syncing…' : 'Refresh'}
           </button>
+          {/* Always-visible chat toggle */}
+          <button onClick={() => setAiOpen(v => !v)} title={aiOpen ? 'Hide Claude assistant' : 'Show Claude assistant'}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, borderRadius: 8, cursor: 'pointer', fontSize: 12, fontWeight: 600, padding: '6px 12px', fontFamily: 'var(--font)', background: aiOpen ? 'var(--v500)' : 'var(--n0)', color: aiOpen ? '#fff' : 'var(--v600)', border: '1px solid var(--v500)' }}>
+            <svg width="13" height="13" viewBox="0 0 12 12" fill="none"><path d="M6 .75l1.5 3.5 3.5 1.5-3.5 1.5L6 10.75 4.5 7.25 1 5.75l3.5-1.5L6 .75z" fill="currentColor"/></svg>
+            {aiOpen ? 'Hide chat' : 'Chat'}
+          </button>
         </div>
       </header>
 
