@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Customer Health Dashboard</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: #f5f5f7;
+    color: #111;
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+  }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 64px 96px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .35s ease;
+    background: #fff;
+  }
+
+  .slide.active { opacity: 1; pointer-events: all; }
+
+  /* ── Nav ─────────────────────────────────────────── */
+  .nav {
+    position: fixed;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    z-index: 100;
+  }
+
+  .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: #d1d1d6;
+    cursor: pointer;
+    transition: all .2s;
+  }
+  .dot.active { background: #4F00FF; width: 22px; border-radius: 4px; }
+
+  .nav-btn {
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    color: #333;
+    border-radius: 8px;
+    padding: 7px 14px;
+    font-size: 13px;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0,0,0,.08);
+    transition: all .15s;
+  }
+  .nav-btn:hover { background: #f5f5f7; }
+
+  .progress {
+    position: fixed;
+    top: 0; left: 0;
+    height: 3px;
+    background: #4F00FF;
+    transition: width .4s ease;
+    z-index: 200;
+  }
+
+  /* ── Shared ──────────────────────────────────────── */
+  .label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: #4F00FF;
+    margin-bottom: 16px;
+  }
+
+  .title {
+    font-size: 44px;
+    font-weight: 900;
+    letter-spacing: -.03em;
+    line-height: 1.05;
+    color: #111;
+  }
+
+  .title span { color: #4F00FF; }
+
+  /* ── Slide 1 — Title ─────────────────────────────── */
+  #s1 {
+    flex-direction: row;
+    align-items: center;
+    gap: 64px;
+    padding: 48px 72px;
+  }
+
+  #s1 .left { flex: 0 0 420px; }
+
+  .s1-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    background: #f0ebff;
+    border: 1px solid #d4c5ff;
+    border-radius: 999px;
+    padding: 5px 14px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: #4F00FF;
+    margin-bottom: 24px;
+  }
+
+  .s1-tag-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #4F00FF;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+  .s1-title {
+    font-size: 52px;
+    font-weight: 900;
+    letter-spacing: -.03em;
+    line-height: 1.05;
+    color: #111;
+    margin-bottom: 20px;
+  }
+
+  .s1-title span { color: #4F00FF; }
+
+  .s1-sub {
+    font-size: 16px;
+    color: #666;
+    line-height: 1.65;
+    max-width: 380px;
+    margin-bottom: 32px;
+  }
+
+  .s1-meta { font-size: 12px; color: #aaa; }
+
+  /* Dashboard mockup */
+  .dash-mock {
+    flex: 1;
+    background: #f5f5f7;
+    border-radius: 16px;
+    border: 1px solid #e8e8ed;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0,0,0,.08);
+    height: 440px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .dash-header {
+    height: 40px;
+    background: #fff;
+    border-bottom: 1px solid #e8e8ed;
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    gap: 8px;
+  }
+
+  .dash-logo {
+    width: 20px; height: 20px;
+    background: #4F00FF;
+    border-radius: 4px;
+  }
+
+  .dash-title-bar { font-size: 11px; font-weight: 700; color: #111; }
+  .dash-pill { background: #f0ebff; color: #4F00FF; border-radius: 999px; padding: 2px 8px; font-size: 9px; font-weight: 700; }
+
+  .dash-board {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr) 100px;
+    gap: 8px;
+    padding: 10px;
+    overflow: hidden;
+  }
+
+  .dash-col { display: flex; flex-direction: column; gap: 6px; }
+
+  .dash-col-header {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 0 4px 4px;
+    border-bottom: 1px solid #eee;
+    margin-bottom: 2px;
+  }
+
+  .dash-col-dot { width: 6px; height: 6px; border-radius: 50%; }
+  .dash-col-name { font-size: 9px; font-weight: 700; color: #555; }
+  .dash-col-count { font-size: 8px; background: #f0f0f0; border-radius: 999px; padding: 1px 5px; color: #888; }
+
+  .dash-card {
+    background: #fff;
+    border-radius: 6px;
+    padding: 7px 8px;
+    border: 1px solid #eee;
+    border-top: 2px solid var(--c);
+  }
+
+  .dc-name { font-size: 8px; font-weight: 700; color: #111; margin-bottom: 2px; }
+  .dc-arr { font-size: 7px; color: #999; font-family: monospace; }
+  .dc-bar { height: 2px; background: #f0f0f0; border-radius: 1px; margin: 4px 0; }
+  .dc-bar-fill { height: 100%; border-radius: 1px; background: var(--c); }
+  .dc-csm { font-size: 7px; color: #bbb; }
+
+  .dash-col-churned { opacity: .65; }
+  .churned-header { font-size: 8px; font-weight: 700; color: #aaa; writing-mode: vertical-rl; text-orientation: mixed; padding: 8px 0; cursor: pointer; }
+
+  /* ── Slide 2 — Problem ───────────────────────────── */
+  #s2 { background: #fff; }
+
+  .s2-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 72px;
+    align-items: center;
+  }
+
+  .pain-list { display: flex; flex-direction: column; gap: 16px; margin-top: 28px; }
+
+  .pain-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    font-size: 15px;
+    color: #444;
+    line-height: 1.55;
+  }
+
+  .pain-icon {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    background: #f0ebff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+
+  .chaos-stack { display: flex; flex-direction: column; gap: 6px; }
+
+  .chaos-card {
+    background: #f9f9fb;
+    border: 1px solid #ebebef;
+    border-radius: 10px;
+    padding: 12px 16px;
+  }
+
+  .chaos-card .cc-label { font-size: 9px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #aaa; margin-bottom: 3px; }
+  .chaos-card .cc-val { font-size: 13px; color: #555; }
+  .chaos-arrow { font-size: 16px; color: #ccc; text-align: center; }
+  .chaos-card.bad { border-color: #fecaca; background: #fff5f5; }
+  .chaos-card.bad .cc-label { color: #f87171; }
+  .chaos-card.bad .cc-val { color: #ef4444; }
+
+  /* ── Slide 3 — Solution ──────────────────────────── */
+  #s3 { background: #fff; }
+
+  .feat-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin-top: 32px;
+  }
+
+  .feat-card {
+    background: #f9f9fb;
+    border: 1px solid #ebebef;
+    border-radius: 14px;
+    padding: 22px;
+  }
+
+  .feat-num {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    background: #4F00FF;
+    color: #fff;
+    font-size: 16px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 12px;
+  }
+
+  .feat-title { font-size: 14px; font-weight: 700; color: #111; margin-bottom: 5px; }
+  .feat-desc { font-size: 12px; color: #777; line-height: 1.55; }
+
+  /* ── Slide 4 — Live Demo ─────────────────────────── */
+  #s4 {
+    background: #4F00FF;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .demo-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,.6);
+    margin-bottom: 20px;
+  }
+
+  .demo-title {
+    font-size: 80px;
+    font-weight: 900;
+    letter-spacing: -.04em;
+    color: #fff;
+    margin-bottom: 28px;
+  }
+
+  .demo-sub {
+    font-size: 16px;
+    color: rgba(255,255,255,.65);
+    max-width: 480px;
+    line-height: 1.6;
+    margin: 0 auto;
+  }
+
+  .demo-play {
+    width: 72px; height: 72px;
+    border-radius: 50%;
+    background: rgba(255,255,255,.15);
+    border: 2px solid rgba(255,255,255,.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    margin: 0 auto 24px;
+  }
+
+  /* ── Slide 5 — Impact ────────────────────────────── */
+  #s5 { background: #fff; }
+
+  .impact-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+    margin-top: 32px;
+  }
+
+  .impact-card {
+    background: #f9f9fb;
+    border: 1px solid #ebebef;
+    border-radius: 14px;
+    padding: 24px;
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .impact-icon {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    background: #f0ebff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+
+  .impact-title { font-size: 14px; font-weight: 700; color: #111; margin-bottom: 4px; }
+  .impact-desc { font-size: 12px; color: #777; line-height: 1.55; }
+
+  /* ── Slide 6 — Next Steps ────────────────────────── */
+  #s6 { background: #fff; }
+
+  .steps-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 28px;
+    max-width: 780px;
+  }
+
+  .step-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    background: #f9f9fb;
+    border: 1px solid #ebebef;
+    border-radius: 12px;
+    padding: 14px 18px;
+  }
+
+  .step-num {
+    width: 28px; height: 28px;
+    border-radius: 8px;
+    background: #4F00FF;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .step-title { font-size: 14px; font-weight: 700; color: #111; margin-bottom: 2px; }
+  .step-desc { font-size: 12px; color: #777; line-height: 1.5; }
+</style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+
+<!-- ── Slide 1: Title ────────────────────────────────── -->
+<div class="slide active" id="s1">
+  <div class="left">
+    <div class="s1-tag"><span class="s1-tag-dot"></span>Flowbox CS · Internal Tool</div>
+    <div class="s1-title">Customer<br/>Health<br/><span>Dashboard</span></div>
+    <div class="s1-sub">One view to manage your entire portfolio, detect churn early, and know exactly where to focus every day.</div>
+    <div class="s1-meta">CS Team · 2025</div>
+  </div>
+
+  <!-- Dashboard mockup -->
+  <div class="dash-mock">
+    <div class="dash-header">
+      <div class="dash-logo"></div>
+      <div class="dash-title-bar">Customer Health</div>
+      <div class="dash-pill">HubSpot live</div>
+    </div>
+    <div class="dash-board">
+      <!-- Stable -->
+      <div class="dash-col">
+        <div class="dash-col-header">
+          <div class="dash-col-dot" style="background:#00CC9A"></div>
+          <div class="dash-col-name">Stable</div>
+          <div class="dash-col-count">142</div>
+        </div>
+        <div class="dash-card" style="--c:#00CC9A"><div class="dc-name">NA-KD</div><div class="dc-arr">€48,000</div><div class="dc-bar"><div class="dc-bar-fill" style="width:88%"></div></div><div class="dc-csm">Frida L.</div></div>
+        <div class="dash-card" style="--c:#00CC9A"><div class="dc-name">Gina Tricot</div><div class="dc-arr">€32,000</div><div class="dc-bar"><div class="dc-bar-fill" style="width:82%"></div></div><div class="dc-csm">Sandra V.</div></div>
+        <div class="dash-card" style="--c:#00CC9A"><div class="dc-name">Lindex</div><div class="dc-arr">€28,000</div><div class="dc-bar"><div class="dc-bar-fill" style="width:79%"></div></div><div class="dc-csm">Maja K.</div></div>
+      </div>
+      <!-- Keep an Eye -->
+      <div class="dash-col">
+        <div class="dash-col-header">
+          <div class="dash-col-dot" style="background:#EAB308"></div>
+          <div class="dash-col-name">Keep an Eye</div>
+          <div class="dash-col-count">38</div>
+        </div>
+        <div class="dash-card" style="--c:#EAB308"><div class="dc-name">Zalando SE</div><div class="dc-arr">€72,000</div><div class="dc-bar"><div class="dc-bar-fill" style="width:62%"></div></div><div class="dc-csm">Claudia N.</div></div>
+        <div class="dash-card" style="--c:#EAB308"><div class="dc-name">Kappahl</div><div class="dc-arr">€24,000</div><div class="dc-bar"><div class="dc-bar-fill" style="width:55%"></div></div><div class="dc-csm">Maja K.</div></div>
+        <div class="dash-card" style="--c:#EAB308"><div class="dc-name">Boozt</div><div class="dc-arr">€18,000</div><div class="dc-bar"><div class="dc-bar-fill" style="width:58%"></div></div><div class="dc-csm">Sandra V.</div></div>
+      </div>
+      <!-- Action Required -->
+      <div class="dash-col">
+        <div class="dash-col-header">
+          <div class="dash-col-dot" style="background:#F97316"></div>
+          <div class="dash-col-name">Action Required</div>
+          <div class="dash-col-count">21</div>
+        </div>
+        <div class="dash-card" style="--c:#F97316"><div class="dc-name">Adlibris</div><div class="dc-arr">€36,000</div><div class="dc-bar"><div class="dc-bar-fill" style="width:38%"></div></div><div class="dc-csm">Frida L.</div></div>
+        <div class="dash-card" style="--c:#F97316"><div class="dc-name">Clas Ohlson</div><div class="dc-arr">€22,000</div><div class="dc-bar"><div class="dc-bar-fill" style="width:35%"></div></div><div class="dc-csm">Claudia N.</div></div>
+      </div>
+      <!-- Churn Risk -->
+      <div class="dash-col">
+        <div class="dash-col-header">
+          <div class="dash-col-dot" style="background:#EF4444"></div>
+          <div class="dash-col-name">Churn Risk</div>
+          <div class="dash-col-count">12</div>
+        </div>
+        <div class="dash-card" style="--c:#EF4444"><div class="dc-name">Donkey Republic</div><div class="dc-arr">€18,000</div><div class="dc-bar"><div class="dc-bar-fill" style="width:18%"></div></div><div class="dc-csm">Maja K.</div></div>
+        <div class="dash-card" style="--c:#EF4444"><div class="dc-name">Create</div><div class="dc-arr">€12,000</div><div class="dc-bar"><div class="dc-bar-fill" style="width:14%"></div></div><div class="dc-csm">Sandra V.</div></div>
+      </div>
+      <!-- Communicated Churn -->
+      <div class="dash-col dash-col-churned">
+        <div class="dash-col-header">
+          <div class="dash-col-dot" style="background:#aaa"></div>
+          <div class="dash-col-name" style="color:#aaa; font-size:8px">Comm. Churn</div>
+        </div>
+        <div class="dash-card" style="--c:#aaa; opacity:.7"><div class="dc-name">Raceu</div><div class="dc-arr">€8,400</div><div class="dc-bar"><div class="dc-bar-fill" style="width:10%; background:#aaa"></div></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Slide 2: Problem ───────────────────────────────── -->
+<div class="slide" id="s2">
+  <div class="s2-layout">
+    <div>
+      <div class="label">The Problem</div>
+      <div class="title">80+ accounts.<br/>Where do you<br/>focus <span>today?</span></div>
+      <div class="pain-list">
+        <div class="pain-item">
+          <div class="pain-icon">📋</div>
+          <span>Understanding a client's health means opening HubSpot, notes, emails, tasks, deal info — one by one</span>
+        </div>
+        <div class="pain-item">
+          <div class="pain-icon">👀</div>
+          <span>No single view means easy to miss accounts in risk — especially the quiet ones</span>
+        </div>
+        <div class="pain-item">
+          <div class="pain-icon">🔴</div>
+          <span>Churn is detected too late — when the client has already decided</span>
+        </div>
+      </div>
+    </div>
+    <div class="chaos-stack">
+      <div class="chaos-card"><div class="cc-label">HubSpot Notes</div><div class="cc-val">Last note 47 days ago…</div></div>
+      <div class="chaos-arrow">↓</div>
+      <div class="chaos-card"><div class="cc-label">Deal Info</div><div class="cc-val">Renewal date: 2025-09-30</div></div>
+      <div class="chaos-arrow">↓</div>
+      <div class="chaos-card"><div class="cc-label">Platform Usage</div><div class="cc-val">0 active days in 60d</div></div>
+      <div class="chaos-arrow">↓</div>
+      <div class="chaos-card bad"><div class="cc-label">Result</div><div class="cc-val">Churn communicated. Too late.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Slide 3: Solution ──────────────────────────────── -->
+<div class="slide" id="s3">
+  <div class="label">The Solution</div>
+  <div class="title">Everything in <span>one place</span></div>
+  <div class="feat-grid">
+    <div class="feat-card">
+      <div class="feat-num">1</div>
+      <div class="feat-title">Health board</div>
+      <div class="feat-desc">Kanban view with all accounts sorted by urgency — Stable, Keep an Eye, Action Required, Churn Risk</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-num">2</div>
+      <div class="feat-title">Unified signals</div>
+      <div class="feat-desc">Contract info, platform usage, HubSpot activity, meeting data and AI sentiment — all in one click</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-num">3</div>
+      <div class="feat-title">Early churn detection</div>
+      <div class="feat-desc">AI analyses emails and notes to detect 7 churn signals — budget, usage, stakeholder change, competitor and more</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-num">4</div>
+      <div class="feat-title">Communicated churn</div>
+      <div class="feat-desc">Separate collapsible column for clients who have communicated churn — to keep track of them</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-num">5</div>
+      <div class="feat-title">AI email drafts</div>
+      <div class="feat-desc">8 context-aware templates — renewal, low usage, churn save, QBR, account closure and more</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-num">6</div>
+      <div class="feat-title">Slack digest</div>
+      <div class="feat-desc">Daily and weekly summaries sent to each CSM with the most urgent actions for their portfolio</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Slide 4: Live Demo ─────────────────────────────── -->
+<div class="slide" id="s4">
+  <div class="demo-label">Up next</div>
+  <div class="demo-play">▶</div>
+  <div class="demo-title">Live Demo</div>
+  <div class="demo-sub">Showing the dashboard in real time — or screen recording as backup</div>
+</div>
+
+<!-- ── Slide 5: Impact ────────────────────────────────── -->
+<div class="slide" id="s5">
+  <div class="label">Impact</div>
+  <div class="title">What this changes</div>
+  <div class="impact-grid">
+    <div class="impact-card">
+      <div class="impact-icon">🎯</div>
+      <div>
+        <div class="impact-title">Full portfolio control</div>
+        <div class="impact-desc">Every CSM can see the health of all their accounts in seconds — no digging through tools</div>
+      </div>
+    </div>
+    <div class="impact-card">
+      <div class="impact-icon">⚠️</div>
+      <div>
+        <div class="impact-title">Early churn detection</div>
+        <div class="impact-desc">Signals detected before the client communicates churn — enough time to act</div>
+      </div>
+    </div>
+    <div class="impact-card">
+      <div class="impact-icon">📄</div>
+      <div>
+        <div class="impact-title">Contract info at a glance</div>
+        <div class="impact-desc">Renewal date, auto-renewal, notice period, onboarding status — visible without opening HubSpot</div>
+      </div>
+    </div>
+    <div class="impact-card">
+      <div class="impact-icon">💬</div>
+      <div>
+        <div class="impact-title">Daily & weekly Slack digest</div>
+        <div class="impact-desc">Each CSM gets a prioritised list of actions — directly in Slack, every morning</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Slide 6: Next Steps ────────────────────────────── -->
+<div class="slide" id="s6">
+  <div class="label">Next Steps</div>
+  <div class="title">What comes <span>next</span></div>
+  <div class="steps-list">
+    <div class="step-row">
+      <div class="step-num">1</div>
+      <div>
+        <div class="step-title">Email drafts → HubSpot</div>
+        <div class="step-desc">Send the AI draft directly to HubSpot to review and send from there — no copy-paste needed</div>
+      </div>
+    </div>
+    <div class="step-row">
+      <div class="step-num">2</div>
+      <div>
+        <div class="step-title">CSM validates churn signals</div>
+        <div class="step-desc">Confirm a signal as real churn risk — or dismiss it and leave feedback on why it doesn't apply. This data trains and improves the early churn detection algorithm over time</div>
+      </div>
+    </div>
+    <div class="step-row">
+      <div class="step-num">3</div>
+      <div>
+        <div class="step-title">Database + daily cron job</div>
+        <div class="step-desc">Store computed data to improve performance (currently calculated on the fly) and run churn signals automatically every night</div>
+      </div>
+    </div>
+    <div class="step-row">
+      <div class="step-num">4</div>
+      <div>
+        <div class="step-title">Cheaper AI</div>
+        <div class="step-desc">Explore open source models, batch processing and result caching to reduce Claude API costs</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Nav -->
+<div class="nav">
+  <button class="nav-btn" onclick="prev()">←</button>
+  <div class="dot active" onclick="goTo(0)"></div>
+  <div class="dot" onclick="goTo(1)"></div>
+  <div class="dot" onclick="goTo(2)"></div>
+  <div class="dot" onclick="goTo(3)"></div>
+  <div class="dot" onclick="goTo(4)"></div>
+  <div class="dot" onclick="goTo(5)"></div>
+  <button class="nav-btn" onclick="next()">→</button>
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide')
+  const dots   = document.querySelectorAll('.dot')
+  const prog   = document.getElementById('progress')
+  let cur = 0
+
+  function goTo(n) {
+    slides[cur].classList.remove('active')
+    dots[cur].classList.remove('active')
+    cur = Math.max(0, Math.min(n, slides.length - 1))
+    slides[cur].classList.add('active')
+    dots[cur].classList.add('active')
+    prog.style.width = ((cur + 1) / slides.length * 100) + '%'
+  }
+
+  function next() { goTo(cur + 1) }
+  function prev() { goTo(cur - 1) }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') { e.preventDefault(); next() }
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp') { e.preventDefault(); prev() }
+  })
+
+  prog.style.width = (1 / slides.length * 100) + '%'
+</script>
+</body>
+</html>
