@@ -145,7 +145,7 @@ async function sendDM(slackId: string, csmName: string, accounts: any[], persona
     },
     body: JSON.stringify({
       channel: slackId,
-      text: `Your CS briefing for ${today}`,
+      text: `Your CS briefing for ${new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}`,
       blocks,
     }),
   })
