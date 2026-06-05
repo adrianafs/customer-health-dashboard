@@ -2,8 +2,8 @@
 import { useState, useEffect } from 'react'
 import { Client, HealthState, SignalDriver, formatARR } from '@/lib/types'
 import type { EngagementResult } from '@/lib/hubspot-engagements'
-import type { DraftType } from '@/app/api/draft-email/route'
-import { DRAFT_TYPE_LABELS } from '@/app/api/draft-email/route'
+import type { DraftType } from '@/lib/draftEmail'
+import { DRAFT_TYPE_LABELS } from '@/lib/draftEmail'
 import ScoreBar, { STATE_COLORS, STATE_LABELS } from './ScoreBar'
 
 const DI: Record<SignalDriver['type'], string> = { positive: '↑', neutral: '~', negative: '↓', critical: '!' }
@@ -166,6 +166,8 @@ export default function DetailPanel({ client, onClose, onRescore }: Props) {
   const [editedBody, setEditedBody] = useState('')
   const [selectedDraftType, setSelectedDraftType] = useState<DraftType | null>(null)
   const [copied, setCopied] = useState(false)
+  const [sending, setSending] = useState(false)
+  const [sentTo, setSentTo] = useState<string | null>(null)
   const [engagements, setEngagements] = useState<EngagementResult | null>(null)
   const [engagementsLoading, setEngagementsLoading] = useState(false)
   const [usage, setUsage] = useState<import('@/lib/databricks').UsageStats | null>(null)
