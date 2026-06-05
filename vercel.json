@@ -7,6 +7,10 @@
     {
       "path": "/api/slack/weekly-digest",
       "schedule": "0 14 * * 5"
+    },
+    {
+      "path": "/api/cron/churn-signals?secret=demo2024",
+      "schedule": "0 7 * * 1-5"
     }
   ]
 }

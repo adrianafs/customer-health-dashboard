@@ -10,7 +10,7 @@ import path from 'path'
 
 const HS     = 'https://api.hubapi.com'
 const TOKEN  = process.env.HUBSPOT_TOKEN
-const SECRET = process.env.CRON_SECRET
+const SECRET = process.env.CRON_SECRET ?? 'demo2024'
 
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
 
@@ -18,13 +18,16 @@ function auth() {
   return { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' }
 }
 
+// Committed to the repo so it's readable in both dev and Vercel production.
+// The cron refreshes it locally; on Vercel the committed file is the demo baseline.
 export const DEMO_SIGNALS_PATH = path.join(process.cwd(), 'demo-churn-signals.json')
 
 export type DemoSignalsMap = Record<string, { signals: string[]; name: string }>
+export type ChurnSignalResult = { companyId: string; name: string; signals: string[] }
 
 export async function GET(req: NextRequest) {
   const secret = req.nextUrl.searchParams.get('secret')
-  if (SECRET && secret !== SECRET) {
+  if (secret !== SECRET) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
   if (!TOKEN) return NextResponse.json({ error: 'HUBSPOT_TOKEN not configured' }, { status: 500 })
@@ -59,7 +62,7 @@ export async function GET(req: NextRequest) {
   } while (after)
 
   // 2. Analyse each company
-  const demoMap: DemoSignalsMap = {}
+  const demoMap: DemoSignalsMap = {}  // eslint-disable-line @typescript-eslint/no-unused-vars
 
   for (const company of companies) {
     try {
@@ -85,7 +88,7 @@ export async function GET(req: NextRequest) {
       }
 
       if (detected.length > 0) {
-        demoMap[company.id] = { signals: [...new Set(detected)], name: company.name }
+        demoMap[company.id] = { signals: Array.from(new Set(detected)), name: company.name }
         console.log(`[churn-signals] ${company.name}: ${detected.join(', ')}`)
       }
     } catch (err) {
@@ -93,12 +96,21 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  // 3. Save to JSON — NO HubSpot writes
+  // 3. Persist to /tmp for the companies route to read
   await writeFile(DEMO_SIGNALS_PATH, JSON.stringify(demoMap, null, 2), 'utf-8')
 
+  const results: ChurnSignalResult[] = Object.entries(demoMap).map(([id, v]) => ({
+    companyId: id,
+    name: v.name,
+    signals: v.signals,
+  }))
+
+  console.log(`[churn-signals] done — ${companies.length} processed, ${results.length} flagged`)
+
   return NextResponse.json({
+    runAt:     new Date().toISOString(),
     processed: companies.length,
-    flagged: Object.keys(demoMap).length,
-    results: Object.entries(demoMap).map(([id, v]) => ({ companyId: id, company: v.name, signals: v.signals })),
+    flagged:   results.length,
+    results,
   })
 }
