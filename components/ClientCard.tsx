@@ -2,27 +2,8 @@
 import { Client, SignalDriver, formatARR } from '@/lib/types'
 import ScoreBar, { STATE_COLORS } from './ScoreBar'
 
-export type Design = 'night' | 'day'
-
 const DI: Record<SignalDriver['type'], string> = { positive: '↑', neutral: '~', negative: '↓', critical: '!' }
 const DC: Record<SignalDriver['type'], string> = { positive: '#00CC9A', neutral: '#EAB308', negative: '#F53D52', critical: '#F53D52' }
-
-// Circular score ring
-function ScoreRing({ score, color }: { score: number; color: string }) {
-  const r = 18, circ = 2 * Math.PI * r
-  const offset = circ * (1 - Math.max(0, Math.min(100, score)) / 100)
-  return (
-    <div style={{ position: 'relative', width: 44, height: 44, flexShrink: 0 }}>
-      <svg width="44" height="44" viewBox="0 0 44 44">
-        <circle cx="22" cy="22" r={r} fill="none" stroke="var(--n100)" strokeWidth="4" />
-        <circle cx="22" cy="22" r={r} fill="none" stroke={color} strokeWidth="4"
-          strokeDasharray={circ.toFixed(1)} strokeDashoffset={offset.toFixed(1)}
-          strokeLinecap="round" transform="rotate(-90 22 22)" />
-      </svg>
-      <span style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', fontSize: 11, fontWeight: 800, color }}>{score}</span>
-    </div>
-  )
-}
 
 function csmGradient(name: string) {
   const n = name.toLowerCase()
@@ -75,11 +56,10 @@ function renewalBadge(renewal: string | null) {
   )
 }
 
-export default function ClientCard({ client, onClick, selected, grayscale, design = 'night' }: { client: Client; onClick: () => void; selected?: boolean; grayscale?: boolean; design?: Design }) {
+export default function ClientCard({ client, onClick, selected, grayscale }: { client: Client; onClick: () => void; selected?: boolean; grayscale?: boolean }) {
   const col   = grayscale ? 'var(--n400)' : STATE_COLORS[client.healthState]
   const brand = client.brand ?? null
   const ren   = renewalBadge(client.contract.renewal)
-  const isDay = design === 'day'
 
   return (
     <div
@@ -89,7 +69,7 @@ export default function ClientCard({ client, onClick, selected, grayscale, desig
         background: 'var(--n0)',
         borderRadius: 12,
         border: selected ? `1px solid var(--v500)` : '1px solid var(--n200)',
-        ...(isDay ? { borderTop: `3px solid ${col}` } : {}),
+        borderTop: `3px solid ${col}`,
         padding: 14,
         cursor: 'pointer',
         position: 'relative',
@@ -127,31 +107,21 @@ export default function ClientCard({ client, onClick, selected, grayscale, desig
         </div>
       )}
 
-      {/* Header — day: name + score pill + bar · night: score ring + name */}
-      {isDay ? (
-        <>
-          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 10 }}>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: '-.02em', lineHeight: 1.2 }}>{client.name}</div>
-              <div style={{ fontSize: 11, color: 'var(--n500)', fontFamily: 'var(--mono)', marginTop: 2, letterSpacing: '-.01em' }}>€{formatARR(client.arr)}</div>
-            </div>
-            <div style={{ padding: '3px 10px', borderRadius: 999, fontSize: 12, fontWeight: 800, flexShrink: 0, background: `${col}14`, color: col, letterSpacing: '-.01em' }}>
-              {client.score}
-            </div>
-          </div>
-          <div style={{ marginBottom: 10 }}>
-            <ScoreBar score={client.score} healthState={client.healthState} height={3} />
-          </div>
-        </>
-      ) : (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-          <ScoreRing score={client.score} color={col} />
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: '-.02em', lineHeight: 1.2 }}>{client.name}</div>
-            <div style={{ fontSize: 11, color: 'var(--n500)', fontFamily: 'var(--mono)', marginTop: 2, letterSpacing: '-.01em' }}>€{formatARR(client.arr)}</div>
-          </div>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 10 }}>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: '-.02em', lineHeight: 1.2 }}>{client.name}</div>
+          <div style={{ fontSize: 11, color: 'var(--n500)', fontFamily: 'var(--mono)', marginTop: 2, letterSpacing: '-.01em' }}>€{formatARR(client.arr)}</div>
         </div>
-      )}
+        <div style={{ padding: '3px 10px', borderRadius: 999, fontSize: 12, fontWeight: 800, flexShrink: 0, background: `${col}14`, color: col, letterSpacing: '-.01em' }}>
+          {client.score}
+        </div>
+      </div>
+
+      {/* Score bar */}
+      <div style={{ marginBottom: 10 }}>
+        <ScoreBar score={client.score} healthState={client.healthState} height={3} />
+      </div>
 
       {/* Drivers */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 3, marginBottom: 10 }}>

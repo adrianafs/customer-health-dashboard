@@ -2,7 +2,7 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { Client, HealthState, CSMName, formatARR } from '@/lib/types'
 import { mockClients } from '@/lib/mockData'
-import ClientCard, { type Design } from '@/components/ClientCard'
+import ClientCard from '@/components/ClientCard'
 import DetailPanel from '@/components/DetailPanel'
 import { STATE_COLORS, STATE_LABELS } from '@/components/ScoreBar'
 
@@ -47,13 +47,11 @@ type BrandFilter = 'all' | 'flowbox' | 'dream' | 'both'
 type AiMsg = { role: 'user' | 'assistant'; text: string; ts: string }
 
 function AiSidebar({
-  clients, open, onToggle, activeCsmId, csmList, design = 'night',
+  clients, open, onToggle, activeCsmId, csmList,
 }: {
   clients: Client[]; open: boolean; onToggle: () => void
   activeCsmId: string; csmList: { name: CSMName; ownerId: string }[]
-  design?: Design
 }) {
-  const aiDay = design === 'day'
   const [msgs, setMsgs] = useState<AiMsg[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
@@ -113,17 +111,17 @@ function AiSidebar({
 
   return (
     <aside style={{ width: open ? 360 : 52, flexShrink: 0, background: 'var(--n0)', borderLeft: '1px solid var(--n200)', display: 'flex', flexDirection: 'column', overflow: 'hidden', transition: 'width .28s cubic-bezier(.4,0,.2,1)' }}>
-      <div style={{ height: 56, background: open && !aiDay ? 'linear-gradient(145deg,var(--v800) 0%,var(--v500) 100%)' : 'var(--n0)', borderBottom: open && !aiDay ? 'none' : '1px solid var(--n100)', display: 'flex', alignItems: 'center', padding: open ? '0 14px' : 0, gap: 10, flexShrink: 0, justifyContent: open ? 'flex-start' : 'center' }}>
-        <div style={{ width: 28, height: 28, borderRadius: 999, background: open && !aiDay ? 'rgba(255,255,255,.15)' : 'linear-gradient(135deg,var(--v500),var(--v300))', border: open && !aiDay ? '1px solid rgba(255,255,255,.2)' : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+      <div style={{ height: 56, background: open ? 'linear-gradient(145deg,var(--v800) 0%,var(--v500) 100%)' : 'var(--n0)', borderBottom: open ? 'none' : '1px solid var(--n100)', display: 'flex', alignItems: 'center', padding: open ? '0 14px' : 0, gap: 10, flexShrink: 0, justifyContent: open ? 'flex-start' : 'center' }}>
+        <div style={{ width: 28, height: 28, borderRadius: 999, background: open ? 'rgba(255,255,255,.15)' : 'linear-gradient(135deg,var(--v500),var(--v300))', border: open ? '1px solid rgba(255,255,255,.2)' : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           <svg width="13" height="13" viewBox="0 0 12 12" fill="none"><path d="M6 .75l1.5 3.5 3.5 1.5-3.5 1.5L6 10.75 4.5 7.25 1 5.75l3.5-1.5L6 .75z" fill="white"/></svg>
         </div>
         {open && (
           <>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: aiDay ? 'var(--n900)' : '#fff', whiteSpace: 'nowrap', overflow: 'hidden', letterSpacing: '-.01em' }}>Claude AI</div>
-              <div style={{ fontSize: 10, color: aiDay ? 'var(--n500)' : 'var(--v300)', whiteSpace: 'nowrap', marginTop: 1 }}>{activeCsmName ? `${activeCsmName.split(' ')[0]}'s assistant` : 'CS intelligence'}</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', letterSpacing: '-.01em' }}>Claude AI</div>
+              <div style={{ fontSize: 10, color: 'var(--v300)', whiteSpace: 'nowrap', marginTop: 1 }}>{activeCsmName ? `${activeCsmName.split(' ')[0]}'s assistant` : 'CS intelligence'}</div>
             </div>
-            <button onClick={onToggle} style={{ width: 28, height: 28, borderRadius: 6, border: aiDay ? '1px solid var(--n200)' : '1px solid rgba(255,255,255,.25)', background: aiDay ? 'none' : 'rgba(255,255,255,.1)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: aiDay ? 'var(--n500)' : '#fff', flexShrink: 0 }}>
+            <button onClick={onToggle} style={{ width: 28, height: 28, borderRadius: 6, border: '1px solid rgba(255,255,255,.25)', background: 'rgba(255,255,255,.1)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', flexShrink: 0 }}>
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 3l4 4-4 4M1 7h12" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg>
             </button>
           </>
@@ -218,21 +216,6 @@ export default function Dashboard() {
   const [aiOpen, setAiOpen] = useState(true)
   const [lastSync, setLastSync] = useState<string | null>(null)
   const [churnColOpen, setChurnColOpen] = useState(true)
-  const [design, setDesign] = useState<Design>('night')
-
-  // Restore + persist design choice
-  useEffect(() => {
-    const saved = typeof window !== 'undefined' ? window.localStorage.getItem('chd-design') : null
-    if (saved === 'day' || saved === 'night') setDesign(saved)
-  }, [])
-  function toggleDesign() {
-    setDesign(prev => {
-      const next = prev === 'night' ? 'day' : 'night'
-      try { window.localStorage.setItem('chd-design', next) } catch { /* ignore */ }
-      return next
-    })
-  }
-  const isDay = design === 'day'
 
   const loadData = useCallback(async () => {
     setLoading(true)
@@ -322,7 +305,7 @@ export default function Dashboard() {
       )}
 
       {/* Header */}
-      <header style={{ height: 56, background: isDay ? 'var(--n0)' : 'var(--v50)', borderBottom: `1px solid ${isDay ? 'var(--n200)' : 'var(--v100)'}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px', flexShrink: 0, boxShadow: isDay ? 'var(--ss)' : 'none', zIndex: 50 }}>
+      <header style={{ height: 56, background: 'var(--v50)', borderBottom: '1px solid var(--v100)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px', flexShrink: 0, zIndex: 50 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <svg width="34" height="34" viewBox="0 0 34 34" fill="none">
@@ -332,7 +315,7 @@ export default function Dashboard() {
             </svg>
             <div>
               <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--n900)', letterSpacing: '-.025em', lineHeight: 1 }}>Customer Health</div>
-              <div style={{ fontSize: 10, fontWeight: 500, color: isDay ? 'var(--n500)' : 'var(--v500)', letterSpacing: '.05em', textTransform: 'uppercase', marginTop: 1 }}>Flowbox CS · Internal</div>
+              <div style={{ fontSize: 10, fontWeight: 500, color: 'var(--v500)', letterSpacing: '.05em', textTransform: 'uppercase', marginTop: 1 }}>Flowbox CS · Internal</div>
             </div>
           </div>
           <div style={{ width: 1, height: 20, background: 'var(--v100)' }} />
@@ -342,16 +325,6 @@ export default function Dashboard() {
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          {/* Design toggle (eye icon): night ↔ day */}
-          <button onClick={toggleDesign} title={isDay ? 'Switch to night design' : 'Switch to day design'}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, borderRadius: 8, cursor: 'pointer', fontSize: 12, fontWeight: 500, padding: '6px 10px', background: isDay ? 'var(--n0)' : 'var(--v500)', color: isDay ? 'var(--n700)' : '#fff', border: `1px solid ${isDay ? 'var(--n200)' : 'var(--v500)'}`, fontFamily: 'var(--font)' }}>
-            {isDay ? (
-              <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M1 8s2.5-5 7-5 7 5 7 5-2.5 5-7 5-7-5-7-5z" stroke="currentColor" strokeWidth="1.4"/><circle cx="8" cy="8" r="2" stroke="currentColor" strokeWidth="1.4"/></svg>
-            ) : (
-              <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M1 8s2.5-5 7-5 7 5 7 5-2.5 5-7 5-7-5-7-5z" stroke="currentColor" strokeWidth="1.4"/><path d="M2 2l12 12" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg>
-            )}
-            {isDay ? 'Day' : 'Night'}
-          </button>
           {lastSync && <span style={{ fontSize: 11, color: 'var(--n400)' }}>Updated {lastSync}</span>}
           <button onClick={loadData} disabled={loading}
             style={{ display: 'inline-flex', alignItems: 'center', gap: 6, borderRadius: 8, fontFamily: 'var(--font)', fontWeight: 500, cursor: 'pointer', fontSize: 12, padding: '6px 12px', background: 'var(--n0)', color: 'var(--n900)', border: '1px solid var(--v100)', boxShadow: 'var(--ss)', opacity: loading ? .6 : 1 }}>
@@ -454,37 +427,25 @@ export default function Dashboard() {
 
               return (
                 <div key={col.state} style={{ flex: 1, minWidth: 0 }}>
-                  {isDay ? (
-                    /* Day: plain column header */
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 10 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
-                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: STATE_COLORS[col.state], flexShrink: 0 }} />
-                        <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.01em' }}>{STATE_LABELS[col.state]}</span>
-                        <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--n500)', background: 'var(--n100)', borderRadius: 999, padding: '1px 7px' }}>{colClients.length}</span>
+                  {/* Colored column header with ARR */}
+                  <div style={{ background: hue.bg, border: `1px solid ${hue.border}`, borderRadius: 12, padding: '10px 12px', marginBottom: 10 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: hue.text }}>{STATE_LABELS[col.state]}</span>
+                        <span style={{ minWidth: 20, height: 20, padding: '0 6px', borderRadius: 999, fontSize: 10, fontWeight: 800, color: '#fff', background: STATE_COLORS[col.state], display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{colClients.length}</span>
                       </div>
-                      <span style={{ fontSize: 10, color: 'var(--n400)', fontWeight: 500 }}>{col.subtitle}</span>
+                      <span style={{ fontSize: 10, color: hue.text, opacity: .7, fontWeight: 500 }}>{col.subtitle}</span>
                     </div>
-                  ) : (
-                    /* Night: colored column header with ARR */
-                    <div style={{ background: hue.bg, border: `1px solid ${hue.border}`, borderRadius: 12, padding: '10px 12px', marginBottom: 10 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                          <span style={{ fontSize: 12, fontWeight: 700, color: hue.text }}>{STATE_LABELS[col.state]}</span>
-                          <span style={{ minWidth: 20, height: 20, padding: '0 6px', borderRadius: 999, fontSize: 10, fontWeight: 800, color: '#fff', background: STATE_COLORS[col.state], display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{colClients.length}</span>
-                        </div>
-                        <span style={{ fontSize: 10, color: hue.text, opacity: .7, fontWeight: 500 }}>{col.subtitle}</span>
-                      </div>
-                      <div style={{ fontSize: 12, fontWeight: 800, color: hue.text, fontFamily: 'var(--mono)' }}>
-                        €{formatARR(colARR)} <span style={{ fontSize: 9, fontWeight: 500, opacity: .6 }}>ARR</span>
-                      </div>
+                    <div style={{ fontSize: 12, fontWeight: 800, color: hue.text, fontFamily: 'var(--mono)' }}>
+                      €{formatARR(colARR)} <span style={{ fontSize: 9, fontWeight: 500, opacity: .6 }}>ARR</span>
                     </div>
-                  )}
+                  </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {colClients.length === 0
                       ? <div style={{ padding: '28px 16px', borderRadius: 12, border: '1.5px dashed var(--n200)', fontSize: 12, color: 'var(--n400)', textAlign: 'center' }}>No accounts</div>
                       : colClients.map((c, i) => (
                         <div key={c.id} style={{ animationDelay: `${i * 35}ms` }}>
-                          <ClientCard client={c} onClick={() => setSelectedClient(c)} selected={selectedClient?.id === c.id} design={design} />
+                          <ClientCard client={c} onClick={() => setSelectedClient(c)} selected={selectedClient?.id === c.id} />
                         </div>
                       ))
                     }
@@ -530,7 +491,7 @@ export default function Dashboard() {
                         ? <div style={{ padding: '28px 16px', borderRadius: 12, border: '1.5px dashed var(--n200)', fontSize: 12, color: 'var(--n400)', textAlign: 'center' }}>No accounts</div>
                         : churnClients.map((c, i) => (
                           <div key={c.id} style={{ animationDelay: `${i * 35}ms`, opacity: 0.85 }}>
-                            <ClientCard client={c} onClick={() => setSelectedClient(c)} selected={selectedClient?.id === c.id} grayscale design={design} />
+                            <ClientCard client={c} onClick={() => setSelectedClient(c)} selected={selectedClient?.id === c.id} grayscale />
                           </div>
                         ))
                       }
@@ -543,7 +504,7 @@ export default function Dashboard() {
         </div>
 
         {/* AI Sidebar */}
-        <AiSidebar clients={clients} open={aiOpen} onToggle={() => setAiOpen(v => !v)} activeCsmId={activeCsmId} csmList={csmList} design={design} />
+        <AiSidebar clients={clients} open={aiOpen} onToggle={() => setAiOpen(v => !v)} activeCsmId={activeCsmId} csmList={csmList} />
       </div>
 
       {selectedClient && (
