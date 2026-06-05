@@ -184,6 +184,8 @@ function classify(
   inOB: boolean,
   obDays: number,
   workingOnAntiChurn: boolean,
+  lastCompletedMeetingDaysAgo: number | null,
+  hasNextMeeting: boolean,
 ): { state: HealthState; rules: string[] } {
 
   // ── CHURN RISK ──────────────────────────────────────────────────────────────
@@ -202,6 +204,8 @@ function classify(
     return { state: 'action_required', rules: ['up_for_renewal_no_contact_30d'] }
   if (stage === '1309169015' && daysUntil(subscriptionEndDate) <= 45)
     return { state: 'action_required', rules: ['renewal_in_progress_sub_end_45d'] }
+  if (lastCompletedMeetingDaysAgo !== null && lastCompletedMeetingDaysAgo > 90 && !hasNextMeeting)
+    return { state: 'action_required', rules: ['no_meeting_90d_no_next'] }
 
   // ── KEEP AN EYE ─────────────────────────────────────────────────────────────
   if (inOB)                   return { state: 'keep_an_eye', rules: ['onboarding_active'] }
@@ -359,7 +363,67 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // ── 5. Build Client objects — one per deal, using parent company ─────────
+    // ── 5. Meeting data per company ───────────────────────────────────────────
+    // Fetch meeting associations for all companies, then batch-read meeting props
+    const coMeetingMap: Record<string, { lastCompletedDaysAgo: number | null; hasNextMeeting: boolean }> = {}
+    const allCoIds = companies.map(co => String(co.id))
+
+    // 5a. Get meeting IDs per company (chunked)
+    const coMeetingIds: Record<string, string[]> = {}
+    for (let i = 0; i < allCoIds.length; i += 100) {
+      const chunk = allCoIds.slice(i, i + 100)
+      await sleep(300)
+      const assocRes = await hsPost('/crm/v4/associations/company/meetings/batch/read', {
+        inputs: chunk.map(id => ({ id })),
+      })
+      if (assocRes.ok) {
+        const assocData = await assocRes.json()
+        for (const r of assocData.results ?? []) {
+          const coId = String(r.from?.id ?? '')
+          const mIds = (r.to ?? []).map((t: Record<string, unknown>) => String(t.toObjectId ?? t.id ?? '')).filter(Boolean)
+          if (coId && mIds.length) coMeetingIds[coId] = mIds
+        }
+      }
+    }
+
+    // 5b. Batch-read meeting properties
+    const allMeetingIds = [...new Set(Object.values(coMeetingIds).flat())]
+    const meetingPropsMap: Record<string, { timestamp: string; outcome: string }> = {}
+    for (let i = 0; i < allMeetingIds.length; i += 100) {
+      const chunk = allMeetingIds.slice(i, i + 100)
+      await sleep(300)
+      const batchRes = await hsPost('/crm/v3/objects/meetings/batch/read', {
+        properties: ['hs_timestamp', 'hs_meeting_outcome'],
+        inputs: chunk.map(id => ({ id })),
+      })
+      if (batchRes.ok) {
+        const batchData = await batchRes.json()
+        for (const m of batchData.results ?? []) {
+          const p = (m.properties as Record<string, string>) ?? {}
+          meetingPropsMap[String(m.id)] = { timestamp: p.hs_timestamp ?? '', outcome: p.hs_meeting_outcome ?? '' }
+        }
+      }
+    }
+
+    // 5c. Compute per-company meeting summary
+    const now = Date.now()
+    for (const [coId, mIds] of Object.entries(coMeetingIds)) {
+      const meetings = mIds.map(id => meetingPropsMap[id]).filter(Boolean)
+      const past   = meetings.filter(m => new Date(m.timestamp).getTime() <= now)
+      const future = meetings.filter(m => new Date(m.timestamp).getTime() >  now)
+      const completed = past
+        .filter(m => m.outcome === 'COMPLETED')
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+      const lastCompletedDaysAgo = completed.length > 0
+        ? Math.floor((now - new Date(completed[0].timestamp).getTime()) / 86400000)
+        : null
+      coMeetingMap[coId] = {
+        lastCompletedDaysAgo,
+        hasNextMeeting: future.length > 0,
+      }
+    }
+
+    // ── 6. Build Client objects — one per deal, using parent company ─────────
     // Index companies by ID for fast lookup
     const companyById: Record<string, Record<string, string>> = {}
     for (const co of companies) {
@@ -471,9 +535,12 @@ export async function GET(req: NextRequest) {
 
       const noticePeriodMonths = deal['notice_period___in_months__'] ?? null
 
+      const meeting = coMeetingMap[coId] ?? { lastCompletedDaysAgo: null, hasNextMeeting: false }
+
       const { state, rules } = classify(
         stage, autoRenewal, subscriptionEndDate, pauseEndDate, churnDate,
         lastDays, serviceLevel, churnFlag, ob.active, ob.days, workingOnAntiChurn,
+        meeting.lastCompletedDaysAgo, meeting.hasNextMeeting,
       )
       const score = toScore(state, lastDays)
 
@@ -499,10 +566,14 @@ export async function GET(req: NextRequest) {
         drivers.push({ label: pauseEndDate ? `Paused — resumes ${pauseEndDate}` : 'Paused', type: 'neutral', direction: 'stable' })
       if (stage === '1309169019')
         drivers.push({ label: 'Renewed', type: 'positive', direction: 'improving' })
+      if (meeting.lastCompletedDaysAgo !== null && meeting.lastCompletedDaysAgo > 90 && !meeting.hasNextMeeting)
+        drivers.push({ label: `No meeting in ${meeting.lastCompletedDaysAgo}d — schedule one`, type: 'negative', direction: 'declining' })
 
       const actionMap: Record<HealthState, string> = {
         churn_risk:      'Initiate save play immediately. Escalate to management.',
-        action_required: 'Contact today — prepare renewal proposal or usage intervention.',
+        action_required: rules.includes('no_meeting_90d_no_next')
+          ? 'Schedule a meeting — no completed meeting in over 90 days and no next one booked.'
+          : 'Contact today — prepare renewal proposal or usage intervention.',
         keep_an_eye:     'Schedule check-in this week. Review open items.',
         stable:          'Maintain cadence. Consider proactive QBR or upsell conversation.',
       }
@@ -534,6 +605,7 @@ export async function GET(req: NextRequest) {
             up_for_renewal_no_contact_45d:    `up for renewal with no contact in ${lastDays}d`,
             renewal_in_progress:              'renewal negotiation in progress',
             paused_end_30d:                   `contract is paused and resumes in ${daysUntil(pauseEndDate)}d`,
+            no_meeting_90d_no_next:           `last completed meeting was ${meeting.lastCompletedDaysAgo}d ago with no next meeting scheduled`,
           }
           if (!rules.length) return `No negative signals detected. ${contactStr.charAt(0).toUpperCase() + contactStr.slice(1)}.`
           const descriptions = rules.map(r => ruleDescriptions[r] ?? r).join('; ')

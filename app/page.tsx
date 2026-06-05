@@ -369,7 +369,7 @@ export default function Dashboard() {
 
               {/* Brand filter — only shown when brand data is available */}
               {hasBrandData && (
-                <div style={{ display: 'flex', background: 'var(--n50)', border: '1px solid var(--n200)', borderRadius: 8, padding: 3, gap: 2 }}>
+                <div style={{ display: 'flex', background: '#F0EBF8', border: '1px solid #D9CDEF', borderRadius: 8, padding: 3, gap: 2 }}>
                   {BRAND_FILTERS.map(b => (
                     <button key={b.value} onClick={() => { setActiveBrand(b.value); setSelectedClient(null) }}
                       style={{
