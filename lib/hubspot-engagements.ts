@@ -203,14 +203,21 @@ Return ONLY valid JSON with this exact structure:
   }
 }
 
-Churn signal definitions — only mark detected:true if there is clear evidence:
-- economic: mentions budget cuts, Flowbox is too expensive, unclear ROI, treating it as a "nice to have"
-- resources: no time to use the platform, no one managing it, team too small, person responsible left
-- stakeholder: champion/end-user leaving the company, unclear replacement, new manager doesn't know Flowbox, no one left responsible
-- product: not what they expected, many technical issues, integration problems, stuck in onboarding
-- competitor: explicitly names a competitor (Yotpo, Join, Bazaarvoice, Stackla, etc.)
-- strategy: pivoting away from UGC or influencer marketing, shifting to macro-influencers or paid media
-- content: disappointed with the amount of UGC content collected, not enough content to moderate, creators not delivering
+CHURN SIGNAL DEFINITIONS — apply a very high bar. Only mark detected:true if there is explicit, unambiguous evidence in the text. When in doubt, mark false.
+
+- economic: Client explicitly mentions budget cuts, says Flowbox is too expensive, questions ROI with clear intent to reconsider the contract, or treats it as a "nice to have" they could drop. Vague mentions of cost or budget without renewal intent do NOT count.
+
+- resources: Client has explicitly stated they do not have time for Flowbox AND this is framed as a reason to reconsider the contract renewal. General busyness, slow replies, or "we've been busy" do NOT count — only explicit statements linking lack of time/resources to contract risk.
+
+- stakeholder: Client has explicitly stated there is no one dedicated to Flowbox, that team restructuring means nobody will manage it, or a new decision-maker has expressed clear doubt about keeping the contract. A contact leaving the company alone does NOT count — there must be explicit uncertainty about who takes over OR a new stakeholder questioning the value.
+
+- product: Client has expressed strong dissatisfaction with the product due to: (a) major technical issues or bugs that are blockers to using the platform, (b) platform instability mentioned multiple times, or (c) explicit statement that the sales process oversold features that don't exist. Minor bugs, feature requests, or general feedback do NOT count — the issues must be blocking their use of Flowbox.
+
+- competitor: Client explicitly names a direct Flowbox competitor AND the context is evaluating or replacing Flowbox with it. Direct competitors only: Bazaarvoice, Join Stories, Taggbox, Squarelovin, Cevoid, Emplifi, Stackla, Yotpo, Skeepers, Club.co, Modash, Influencity, Kolsquare, Stellar.io. If the competitor is mentioned as something they tried in the past, use for a different purpose, or just heard about — do NOT mark as detected.
+
+- strategy: Client has explicitly stated they are stopping influencer/creator collaborations or UGC collection entirely and reallocating that budget to other channels. General shifts in marketing focus or reducing investment do NOT count — must be an explicit statement of abandoning this strategy.
+
+- content: Client has expressed clear frustration that they are not receiving enough UGC content (in quantity or quality), has tried strategies to generate more that failed, and this is framed as a fundamental blocker — not just a temporary challenge. General disappointment or wanting more content does NOT count — must be explicit frustration with no path forward.
 
 sentimentType:
 - "churn": cancellation intent, strong dissatisfaction, competitor evaluation, ROI doubts

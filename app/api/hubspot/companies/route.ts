@@ -587,7 +587,7 @@ export async function GET(req: NextRequest) {
 
     // Apply demo overrides — move to churn_risk without touching HubSpot
     const DEMO_LABELS: Record<string, string> = {
-      no_platform_login_30d: 'no platform logins in the last 30 days',
+      no_platform_login_60d: 'no platform logins in the last 60 days',
       economic:    'budget or ROI concerns detected in communications',
       resources:   'no time or no internal owner for Flowbox',
       stakeholder: 'stakeholder change detected',

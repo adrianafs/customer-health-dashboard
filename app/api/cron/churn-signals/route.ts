@@ -72,8 +72,8 @@ export async function GET(req: NextRequest) {
       if (company.platformId) {
         await sleep(200)
         const usage = await getUsageStats(company.platformId, company.id)
-        if (usage && usage.activeDays30 === 0) {
-          detected.push('no_platform_login_30d')
+        if (usage && usage.activeDays30 === 0 && usage.platformDays >= 60) {
+          detected.push('no_platform_login_60d')
         }
       }
 
