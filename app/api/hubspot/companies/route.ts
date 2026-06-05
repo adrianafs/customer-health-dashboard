@@ -221,14 +221,33 @@ function classify(
   return { state: 'stable', rules: [] }
 }
 
-function toScore(state: HealthState, lastDays: number): number {
+function toScore(
+  state: HealthState,
+  lastDays: number,
+  opts: { daysToRenewal?: number; autoRenewal?: boolean; communicatedChurn?: boolean } = {},
+): number {
   const base: Record<HealthState, number> = {
-    stable: 82, keep_an_eye: 58, action_required: 36, churn_risk: 14,
+    stable: 82, keep_an_eye: 58, action_required: 36, churn_risk: 22,
   }
   let s = base[state]
-  if (lastDays < 7)  s = Math.min(s + 6, 98)
-  if (lastDays > 30) s = Math.max(s - 6, 5)
-  return Math.round(s)
+
+  if (state === 'churn_risk') {
+    // Differentiate churn risk accounts (range: 1–30)
+    if (opts.communicatedChurn)                                   s -= 10  // worst: told us they're leaving
+    if (lastDays > 60)                                            s -= 6   // gone dark
+    else if (lastDays > 30)                                       s -= 3   // no recent contact
+    else if (lastDays < 7)                                        s += 4   // actively working it
+    if (!opts.autoRenewal && (opts.daysToRenewal ?? 999) < 30)   s -= 6   // renewal imminent, no auto
+    else if (!opts.autoRenewal && (opts.daysToRenewal ?? 999) < 60) s -= 3
+    s = Math.max(1, Math.min(30, Math.round(s)))
+  } else {
+    // Other states: small contact-recency adjustment
+    if (lastDays < 7)  s = Math.min(s + 6, 98)
+    if (lastDays > 30) s = Math.max(s - 6, 5)
+    s = Math.round(s)
+  }
+
+  return s
 }
 
 function ownerName(id: string | null | undefined): string {
@@ -542,7 +561,11 @@ export async function GET(req: NextRequest) {
         lastDays, serviceLevel, churnFlag, ob.active, ob.days, workingOnAntiChurn,
         meeting.lastCompletedDaysAgo, meeting.hasNextMeeting,
       )
-      const score = toScore(state, lastDays)
+      const score = toScore(state, lastDays, {
+        daysToRenewal: daysUntil(subscriptionEndDate),
+        autoRenewal,
+        communicatedChurn: stage === '1309169016',
+      })
 
       // Score drivers
       const drivers: Client['scoreDrivers'] = []
