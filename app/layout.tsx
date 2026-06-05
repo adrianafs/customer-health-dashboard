@@ -8,6 +8,7 @@ const dmMono = DM_Mono({ subsets: ['latin'], weight: ['400', '500'], variable: '
 export const metadata: Metadata = {
   title: 'Customer Health — Flowbox CS',
   description: 'Flowbox Customer Success internal dashboard',
+  icons: { icon: '/favicon.svg' },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
